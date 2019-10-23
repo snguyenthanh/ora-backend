@@ -1,4 +1,5 @@
 from sanic.response import json
+from sanic.exceptions import Forbidden
 
 from ora_backend.views.urls import visitor_blueprint as blueprint
 from ora_backend.models import Visitor
@@ -21,12 +22,11 @@ async def visitor_retrieve(req, *, req_args, req_body, **kwargs):
 @validate_permission
 @validate_request(schema="visitor_write", update=True)
 async def visitor_update(req, *, req_args, req_body, requester, **kwargs):
-    user_id = req_args["id"]
-    update_user = await Visitor.get(id=user_id)
+    visitor_id = req_args["id"]
 
     # Only the visitor himself can modify
-    if requester["id"] != user_id:
-        raise_role_authorization_exception(update_user["role_id"])
+    if requester["id"] != visitor_id:
+        raise Forbidden("Only the visitor himself can modify.")
 
     return {"data": await Visitor.modify(req_args, req_body)}
 
