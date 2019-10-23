@@ -37,7 +37,8 @@ def get_fake_organisation():
 
 async def get_access_token_for_user(user, app=None):
     token = await create_access_token(identity=user, app=app)
-    return "Bearer " + token
+    # return "Bearer " + token
+    return token
 
 
 # Helper functions

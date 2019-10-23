@@ -1,8 +1,10 @@
 from typing import Tuple
 
+from asyncpg.exceptions import UniqueViolationError
 from sqlalchemy import and_, desc
 
 from ora_backend import db
+from ora_backend.exceptions import UniqueViolationError as DuplicatedError
 from ora_backend.utils.exceptions import raise_not_found_exception
 from ora_backend.utils.transaction import in_transaction
 
@@ -153,8 +155,10 @@ async def get_many_with_count_and_group_by(
 
 @in_transaction
 async def create_one(model, **kwargs):
-    return await model(**kwargs).create()
-
+    try:
+        return await model(**kwargs).create()
+    except UniqueViolationError as err:
+        raise DuplicatedError(err.as_dict())
 
 @in_transaction
 async def update_one(row, **kwargs):

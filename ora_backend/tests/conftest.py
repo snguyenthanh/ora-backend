@@ -55,10 +55,33 @@ async def token_admin_2(app):
 
 
 @pytest.fixture
+def admin2_client(loop, app, sanic_client):
+    access_token = loop.run_until_complete(
+        get_access_token_for_user(
+            {**_users[-1], "role_id": 1, "organisation_id": _orgs[0]["id"]}, app=app
+        )
+    )
+    cookies = {"access_token": access_token}
+    return loop.run_until_complete(sanic_client(app, cookies=cookies))
+
+
+@pytest.fixture
 async def token_admin_1(app):
     return await get_access_token_for_user(
         {**_users[-2], "role_id": 1, "organisation_id": _orgs[0]["id"]}, app=app
     )
+
+
+@pytest.fixture
+def admin1_client(loop, app, sanic_client):
+    access_token = loop.run_until_complete(
+        get_access_token_for_user(
+            {**_users[-2], "role_id": 1, "organisation_id": _orgs[0]["id"]}, app=app
+        )
+    )
+    cookies = {"access_token": access_token}
+    # return await sanic_client(app, cookies=cookies)
+    return loop.run_until_complete(sanic_client(app, cookies=cookies))
 
 
 @pytest.fixture
@@ -69,10 +92,34 @@ async def token_supervisor_2(app):
 
 
 @pytest.fixture
+def supervisor2_client(loop, app, sanic_client):
+    access_token = loop.run_until_complete(
+        get_access_token_for_user(
+            {**_users[-3], "role_id": 2, "organisation_id": _orgs[0]["id"]}, app=app
+        )
+    )
+    cookies = {"access_token": access_token}
+    # return await sanic_client(app, cookies=cookies)
+    return loop.run_until_complete(sanic_client(app, cookies=cookies))
+
+
+@pytest.fixture
 async def token_supervisor_1(app):
     return await get_access_token_for_user(
         {**_users[-4], "role_id": 2, "organisation_id": _orgs[0]["id"]}, app=app
     )
+
+
+@pytest.fixture
+def supervisor1_client(loop, app, sanic_client):
+    access_token = loop.run_until_complete(
+        get_access_token_for_user(
+            {**_users[-4], "role_id": 2, "organisation_id": _orgs[0]["id"]}, app=app
+        )
+    )
+    cookies = {"access_token": access_token}
+    # return await sanic_client(app, cookies=cookies)
+    return loop.run_until_complete(sanic_client(app, cookies=cookies))
 
 
 @pytest.fixture
@@ -83,7 +130,31 @@ async def token_agent_2(app):
 
 
 @pytest.fixture
+def agent2_client(loop, app, sanic_client):
+    access_token = loop.run_until_complete(
+        get_access_token_for_user(
+            {**_users[-5], "role_id": 3, "organisation_id": _orgs[0]["id"]}, app=app
+        )
+    )
+    cookies = {"access_token": access_token}
+    # return await sanic_client(app, cookies=cookies)
+    return loop.run_until_complete(sanic_client(app, cookies=cookies))
+
+
+@pytest.fixture
 async def token_agent_1(app):
     return await get_access_token_for_user(
         {**_users[-6], "role_id": 3, "organisation_id": _orgs[0]["id"]}, app=app
     )
+
+
+@pytest.fixture
+def agent1_client(loop, app, sanic_client):
+    access_token = loop.run_until_complete(
+        get_access_token_for_user(
+            {**_users[-6], "role_id": 3, "organisation_id": _orgs[0]["id"]}, app=app
+        )
+    )
+    cookies = {"access_token": access_token}
+    # return await sanic_client(app, cookies=cookies)
+    return loop.run_until_complete(sanic_client(app, cookies=cookies))

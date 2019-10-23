@@ -28,10 +28,9 @@ async def test_get_one_user(client, users):
     assert res.status == 404
 
 
-async def test_get_all_users(client, users, token_supervisor_1):
-    res = await client.get("/users", headers={"Authorization": token_supervisor_1})
+async def test_get_all_users(supervisor1_client, users):
+    res = await supervisor1_client.get("/users")
     assert res.status == 200
-
     body = await res.json()
     assert "data" in body
     assert isinstance(body["data"], list)
@@ -42,9 +41,7 @@ async def test_get_all_users(client, users, token_supervisor_1):
     )
 
     # GET request will have its body ignored.
-    res = await client.get(
-        "/users", json={"id": 3}, headers={"Authorization": token_supervisor_1}
-    )
+    res = await supervisor1_client.get("/users", json={"id": 3})
     assert res.status == 200
 
     body = await res.json()
@@ -53,10 +50,7 @@ async def test_get_all_users(client, users, token_supervisor_1):
     assert len(body["data"]) == 11  # Default offset for User is 11
 
     # Get one user by id
-    res = await client.get(
-        "/users?id={}".format(users[2]["id"]),
-        headers={"Authorization": token_supervisor_1},
-    )
+    res = await supervisor1_client.get("/users?id={}".format(users[2]["id"]))
     assert res.status == 200
 
     body = await res.json()
@@ -67,9 +61,7 @@ async def test_get_all_users(client, users, token_supervisor_1):
 
     ## LIMIT ##
     # No users
-    res = await client.get(
-        "/users?limit=0", headers={"Authorization": token_supervisor_1}
-    )
+    res = await supervisor1_client.get("/users?limit=0")
     assert res.status == 200
 
     body = await res.json()
@@ -78,9 +70,7 @@ async def test_get_all_users(client, users, token_supervisor_1):
     assert not body["data"]
 
     # 10 users
-    res = await client.get(
-        "/users?limit=10", headers={"Authorization": token_supervisor_1}
-    )
+    res = await supervisor1_client.get("/users?limit=10")
     assert res.status == 200
 
     body = await res.json()
@@ -96,9 +86,7 @@ async def test_get_all_users(client, users, token_supervisor_1):
     next_page_link = body["links"]["next"]
     # Strip the host, as it is a testing host
     next_page_link = "/" + "/".join(next_page_link.split("/")[3:])
-    res = await client.get(
-        next_page_link, headers={"Authorization": token_supervisor_1}
-    )
+    res = await supervisor1_client.get(next_page_link)
     assert res.status == 200
 
     body = await res.json()
@@ -111,18 +99,13 @@ async def test_get_all_users(client, users, token_supervisor_1):
     )
 
     # -1 users
-    res = await client.get(
-        "/users?limit=-1", headers={"Authorization": token_supervisor_1}
-    )
+    res = await supervisor1_client.get("/users?limit=-1")
     assert res.status == 400
 
 
-async def test_get_users_with_after_id(client, users, token_supervisor_1):
+async def test_get_users_with_after_id(users, supervisor1_client):
     # Use after_id in query parameter.
-    res = await client.get(
-        "/users?after_id={}".format(users[2]["id"]),
-        headers={"Authorization": token_supervisor_1},
-    )
+    res = await supervisor1_client.get("/users?after_id={}".format(users[2]["id"]))
     assert res.status == 200
 
     body = await res.json()
@@ -137,21 +120,17 @@ async def test_get_users_with_after_id(client, users, token_supervisor_1):
     )
 
     # Invalid after_id
-    res = await client.get(
-        "/users?after_id=2", headers={"Authorization": token_supervisor_1}
-    )
+    res = await supervisor1_client.get("/users?after_id=2")
     assert res.status == 404
 
-    res = await client.get(
-        "/users?after_id=", headers={"Authorization": token_supervisor_1}
-    )
+    res = await supervisor1_client.get("/users?after_id=")
     assert res.status == 400
 
 
 ## CREATE ##
 
 
-async def test_create_user(client, users, token_supervisor_1, token_agent_1):
+async def test_create_user_without_token(client):
     new_user = get_fake_user()
     new_user.pop("id")
 
@@ -159,12 +138,21 @@ async def test_create_user(client, users, token_supervisor_1, token_agent_1):
     res = await client.post("/users", json=new_user)
     assert res.status == 401
 
+
+async def test_create_user_as_agent(agent1_client):
+    # An agent cannot create another agent
+    new_user = get_fake_user()
+    new_user.pop("id")
+    res = await agent1_client.post("/users", json=new_user)
+    assert res.status == 403
+
+
+async def test_create_user(users, supervisor1_client):
+    new_user = get_fake_user()
+    new_user.pop("id")
+
     # Valid
-    res = await client.post(
-        "/users", json=new_user, headers={"Authorization": token_supervisor_1}
-    )
-    print("yay")
-    print(await res.json())
+    res = await supervisor1_client.post("/users", json=new_user)
     assert res.status == 200
 
     body = await res.json()
@@ -175,18 +163,10 @@ async def test_create_user(client, users, token_supervisor_1, token_agent_1):
     assert len(all_users) == len(users) + 1
     assert profile_created_from_origin(new_user, all_users[-1].to_dict())
 
-    # An agent cannot create another agent
+    # Valid
     new_user = get_fake_user()
     new_user.pop("id")
-    res = await client.post(
-        "/users", json=new_user, headers={"Authorization": token_agent_1}
-    )
-    assert res.status == 403
-
-    # Valid
-    res = await client.post(
-        "/users", json=new_user, headers={"Authorization": token_supervisor_1}
-    )
+    res = await supervisor1_client.post("/users", json=new_user)
     assert res.status == 200
 
     body = await res.json()
@@ -197,67 +177,49 @@ async def test_create_user(client, users, token_supervisor_1, token_agent_1):
     assert len(all_users) == len(users) + 2
     assert profile_created_from_origin(new_user, all_users[-1].to_dict())
 
+    # Create an existing user
+    res = await supervisor1_client.post("/users", json=new_user)
+    assert res.status == 400
 
-async def test_create_user_with_invalid_args(client, users, token_supervisor_1):
-    res = await client.post(
-        "/users", json={}, headers={"Authorization": token_supervisor_1}
+
+async def test_create_user_with_invalid_args(users, supervisor1_client):
+    res = await supervisor1_client.post("/users", json={})
+    assert res.status == 400
+
+    res = await supervisor1_client.post("/users", json={"id": 4})
+    assert res.status == 400
+
+    res = await supervisor1_client.post("/users", json={"full_name": ""})
+    assert res.status == 400
+
+    res = await supervisor1_client.post("/users", json={"full_name": ""})
+    assert res.status == 400
+
+    res = await supervisor1_client.post(
+        "/users", json={"full_name": "Josh", "password": ""}
     )
     assert res.status == 400
 
-    res = await client.post(
-        "/users", json={"id": 4}, headers={"Authorization": token_supervisor_1}
-    )
+    res = await supervisor1_client.post("/users", json={"email": ""})
     assert res.status == 400
 
-    res = await client.post(
-        "/users", json={"full_name": ""}, headers={"Authorization": token_supervisor_1}
-    )
+    res = await supervisor1_client.post("/users", json={"location": 2})
     assert res.status == 400
 
-    res = await client.post(
-        "/users", json={"full_name": ""}, headers={"Authorization": token_supervisor_1}
-    )
+    res = await supervisor1_client.post("/users", json={"created_at": 2})
     assert res.status == 400
 
-    res = await client.post(
-        "/users",
-        json={"full_name": "Josh", "password": ""},
-        headers={"Authorization": token_supervisor_1},
-    )
-    assert res.status == 400
-
-    res = await client.post(
-        "/users", json={"email": ""}, headers={"Authorization": token_supervisor_1}
-    )
-    assert res.status == 400
-
-    res = await client.post(
-        "/users", json={"location": 2}, headers={"Authorization": token_supervisor_1}
-    )
-    assert res.status == 400
-
-    res = await client.post(
-        "/users", json={"created_at": 2}, headers={"Authorization": token_supervisor_1}
-    )
-    assert res.status == 400
-
-    res = await client.post(
-        "/users", json={"updated_at": 2}, headers={"Authorization": token_supervisor_1}
-    )
+    res = await supervisor1_client.post("/users", json={"updated_at": 2})
     assert res.status == 400
 
     # Invalid or weak password
-    res = await client.post(
-        "/users",
-        json={"full_name": "Josh", "password": "mmmw"},
-        headers={"Authorization": token_supervisor_1},
+    res = await supervisor1_client.post(
+        "/users", json={"full_name": "Josh", "password": "mmmw"}
     )
     assert res.status == 400
 
-    res = await client.post(
-        "/users",
-        json={"full_name": "Josh", "password": "qweon@qweqweklasl"},
-        headers={"Authorization": token_supervisor_1},
+    res = await supervisor1_client.post(
+        "/users", json={"full_name": "Josh", "password": "qweon@qweqweklasl"}
     )
     assert res.status == 400
 
@@ -269,17 +231,15 @@ async def test_create_user_with_invalid_args(client, users, token_supervisor_1):
 ## UPDATE ##
 
 
-async def test_update_user_as_self(client, users, token_agent_1):
+async def test_update_user_as_self(users, agent1_client):
     new_changes = {
         "full_name": "this name surely doesnt exist",
         "password": "strong_password_123",
     }
 
     # With id
-    res = await client.patch(
-        "/users/{}".format(users[-6]["id"]),
-        json=new_changes,
-        headers={"Authorization": token_agent_1},
+    res = await agent1_client.patch(
+        "/users/{}".format(users[-6]["id"]), json=new_changes
     )
     assert res.status == 200
 
@@ -297,9 +257,19 @@ async def test_update_user_as_self(client, users, token_agent_1):
     )
 
 
-async def test_update_one_user_as_supervisor(
-    client, users, token_supervisor_1, token_agent_1
-):
+async def test_update_user_as_agent(users, agent1_client):
+    new_changes = {
+        "full_name": "this name surely doesnt exist",
+        "password": "strong_password_123",
+    }
+    # An user cannot update another user
+    res = await agent1_client.patch(
+        "/users/{}".format(users[3]["id"]), json=new_changes
+    )
+    assert res.status == 403
+
+
+async def test_update_user_without_token(client, users):
     new_changes = {
         "full_name": "this name surely doesnt exist",
         "password": "strong_password_123",
@@ -309,19 +279,16 @@ async def test_update_one_user_as_supervisor(
     res = await client.patch("/users/{}".format(users[0]["id"]), json=new_changes)
     assert res.status == 401
 
-    # An user cannot update another user
-    res = await client.patch(
-        "/users/{}".format(users[3]["id"]),
-        json=new_changes,
-        headers={"Authorization": token_agent_1},
-    )
-    assert res.status == 403
+
+async def test_update_one_user_as_supervisor(users, supervisor1_client):
+    new_changes = {
+        "full_name": "this name surely doesnt exist",
+        "password": "strong_password_123",
+    }
 
     # With id
-    res = await client.patch(
-        "/users/{}".format(users[0]["id"]),
-        json=new_changes,
-        headers={"Authorization": token_supervisor_1},
+    res = await supervisor1_client.patch(
+        "/users/{}".format(users[0]["id"]), json=new_changes
     )
     assert res.status == 200
 
@@ -338,32 +305,24 @@ async def test_update_one_user_as_supervisor(
     )
 
     # User doesnt exist
-    res = await client.patch(
-        "/users/{}".format("9" * 32),
-        json=new_changes,
-        headers={"Authorization": token_supervisor_1},
-    )
+    res = await supervisor1_client.patch("/users/{}".format("9" * 32), json=new_changes)
     assert res.status == 404
 
     # Update to a weak password
     new_changes = {"password": "mmmk"}
-    res = await client.patch(
-        "/users/{}".format(users[1]["id"]),
-        json=new_changes,
-        headers={"Authorization": token_supervisor_1},
+    res = await supervisor1_client.patch(
+        "/users/{}".format(users[1]["id"]), json=new_changes
     )
     assert res.status == 400
 
 
-async def test_update_user_as_admin(client, users, token_admin_1):
+async def test_update_user_as_admin(users, admin1_client):
     new_changes = {
         "full_name": "this name surely doesnt exist",
         "password": "strong_password_123",
     }
-    res = await client.patch(
-        "/users/{}".format(users[5]["id"]),
-        json=new_changes,
-        headers={"Authorization": token_admin_1},
+    res = await admin1_client.patch(
+        "/users/{}".format(users[5]["id"]), json=new_changes
     )
     assert res.status == 200
 
@@ -380,10 +339,8 @@ async def test_update_user_as_admin(client, users, token_admin_1):
     )
 
     # Admin can update supervisor
-    res = await client.patch(
-        "/users/{}".format(users[-3]["id"]),
-        json=new_changes,
-        headers={"Authorization": token_admin_1},
+    res = await admin1_client.patch(
+        "/users/{}".format(users[-3]["id"]), json=new_changes
     )
     assert res.status == 200
 

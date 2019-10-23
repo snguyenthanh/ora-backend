@@ -1,8 +1,22 @@
 from hashlib import sha512
 
-from sanic.exceptions import InvalidUsage
+from itsdangerous import Signer as _Signer
+from sanic.exceptions import InvalidUsage, Unauthorized
 
-from ora_backend.config import PASSWORD_SALT
+from ora_backend.config import PASSWORD_SALT, COOKIE_SIGN_KEY
+
+signer = _Signer(COOKIE_SIGN_KEY)
+
+
+def sign_value(value: str):
+    return signer.sign(value)
+
+
+def unsign_value(value: str):
+    if not signer.validate(value):
+        raise Unauthorized("Invalid cookie.")
+
+    return signer.unsign(value)
 
 
 def hash_password(password: str) -> str:

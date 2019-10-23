@@ -19,6 +19,7 @@ cerberus = "*"
 sanic-jwt-extended = "*"
 sanic-cors = "*"
 bidict = "*"
+itsdangerous = "*"
 
 [requires]
 python_version = "3.7"

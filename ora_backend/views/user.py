@@ -24,11 +24,7 @@ async def user_retrieve(
 @validate_request(schema="user_write", skip_args=True)
 async def user_create(req, *, req_args, req_body, requester, **kwargs):
     create_user_role_id = req_body.get("role_id", 3)
-    print("roles")
-    print(create_user_role_id)
-    from pprint import pprint
 
-    pprint(requester)
     # An user cannot create an account with equal/larger position than itself
     if create_user_role_id <= requester["role_id"]:
         raise_role_authorization_exception(
@@ -56,9 +52,6 @@ async def user_update(req, *, req_args, req_body, requester, **kwargs):
 
     # Only the user himself or the higher-level acc can modify a lower one
     if requester["id"] != user_id and update_user["role_id"] <= requester["role_id"]:
-        print("roles")
-        print(update_user)
-        print(requester)
         raise_role_authorization_exception(update_user["role_id"])
 
     return {"data": await User.modify(req_args, req_body)}
