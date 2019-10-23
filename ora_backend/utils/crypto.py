@@ -5,18 +5,18 @@ from sanic.exceptions import InvalidUsage, Unauthorized
 
 from ora_backend.config import PASSWORD_SALT, COOKIE_SIGN_KEY
 
-signer = _Signer(COOKIE_SIGN_KEY)
+str_signer = _Signer(COOKIE_SIGN_KEY, salt="token-signing")
 
 
-def sign_value(value: str):
-    return signer.sign(value)
+def sign_str(value: str):
+    return str_signer.sign(value).decode("utf-8")
 
 
-def unsign_value(value: str):
-    if not signer.validate(value):
+def unsign_str(value: str):
+    if not str_signer.validate(value):
         raise Unauthorized("Invalid cookie.")
 
-    return signer.unsign(value)
+    return str_signer.unsign(value)
 
 
 def hash_password(password: str) -> str:

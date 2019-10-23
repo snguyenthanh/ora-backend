@@ -8,7 +8,7 @@ from ora_backend.tests.setup_dev_db import setup_db
 from ora_backend.tests import get_access_token_for_user
 from ora_backend.tests.fixtures import users as _users, organisations as _orgs
 from ora_backend.config.db import get_db_url
-
+from ora_backend.utils.crypto import sign_str
 
 ## Keep this here, in case we find a way to implement rollback
 def pytest_configure(config):
@@ -61,7 +61,7 @@ def admin2_client(loop, app, sanic_client):
             {**_users[-1], "role_id": 1, "organisation_id": _orgs[0]["id"]}, app=app
         )
     )
-    cookies = {"access_token": access_token}
+    cookies = {"access_token": sign_str(access_token)}
     return loop.run_until_complete(sanic_client(app, cookies=cookies))
 
 
@@ -79,8 +79,7 @@ def admin1_client(loop, app, sanic_client):
             {**_users[-2], "role_id": 1, "organisation_id": _orgs[0]["id"]}, app=app
         )
     )
-    cookies = {"access_token": access_token}
-    # return await sanic_client(app, cookies=cookies)
+    cookies = {"access_token": sign_str(access_token)}
     return loop.run_until_complete(sanic_client(app, cookies=cookies))
 
 
@@ -98,7 +97,7 @@ def supervisor2_client(loop, app, sanic_client):
             {**_users[-3], "role_id": 2, "organisation_id": _orgs[0]["id"]}, app=app
         )
     )
-    cookies = {"access_token": access_token}
+    cookies = {"access_token": sign_str(access_token)}
     # return await sanic_client(app, cookies=cookies)
     return loop.run_until_complete(sanic_client(app, cookies=cookies))
 
@@ -117,7 +116,7 @@ def supervisor1_client(loop, app, sanic_client):
             {**_users[-4], "role_id": 2, "organisation_id": _orgs[0]["id"]}, app=app
         )
     )
-    cookies = {"access_token": access_token}
+    cookies = {"access_token": sign_str(access_token)}
     # return await sanic_client(app, cookies=cookies)
     return loop.run_until_complete(sanic_client(app, cookies=cookies))
 
@@ -136,7 +135,7 @@ def agent2_client(loop, app, sanic_client):
             {**_users[-5], "role_id": 3, "organisation_id": _orgs[0]["id"]}, app=app
         )
     )
-    cookies = {"access_token": access_token}
+    cookies = {"access_token": sign_str(access_token)}
     # return await sanic_client(app, cookies=cookies)
     return loop.run_until_complete(sanic_client(app, cookies=cookies))
 
@@ -155,6 +154,6 @@ def agent1_client(loop, app, sanic_client):
             {**_users[-6], "role_id": 3, "organisation_id": _orgs[0]["id"]}, app=app
         )
     )
-    cookies = {"access_token": access_token}
+    cookies = {"access_token": sign_str(access_token)}
     # return await sanic_client(app, cookies=cookies)
     return loop.run_until_complete(sanic_client(app, cookies=cookies))

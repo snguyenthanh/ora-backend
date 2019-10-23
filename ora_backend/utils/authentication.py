@@ -6,6 +6,7 @@ from sanic_jwt_extended.decorators import (
 from sanic_jwt_extended.exceptions import NoAuthorizationError
 
 from ora_backend import app
+from ora_backend.utils.crypto import unsign_str
 
 
 async def validate_token(request, token_type="access"):
@@ -23,6 +24,7 @@ async def validate_token(request, token_type="access"):
         if token_type == "access"
         else request.cookies["refresh_token"]
     )
+    token = unsign_str(token)
     jwt_token_data = await get_jwt_data(app, token)
     # jwt_token_data = await get_jwt_data_in_request_header(app, request)
     await verify_jwt_data_type(jwt_token_data, token_type)
