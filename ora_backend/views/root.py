@@ -2,7 +2,7 @@ from uuid import uuid4
 from sanic.response import json
 from sanic_jwt_extended import create_access_token, create_refresh_token
 
-from ora_backend.models import User
+from ora_backend.models import User, Visitor
 from ora_backend.views.urls import root_blueprint as blueprint
 from ora_backend.utils.authentication import validate_token
 from ora_backend.utils.crypto import sign_str
@@ -15,10 +15,35 @@ async def root(request):
     return json({"hello": "world"})
 
 
+async def login(request, identity):
+    # Identity can be any data that is json serializable
+    access_token = await create_access_token(identity=identity, app=request.app)
+    refresh_token = await create_refresh_token(identity=identity, app=request.app)
+
+    # Sign the tokens to avoid modifications
+    signed_access_token = sign_str(access_token)
+    signed_refresh_token = sign_str(refresh_token)
+
+    # Attach the tokens in a cookie
+    response = json({"user": identity})
+    response.cookies["access_token"] = signed_access_token
+    response.cookies["refresh_token"] = signed_refresh_token
+
+    return response
+
+
+@blueprint.route("/visitor/login", methods=["POST"])
+@unpack_request
+@validate_request(schema="user_login", skip_args=True)
+async def visitor_login(request, *, req_body, **kwargs):
+    user = await Visitor.login(**req_body)
+    return await login(request, user)
+
+
 @blueprint.route("/login", methods=["POST"])
 @unpack_request
 @validate_request(schema="user_login", skip_args=True)
-async def login(request, *, req_args, req_body, **kwargs):
+async def user_login(request, *, req_body, **kwargs):
     """
     Return an access token and refresh token to user,
     if the login credentials of email and password are correct.
@@ -32,22 +57,7 @@ async def login(request, *, req_args, req_body, **kwargs):
         401: Invalid email or password.
     """
     user = await User.login(**req_body)
-
-    # Identity can be any data that is json serializable
-    access_token = await create_access_token(identity=user, app=request.app)
-    refresh_token = await create_refresh_token(identity=user, app=request.app)
-
-    # Sign the tokens to avoid modifications
-    signed_access_token = sign_str(access_token)
-    signed_refresh_token = sign_str(refresh_token)
-
-    # Attach the tokens in a cookie
-    response = json({"user": user})
-    response.cookies["access_token"] = signed_access_token
-    response.cookies["refresh_token"] = signed_refresh_token
-
-    # return json({"user": user, "access_token": access_token, "refresh_token": refresh_token})
-    return response
+    return await login(request, user)
 
 
 @blueprint.route("/refresh", methods=["POST"])
@@ -56,9 +66,8 @@ async def create_new_access_token(request):
     access_token = await create_access_token(
         identity=jwt_token_data["identity"], app=request.app
     )
-    # return json({"access_token": access_token})
     signed_access_token = sign_str(access_token)
-    response = json()
+    response = json({})
     response.cookies["access_token"] = signed_access_token
     response.cookies["refresh_token"] = request.cookies["refresh_token"]
     return response

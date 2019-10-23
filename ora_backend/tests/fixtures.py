@@ -6,9 +6,16 @@ sys.path.append(root_dir)
 
 
 from ora_backend.models import generate_uuid
-from ora_backend.tests import get_fake_user, get_fake_organisation, number_of_users
+from ora_backend.tests import (
+    get_fake_user,
+    get_fake_organisation,
+    get_fake_visitor,
+    number_of_users,
+    number_of_visitors,
+)
 
 organisations = [get_fake_organisation()]
+visitors = [get_fake_visitor() for _ in range(number_of_visitors)]
 users = [get_fake_user() for _ in range(number_of_users)]
 users += [
     {

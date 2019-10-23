@@ -189,6 +189,7 @@ class BaseUser(BaseModel):
             "id",
             "full_name",
             "display_name",
+            "name",
             "email",
             "role_id",
             "organisation_id",
