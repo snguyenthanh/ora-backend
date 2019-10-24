@@ -20,6 +20,8 @@ sanic-jwt-extended = "*"
 sanic-cors = "*"
 bidict = "*"
 itsdangerous = "*"
+aiocache = "*"
+python-socketio = {extras = ["asyncio_client"],version = "*"}
 
 [requires]
 python_version = "3.7"

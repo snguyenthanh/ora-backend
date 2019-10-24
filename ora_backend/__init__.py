@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from aiocache import Cache
+from aiocache.serializers import JsonSerializer
 from gino.ext.sanic import Gino
 from sanic import Blueprint, Sanic
 from sanic.exceptions import SanicException
@@ -7,6 +9,7 @@ from sanic_jwt_extended import JWTManager
 from sanic_cors import CORS
 
 from ora_backend.config import JWT_SECRET_KEY, SANIC_CONFIG
+from ora_backend.constants import CACHE_UNCLAIMED_CHATS_PREFIX
 
 # Note: Gino doesn't auto-generate any new changes in the schema
 # Use alembic to apply new changes to the db
@@ -21,7 +24,10 @@ app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
 app.config["JWT_TOKEN_LOCATION"] = "cookies"
 app.config["JWT_ERROR_MESSAGE_KEY"] = "error"
 app.config["CORS_AUTOMATIC_OPTIONS"] = True
+app.config["CORS_SUPPORTS_CREDENTIALS"] = True
 
+# Construct an in-memory storage
+cache = Cache(serializer=JsonSerializer())
 
 # Initialize the DB before doing anything else
 # to avoid circular importing
@@ -29,13 +35,6 @@ db.init_app(app)
 JWTManager(app)
 CORS(app)
 
-
-async def create_tables(app, loop):
-    await db.gino.create_all()
-
-
-# Register the listeners
-app.register_listener(create_tables, "after_server_start")
 
 # Register the routes/views
 from ora_backend.views.urls import blueprints
@@ -46,3 +45,14 @@ app.blueprint(blueprints)
 from ora_backend.exceptions import sanic_error_handler
 
 app.error_handler.add(SanicException, sanic_error_handler)
+
+# Register SocketIO
+from ora_backend.views.chat import app
+
+
+async def create_tables(app, loop):
+    await db.gino.create_all()
+
+
+# Register the listeners
+app.register_listener(create_tables, "after_server_start")

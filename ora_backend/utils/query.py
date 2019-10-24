@@ -89,10 +89,10 @@ async def get_many(
     )
 
 
-async def get_one_latest(model, **kwargs):
+async def get_one_latest(model, order_by="internal_id", **kwargs):
     return (
         await model.query.where(and_(*dict_to_filter_args(model, **kwargs)))
-        .order_by(desc(model.internal_id))
+        .order_by(desc(getattr(model, order_by)))
         .limit(1)
         .gino.first()
     )

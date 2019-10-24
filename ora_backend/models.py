@@ -256,24 +256,21 @@ class User(BaseUser):
 class ChatMessage(BaseModel):
     __tablename__ = "chat_message"
 
-    id = db.Column(
-        db.String(length=32), nullable=False, unique=True, default=generate_uuid
-    )
-    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    id = db.Column(db.String(length=32), primary_key=True, default=generate_uuid)
     sequence_num = db.Column(db.BigInteger, nullable=False, default=0)
-    type_id = db.Column(db.SmallInteger, nullable=False, default=0)
+    chat_id = db.Column(db.String(length=32), nullable=False)
+    type_id = db.Column(db.SmallInteger, nullable=False, default=1)
     sender = db.Column(db.String(length=32), nullable=True)
     content = db.Column(JSON(), nullable=False, server_default="{}")
     created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
     updated_at = db.Column(db.BigInteger, onupdate=unix_time)
 
     # Index
-    _idx_chat_msg_id = db.Index("idx_chat_msg_id", "id")
-    _idx_chat_msg_sender = db.Index("idx_chat_msg_sender", "sender")
+    _idx_chat_msg_chat_id = db.Index("idx_chat_msg_chat_id", "chat_id")
 
 
 class Chat(BaseModel):
-    _tablename__ = "chat"
+    __tablename__ = "chat"
 
     id = db.Column(
         db.String(length=32), nullable=False, unique=True, default=generate_uuid
@@ -289,3 +286,14 @@ class Chat(BaseModel):
     _idx_chat_id = db.Index("idx_chat_id", "id")
     _idx_chat_visitor = db.Index("idx_chat_visitor", "visitor_id")
     _idx_chat_severity_level = db.Index("idx_chat_severity_level", "severity_level")
+
+    @classmethod
+    async def get_or_create(cls, **kwargs):
+        created_attempt = await get_one(cls, **kwargs)
+
+        # Update the number of attempts in Quiz, if no previous attempts of the user are found
+        if not created_attempt:
+            data = await create_one(cls, **kwargs)
+            return serialize_to_dict(data)
+
+        return serialize_to_dict(created_attempt)

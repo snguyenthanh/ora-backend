@@ -48,8 +48,4 @@ class UniqueViolationError(SanicException):
 
     def __init__(self, error: dict, status_code=400):
         message = "The {} with {}.".format(error["table_name"], error["detail"])
-        # message = (
-        #     "The '{}' with '{}' already exists. "
-        #     "Please choose a different value for '{}'"
-        # ).format(key, value, key)
         super().__init__(message, status_code)

@@ -11,7 +11,7 @@ from ora_backend.constants import ROLES
 from ora_backend.exceptions import SchemaValidationError
 from ora_backend.models import User, Visitor
 from ora_backend.schemas import schemas
-from ora_backend.utils.authentication import get_jwt_token_requester, validate_token
+from ora_backend.utils.auth import get_token_requester_from_request
 from ora_backend.utils.exceptions import raise_permission_exception
 
 
@@ -122,7 +122,7 @@ def validate_permission(func=None, model=None, token_type="access"):
     @wraps(func)
     async def inner(request, *args, req_args=None, **kwargs):
         # Validate the token before checking permission
-        requester = await get_jwt_token_requester(request)
+        requester = await get_token_requester_from_request(request)
         if not model:
             return await func(
                 request, req_args=req_args, requester=requester, *args, **kwargs

@@ -4,7 +4,7 @@ from sanic_jwt_extended import create_access_token, create_refresh_token
 
 from ora_backend.models import User, Visitor
 from ora_backend.views.urls import root_blueprint as blueprint
-from ora_backend.utils.authentication import validate_token
+from ora_backend.utils.auth import get_token_data_from_request
 from ora_backend.utils.crypto import sign_str
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import validate_request
@@ -28,6 +28,8 @@ async def login(request, identity):
     response = json({"user": identity})
     response.cookies["access_token"] = signed_access_token
     response.cookies["refresh_token"] = signed_refresh_token
+    response.cookies["access_token"]["httponly"] = True
+    response.cookies["refresh_token"]["httponly"] = True
 
     return response
 
@@ -62,7 +64,7 @@ async def user_login(request, *, req_body, **kwargs):
 
 @blueprint.route("/refresh", methods=["POST"])
 async def create_new_access_token(request):
-    jwt_token_data = await validate_token(request, token_type="refresh")
+    jwt_token_data = await get_token_data_from_request(request, token_type="refresh")
     access_token = await create_access_token(
         identity=jwt_token_data["identity"], app=request.app
     )
@@ -70,4 +72,7 @@ async def create_new_access_token(request):
     response = json({})
     response.cookies["access_token"] = signed_access_token
     response.cookies["refresh_token"] = request.cookies["refresh_token"]
+    response.cookies["access_token"]["httponly"] = True
+    response.cookies["refresh_token"]["httponly"] = True
+
     return response
