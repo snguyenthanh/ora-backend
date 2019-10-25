@@ -75,8 +75,8 @@ Request:
 ```
 POST /login
 body={
-	"email": <str>,
-	"password": <str>,
+  "email": <str>,
+  "password": <str>,
 }
 ```
 
@@ -102,8 +102,8 @@ Request:
 ```
 POST /visitor/login
 body={
-	"email": <str>,
-	"password": <str>,
+  "email": <str>,
+  "password": <str>,
 }
 ```
 
@@ -129,9 +129,9 @@ Request:
 ```
 POST /visitors
 body={
-	"name": <str>,
-	"email": <str>,
-	"password": <str>,
+  "name": <str>,
+  "email": <str>,
+  "password": <str>,
 }
 ```
 
@@ -139,14 +139,14 @@ Response:
 
 ```
 {
-		"data": {
-				"created_at": 1572027886,
-				"email": "visitor1",
-				"name": "Visitor 1",
-				"disabled": false,
-				"updated_at": null,
-				"id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-		}
+    "data": {
+        "created_at": 1572027886,
+        "email": "visitor1",
+        "name": "Visitor 1",
+        "disabled": false,
+        "updated_at": null,
+        "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+    }
 }
 ```
 
@@ -186,7 +186,7 @@ Request:
 ```
 PATCH /visitors/<visitor_id>
 body={
-	"name": <new_name>,
+  "name": <new_name>,
 }
 ```
 
@@ -194,14 +194,14 @@ Response:
 
 ```
 {
-		"data": {
-				"created_at": 1572027886,
-				"email": "visitor1",
-				"name": <new_name>,
-				"disabled": false,
-				"updated_at": null,
-				"id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-		}
+    "data": {
+        "created_at": 1572027886,
+        "email": "visitor1",
+        "name": <new_name>,
+        "disabled": false,
+        "updated_at": null,
+        "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+    }
 }
 ```
 
@@ -230,9 +230,9 @@ Request:
 ```
 POST /users
 body={
-	"full_name": <str>,
-	"email": <str>,
-	"password": <str>,
+  "full_name": <str>,
+  "email": <str>,
+  "password": <str>,
 }
 ```
 
@@ -289,8 +289,8 @@ Request:
 ```
 PATCH /users/<user_id>
 body={
-	"full_name": <new_full_name>,
-	"email": <new_email>,
+  "full_name": <new_full_name>,
+  "email": <new_email>,
 }
 ```
 
