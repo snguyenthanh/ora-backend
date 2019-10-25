@@ -1,7 +1,24 @@
+"""
+As python-socketio catch ALL exceptions and only `traceback.print_exception`,
+pytest could not pick the exception and mark the test case as failedself.
+
+Therefore, exceptions will be stored in `cache` and be checked in the test cases,
+rather than being raised.
+"""
+
+from ora_backend import cache
+from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
+from ora_backend.models import Organisation, Chat
+from ora_backend.tests.fixtures import visitors
+
+
 def create_async_client(sio):
     @sio.event
     async def staff_init(unclaimed_chats: list):
         """A list of unclaimed chats to show on front-end.
+
+        The staff will receive a list of all unclaimed chats
+        right after connecting to the server.
 
         Each chat in unclaimed_chats has the format:
         {
@@ -11,6 +28,19 @@ def create_async_client(sio):
         }
         """
         # assert returned list == the one in cache
+        org = (await Organisation.query.gino.all())[0]
+        org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
+        cached_unclaims = await cache.get(org_room, [])
+
+        if cached_unclaims != unclaimed_chats:
+            excs = await cache.get("exceptions", [])
+            excs.append(
+                {
+                    "event": "staff_init",
+                    "condition": "cached_unclaims != unclaimed_chats",
+                }
+            )
+            await cache.set("exceptions", excs)
 
     @sio.event
     async def staff_claim_chat(data: dict):
@@ -21,6 +51,20 @@ def create_async_client(sio):
             data (dict):
                 {"user": user, "room": room}
         """
+        org = (await Organisation.query.gino.all())[0]
+        org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
+        unclaimed_chats = await cache.get(org_room)
+
+        for chat in unclaimed_chats:
+            if data["room"] == chat["room"]["id"]:
+                excs = await cache.get("exceptions", [])
+                excs.append(
+                    {
+                        "event": "staff_claim_chat",
+                        "condition": """room["id"] == chat["room"]["id"]""",
+                    }
+                )
+                await cache.set("exceptions", excs)
 
     @sio.event
     async def staff_join_room(data: dict):
@@ -32,8 +76,18 @@ def create_async_client(sio):
                 {"user": user} # The staff's info - models.User
         """
         # assert 2 ppl in chat room
-        # assert "visitor" not in CACHE_UNCLAIMED_CHATS_PREFIX
-        # Assert ChatMessage for staff joining
+        chat = await Chat.get(visitor_id=visitors[-1]["id"])
+        chat_room = await cache.get(chat["id"])
+
+        if chat_room["staff"] != data["user"]:
+            excs = await cache.get("exceptions", [])
+            excs.append(
+                {
+                    "event": "staff_join_room",
+                    "condition": """chat_room["staff"] != data["user"]""",
+                }
+            )
+            await cache.set("exceptions", excs)
 
     @sio.event
     async def append_unclaimed_chats(data: dict):
@@ -45,8 +99,22 @@ def create_async_client(sio):
             data (dict):
                 {"user": user, "room": chat_room, "contents": [content]}
         """
-        # assert CACHE_UNCLAIMED_CHATS_PREFIX has new chat
+        # assert UNCLAIMED_CHATS_PREFIX has new chat
         # assert new ChatMessage
+        org = (await Organisation.query.gino.all())[0]
+        org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
+        cached_unclaims = await cache.get(org_room)
+
+        # Ensure the new chat has been added to unclaimed chats
+        if cached_unclaims[-1] != data:
+            excs = await cache.get("exceptions", [])
+            excs.append(
+                {
+                    "event": "append_unclaimed_chats",
+                    "condition": "cached_unclaims[-1] != data",
+                }
+            )
+            await cache.set("exceptions", excs)
 
     @sio.event
     async def visitor_unclaimed_msg(data: dict):
@@ -58,10 +126,29 @@ def create_async_client(sio):
 
         Args:
             data (dict):
-                {"user": session["user"], "content": content}
+                {"user": user, "content": content}
         """
-        # assert CACHE_UNCLAIMED_CHATS_PREFIX is updated with extra contents
-        # assert ChatMessage
+        # assert org_room is updated with new content
+        # Get the rooms
+        org = (await Organisation.query.gino.all())[0]
+        org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
+
+        unclaimed_chats = await cache.get(org_room)
+        for chat in unclaimed_chats:
+            if (
+                chat["user"]["id"] == data["user"]["id"]
+                and chat["contents"][-1] == data["content"]
+            ):
+                break
+        else:  # If no such chat is found or the chat is not updated
+            excs = await cache.get("exceptions", [])
+            condition = (
+                """chat["user"]["id"] == data["user"]["id"]"""
+                if chat["user"]["id"] == data["user"]["id"]
+                else """chat["contents"][-1] == data["content"]"""
+            )
+            excs.append({"event": "visitor_unclaimed_msg", "condition": condition})
+            await cache.set("exceptions", excs)
 
     @sio.event
     async def visitor_send(data: dict):

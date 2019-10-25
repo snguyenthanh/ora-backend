@@ -11,7 +11,7 @@ async def test_login_visitor(client, visitors):
 
         body = await res.json()
         assert isinstance(body, dict)
-        assert "access_token" not in body and "refresh_token" not in body
+        assert "access_token" in body and "refresh_token" not in body
         assert "user" in body
         assert "access_token" in res.cookies
         assert "refresh_token" in res.cookies
@@ -49,7 +49,7 @@ async def test_login_user(client, users):
 
         body = await res.json()
         assert isinstance(body, dict)
-        assert "access_token" not in body and "refresh_token" not in body
+        assert "access_token" in body and "refresh_token" not in body
         assert "user" in body
         assert "access_token" in res.cookies
         assert "refresh_token" in res.cookies

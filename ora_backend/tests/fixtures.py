@@ -16,6 +16,20 @@ from ora_backend.tests import (
 
 organisations = [get_fake_organisation()]
 visitors = [get_fake_visitor() for _ in range(number_of_visitors)]
+visitors += [
+    {
+        "id": generate_uuid(),
+        "name": "Visitor 1",
+        "email": "visitor1",
+        "password": "cs3216final",
+    },
+    {
+        "id": generate_uuid(),
+        "name": "Visitor 2",
+        "email": "visitor2",
+        "password": "cs3216final",
+    },
+]
 users = [get_fake_user() for _ in range(number_of_users)]
 users += [
     {

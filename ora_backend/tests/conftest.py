@@ -63,18 +63,26 @@ def server_path(server):
 
 @pytest.fixture
 def sio_client_visitor(loop):
-    sio = socketio.AsyncClient()
+    sio = socketio.AsyncClient(logger=True, request_timeout=1, engineio_logger=True)
     yield create_async_client(sio)
     loop.run_until_complete(sio.disconnect())
-    # loop.run_until_complete(sio.wait())
+    loop.run_until_complete(sio.wait())
 
 
 @pytest.fixture
-def sio_client_agent(loop):
-    sio = socketio.AsyncClient()
+def sio_client_agent1(loop):
+    sio = socketio.AsyncClient(logger=True, request_timeout=1, engineio_logger=True)
     yield create_async_client(sio)
     loop.run_until_complete(sio.disconnect())
-    # loop.run_until_complete(sio.wait())
+    loop.run_until_complete(sio.wait())
+
+
+@pytest.fixture
+def sio_client_agent2(loop):
+    sio = socketio.AsyncClient(logger=True, request_timeout=1, engineio_logger=True)
+    yield create_async_client(sio)
+    loop.run_until_complete(sio.disconnect())
+    loop.run_until_complete(sio.wait())
 
 
 @pytest.fixture

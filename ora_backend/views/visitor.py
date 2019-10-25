@@ -8,6 +8,7 @@ from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import validate_request, validate_permission
 
 
+@validate_permission
 @validate_request(schema="visitor_read", skip_body=True)
 async def visitor_retrieve(req, *, req_args, req_body, **kwargs):
     return {"data": await Visitor.get(**req_args)}

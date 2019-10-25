@@ -25,7 +25,7 @@ async def login(request, identity):
     signed_refresh_token = sign_str(refresh_token)
 
     # Attach the tokens in a cookie
-    response = json({"user": identity})
+    response = json({"user": identity, "access_token": signed_access_token})
     response.cookies["access_token"] = signed_access_token
     response.cookies["refresh_token"] = signed_refresh_token
     response.cookies["access_token"]["httponly"] = True

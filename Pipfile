@@ -21,7 +21,7 @@ sanic-cors = "*"
 bidict = "*"
 itsdangerous = "*"
 aiocache = "*"
-python-socketio = {extras = ["asyncio_client"],version = "*"}
+python-socketio = "*"
 
 [requires]
 python_version = "3.7"

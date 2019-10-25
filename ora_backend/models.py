@@ -15,6 +15,7 @@ from ora_backend.utils.query import (
     update_one,
     delete_many,
     execute,
+    get_messages,
 )
 from ora_backend.utils.crypto import hash_password, validate_password_strength
 from ora_backend.utils.exceptions import raise_not_found_exception
@@ -52,6 +53,7 @@ class BaseModel(db.Model):
         in_column=None,
         in_values=None,
         allow_readonly=False,
+        order_by="internal_id",
         **kwargs,
     ):
         """
@@ -72,6 +74,7 @@ class BaseModel(db.Model):
                 limit=limit,
                 in_column=in_column,
                 in_values=in_values,
+                order_by=order_by,
                 **kwargs,
             )
         else:
@@ -267,6 +270,18 @@ class ChatMessage(BaseModel):
 
     # Index
     _idx_chat_msg_chat_id = db.Index("idx_chat_msg_chat_id", "chat_id")
+
+    @classmethod
+    async def get(cls, *, chat_id, **kwargs):
+        messages = await get_messages(cls, chat_id=chat_id, **kwargs)
+        serialized_data = serialize_to_dict(messages)
+
+        # Raise NotFound if no single resource is found
+        # Ignore if many=True, as returning an empty List is expected
+        if not serialized_data:
+            raise_not_found_exception(cls, **kwargs)
+
+        return serialized_data
 
 
 class Chat(BaseModel):

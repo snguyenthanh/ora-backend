@@ -9,7 +9,7 @@ from sanic_jwt_extended import JWTManager
 from sanic_cors import CORS
 
 from ora_backend.config import JWT_SECRET_KEY, SANIC_CONFIG
-from ora_backend.constants import CACHE_UNCLAIMED_CHATS_PREFIX
+from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
 
 # Note: Gino doesn't auto-generate any new changes in the schema
 # Use alembic to apply new changes to the db

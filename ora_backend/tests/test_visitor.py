@@ -11,8 +11,13 @@ from ora_backend.utils.crypto import hash_password
 ## GET ##
 
 
-async def test_get_one_visitor(client, visitors):
+async def test_get_one_visitor_without_token(client, visitors):
     res = await client.get("/visitors/{}".format(visitors[2]["id"]))
+    assert res.status == 401
+
+
+async def test_get_one_visitor(visitor1_client, visitors):
+    res = await visitor1_client.get("/visitors/{}".format(visitors[2]["id"]))
     assert res.status == 200
 
     body = await res.json()
@@ -21,10 +26,10 @@ async def test_get_one_visitor(client, visitors):
     assert profile_created_from_origin(visitors[2], body["data"])
 
     # User doesnt exist
-    res = await client.get("/visitors/{}".format("9" * 32))
+    res = await visitor1_client.get("/visitors/{}".format("9" * 32))
     assert res.status == 404
 
-    res = await client.get("/visitors/true")
+    res = await visitor1_client.get("/visitors/true")
     assert res.status == 404
 
 
