@@ -315,9 +315,10 @@ Response:
 ### 4. ChatMessage
 
 Each `ChatMessage` will have the following fields:
+
+- `id` (str): the ID of the chat message.
 - `chat_id` (str): a unique ID for each chat room, persists to each visitor.
 - `content` (dict): the `content` passed by front-end in SocketIO chat.
-- `id` (str): the ID of the chat message.
 - `sender` (str): the ID of the staff who sends the message. If it is the `visitor` who sends it, `sender` is `None`.
 - `sequence_num` (int): It determines the exact ordering of messages for *EACH* visitor.
 - `type_id` (int): There are 2 types of chat messages:
@@ -334,6 +335,8 @@ GET /visitors/<visitor_id>/messages
 ```
 
 Response:
+
+Return the most recent chat messages of the visitor.
 
 *Notes*  
 >  The `data` field will be empty if:  

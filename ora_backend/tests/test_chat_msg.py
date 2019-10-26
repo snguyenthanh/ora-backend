@@ -87,4 +87,3 @@ async def test_get_chat_messages(visitor1_client, visitors, users):
     assert not body["data"]
     assert isinstance(body["links"], dict)
     assert not body["links"]
-    assert False

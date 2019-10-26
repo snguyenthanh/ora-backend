@@ -33,7 +33,7 @@ cache = Cache(serializer=JsonSerializer())
 # to avoid circular importing
 db.init_app(app)
 JWTManager(app)
-# CORS(app)
+CORS(app)
 
 
 # Register the routes/views
