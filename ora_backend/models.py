@@ -175,9 +175,7 @@ class BaseUser(BaseModel):
         if not password:
             raise InvalidUsage("Missing field 'password' in request's body.")
 
-        validate_password_strength(password)
         password = hash_password(password)
-
         user = None
         try:
             user = await cls.get(email=email, password=password, **kwargs)

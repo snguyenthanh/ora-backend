@@ -6,6 +6,7 @@ from sanic.exceptions import SanicException
 
 from ora_backend.config import CORS_ORIGINS
 
+
 async def sanic_error_handler(request, exception):
     status_code = 500
     exc_message = exception
