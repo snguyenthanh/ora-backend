@@ -118,10 +118,7 @@ USER_WRITE_SCHEMA = {
     "updated_at": {"readonly": True},
 }
 
-USER_LOGIN_SCHEMA = {
-    "email": is_required_string,
-    "password": {**is_required_string, "minlength": 8, "maxlength": 128},
-}
+USER_LOGIN_SCHEMA = {"email": is_required_string, "password": is_required_string}
 
 ORGANISATION_READ_SCHEMA = {
     "id": is_string,

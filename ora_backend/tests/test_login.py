@@ -20,23 +20,25 @@ async def test_login_visitor(client, visitors):
     # Login with wrong password
     user = visitors[-1]
     res = await client.post(
-        "/login", json={"email": user["email"], "password": "qkwlemk123l1kn"}
+        "/visitor/login", json={"email": user["email"], "password": "qkwlemk123l1kn"}
     )
     assert res.status == 401
 
     # Login with weak password
     user = visitors[-1]
-    res = await client.post("/login", json={"email": user["email"], "password": "0"})
-    assert res.status == 400
+    res = await client.post(
+        "/visitor/login", json={"email": user["email"], "password": "0"}
+    )
+    assert res.status == 401
 
     # Login with missing password
     user = visitors[-1]
-    res = await client.post("/login", json={"email": user["email"]})
+    res = await client.post("/visitor/login", json={"email": user["email"]})
     assert res.status == 400
 
     # Login with missing email
     user = visitors[-1]
-    res = await client.post("/login", json={"password": user["password"]})
+    res = await client.post("/visitor/login", json={"password": user["password"]})
     assert res.status == 400
 
 
@@ -65,7 +67,7 @@ async def test_login_user(client, users):
     # Login with weak password
     user = users[-1]
     res = await client.post("/login", json={"email": user["email"], "password": "0"})
-    assert res.status == 400
+    assert res.status == 401
 
     # Login with missing password
     user = users[-1]
