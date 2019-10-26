@@ -1,4 +1,5 @@
 from datetime import timedelta
+# import logging
 
 from aiocache import Cache
 from aiocache.serializers import JsonSerializer
@@ -34,6 +35,8 @@ cache = Cache(serializer=JsonSerializer())
 db.init_app(app)
 JWTManager(app)
 CORS(app, origins=CORS_ORIGINS)
+
+#logging.getLogger('sanic_cors').level = logging.DEBUG
 
 
 # Register the routes/views

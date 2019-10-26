@@ -14,8 +14,7 @@ def sign_str(value: str):
 
 def unsign_str(value: str):
     if not str_signer.validate(value):
-        raise Unauthorized("Invalid cookie.")
-
+        raise Unauthorized("Invalid token.")
     return str_signer.unsign(value)
 
 

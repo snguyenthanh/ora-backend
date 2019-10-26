@@ -10,10 +10,10 @@ from ora_backend.utils.crypto import unsign_str
 
 
 async def validate_token(token, token_type="access"):
-    token = unsign_str(token)
+    token = unsign_str(token.strip())
+
     jwt_token_data = await get_jwt_data(app, token)
     # jwt_token_data = await get_jwt_data_in_request_header(app, request)
-
     await verify_jwt_data_type(jwt_token_data, token_type)
     return jwt_token_data
 
