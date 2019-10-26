@@ -3,8 +3,8 @@
 SocketIO is event-based and most of the logic will be handled by back-end.
 
 All emitted events will return 2 variables:
-	- result (`boolean`): if the event succeeds.
-	- error_message (`str`): why it fails.
+  - result (`boolean`): if the event succeeds.
+  - error_message (`str`): why it fails.
 
 ## Data formats
 
@@ -24,8 +24,8 @@ Both visitors and staffs connect to the server by putting the `access_token` in 
 
 ```
 socketio.connect(
-			<host>, headers={"Authorization": <access_token>}
-	)
+      <host>, headers={"Authorization": <access_token>}
+  )
 ```
 
 This event will return a `401` response if the token is missing/invalid.
@@ -72,18 +72,18 @@ Args:
 Each chat in unclaimed_chats has the format:
 ```
 {
-		"user": { # The visitor
-				"id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+    "user": { # The visitor
+        "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
         "name": "Visitor 1",
         "email": "visitor1"
     },
-		"room": { # A Chat object. Refers to models.Chat
-				"id": "qwkelqwkleqwlken123123b12312l3kn",
-				"visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
-				"tags": [],
-				"severity_level": 0,
-		},
-		"contents": [content] # A list of `ChatMessage.content`, format decided by front-end
+    "room": { # A Chat object. Refers to models.Chat
+        "id": "qwkelqwkleqwlken123123b12312l3kn",
+        "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
+        "tags": [],
+        "severity_level": 0,
+    },
+    "contents": [content] # A list of `ChatMessage.content`, format decided by front-end
 }
 ```
 
@@ -97,17 +97,17 @@ Args:
 
 ```
 data={
-	"user": { # The visitor
-		"id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-		"name": "Visitor 1",
-		"email": "visitor1"
-	},
-	"room": { # A Chat object. Refers to models.Chat
-			"id": "qwkelqwkleqwlken123123b12312l3kn",
-			"visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
-			"tags": [],
-			"severity_level": 0,
-	},
+  "user": { # The visitor
+    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+    "name": "Visitor 1",
+    "email": "visitor1"
+  },
+  "room": { # A Chat object. Refers to models.Chat
+      "id": "qwkelqwkleqwlken123123b12312l3kn",
+      "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
+      "tags": [],
+      "severity_level": 0,
+  },
 }
 ```
 
@@ -121,14 +121,14 @@ Args:
 
 ```
 {
-	"user": {  # The staff's info - models.User
-		"full_name": "Admin 1",
-		"id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
-		"organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
-		"email": "admin1",
-		"display_name": null,
-		"role_id": 3
-	}
+  "user": {  # The staff's info - models.User
+    "full_name": "Admin 1",
+    "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
+    "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
+    "email": "admin1",
+    "display_name": null,
+    "role_id": 3
+  }
 }
 ```
 
@@ -142,18 +142,18 @@ Args:
 
 ```
 data={
-	"user": { # The visitor
-		"id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-		"name": "Visitor 1",
-		"email": "visitor1"
-	},
-	"room": { # A Chat object. Refers to models.Chat
-			"id": "qwkelqwkleqwlken123123b12312l3kn",
-			"visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
-			"tags": [],
-			"severity_level": 0,
-	},
-	"contents": [<content>],	# `content` is a Dict
+  "user": { # The visitor
+    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+    "name": "Visitor 1",
+    "email": "visitor1"
+  },
+  "room": { # A Chat object. Refers to models.Chat
+      "id": "qwkelqwkleqwlken123123b12312l3kn",
+      "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
+      "tags": [],
+      "severity_level": 0,
+  },
+  "contents": [<content>],  # `content` is a Dict
 }
 ```
 
@@ -168,12 +168,12 @@ Args:
 
 ```
 data={
-	"user": { # The visitor
-		"id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-		"name": "Visitor 1",
-		"email": "visitor1"
-	},
-	"content": <content>	# dict
+  "user": { # The visitor
+    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+    "name": "Visitor 1",
+    "email": "visitor1"
+  },
+  "content": <content>  # dict
 }
 ```
 
@@ -187,12 +187,12 @@ Args:
 
 ```
 data={
-	"user": { # The visitor
-		"id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-		"name": "Visitor 1",
-		"email": "visitor1"
-	},
-	"content": content
+  "user": { # The visitor
+    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+    "name": "Visitor 1",
+    "email": "visitor1"
+  },
+  "content": content
 }
 ```
 
@@ -206,15 +206,15 @@ Args:
 
 ```
 data={
-	"user": {  # The staff's info - models.User
-		"full_name": "Admin 1",
-		"id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
-		"organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
-		"email": "admin1",
-		"display_name": null,
-		"role_id": 3
-	},
-	"content": <content>,	# dict
+  "user": {  # The staff's info - models.User
+    "full_name": "Admin 1",
+    "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
+    "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
+    "email": "admin1",
+    "display_name": null,
+    "role_id": 3
+  },
+  "content": <content>,  # dict
 }
 ```
 
@@ -228,14 +228,14 @@ Args:
 
 ```
 data={
-	"user": {	# The staff who left
-		"full_name": "Admin 1",
-		"id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
-		"organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
-		"email": "admin1",
-		"display_name": null,
-		"role_id": 3
-	},
+  "user": {  # The staff who left
+    "full_name": "Admin 1",
+    "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
+    "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
+    "email": "admin1",
+    "display_name": null,
+    "role_id": 3
+  },
 }
 ```
 
@@ -249,10 +249,10 @@ Args:
 
 ```
 data={
-	"user": { # The visitor who left
-		"id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-		"name": "Visitor 1",
-		"email": "visitor1"
-	},
+  "user": { # The visitor who left
+    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+    "name": "Visitor 1",
+    "email": "visitor1"
+  },
 }
 ```
