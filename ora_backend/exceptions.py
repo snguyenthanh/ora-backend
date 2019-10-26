@@ -4,6 +4,7 @@ A collection of custom exceptions to return to client.
 from sanic.response import json
 from sanic.exceptions import SanicException
 
+from ora_backend.config import CORS_ORIGINS
 
 async def sanic_error_handler(request, exception):
     status_code = 500
@@ -21,7 +22,7 @@ async def sanic_error_handler(request, exception):
         {"error": exc_message},
         status=status_code,
         headers={
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": CORS_ORIGINS,
             "Access-Control-Allow-Credentials": True,
         },
     )

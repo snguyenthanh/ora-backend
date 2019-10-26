@@ -8,7 +8,7 @@ from sanic.exceptions import SanicException
 from sanic_jwt_extended import JWTManager
 from sanic_cors import CORS
 
-from ora_backend.config import JWT_SECRET_KEY, SANIC_CONFIG
+from ora_backend.config import JWT_SECRET_KEY, SANIC_CONFIG, CORS_ORIGINS
 from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
 
 # Note: Gino doesn't auto-generate any new changes in the schema
@@ -33,7 +33,7 @@ cache = Cache(serializer=JsonSerializer())
 # to avoid circular importing
 db.init_app(app)
 JWTManager(app)
-CORS(app)
+CORS(app, origins=CORS_ORIGINS)
 
 
 # Register the routes/views

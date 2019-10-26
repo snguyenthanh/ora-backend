@@ -1,4 +1,5 @@
 from os import environ
+from sanic.websocket import WebSocketProtocol
 
 from ora_backend.config.db import DB_CONFIG
 
@@ -23,4 +24,7 @@ SANIC_RUN_CONFIG = {
     "debug": MODE != "production",
     "access_log": MODE != "production",
     "workers": 3,
+    "protocol": WebSocketProtocol,
 }
+
+CORS_ORIGINS = "http://localhost:3000"
