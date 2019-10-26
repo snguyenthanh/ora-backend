@@ -23,7 +23,7 @@ async def sanic_error_handler(request, exception):
         status=status_code,
         headers={
             "Access-Control-Allow-Origin": CORS_ORIGINS,
-            "Access-Control-Allow-Credentials": True,
+            "Access-Control-Allow-Credentials": "true",
         },
     )
 
