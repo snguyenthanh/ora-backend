@@ -84,3 +84,8 @@ A refresh token is a long-life token used to generate new access tokens. In this
 5. When the cookie expires, the client sends the cookie to endpoint `/refresh` to get a new cookie.
 6. Replace the expired `access_token` with the freshly retrieved one in the browser.
 6. Repeat from step 4.
+
+## Documentation
+
+- [API](docs/API.md): API References and how to use
+- [Chat (using SocketIO)](docs/Chat_using_SocketIO.md)

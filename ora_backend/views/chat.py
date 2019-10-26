@@ -214,13 +214,14 @@ async def visitor_msg(sid, content):
     # Get visitor info from session
     session = await sio.get_session(sid)
     chat_room = session["room"]
+    visitor = session["user"]
 
     # Get the sequence number, and store in memory DB
     sequence_num = await get_sequence_num_for_room(chat_room["id"])
 
     # Emit the msg before storing it in DB
     await sio.emit(
-        "visitor_send", {"content": content}, room=chat_room["id"], skip_sid=sid
+        "visitor_send", {"user": visitor, "content": content}, room=chat_room["id"], skip_sid=sid
     )
     await ChatMessage.add(
         sequence_num=sequence_num, content=content, chat_id=chat_room["id"]

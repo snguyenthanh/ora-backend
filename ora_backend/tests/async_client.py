@@ -156,7 +156,7 @@ def create_async_client(sio):
         For the staff serving the visitor to receive his messages.
         Args:
             data (dict):
-                {"content": content}
+                {"content": content, "user": visitor}
         """
         # assert ChatMessage
 

@@ -58,7 +58,7 @@ So you don't have to worry and could use the URL directly without issues.
 - `405`: The HTTP method in the request is not allowed for the endpoint.
 - `422`: The token is in wrong format or with wrong signature.
 
-## API Reference
+## API References
 
 All the `protected` labelled requests require the auth cookie to access.
 
