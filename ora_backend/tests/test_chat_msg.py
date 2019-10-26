@@ -71,8 +71,6 @@ async def test_get_chat_messages(visitor1_client, visitors, users):
     assert "data" in body
     assert isinstance(body["data"], list)
     assert len(body["data"]) == 9
-    print("yay")
-    pprint(body)
 
     for expected, actual in zip(messages[:9], body["data"]):
         assert profile_created_from_origin(expected, actual)

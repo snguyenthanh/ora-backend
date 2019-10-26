@@ -147,7 +147,42 @@ async def test_create_user_as_agent(agent1_client):
     assert res.status == 403
 
 
-async def test_create_user(users, supervisor1_client):
+async def test_create_user_as_admin(users, admin1_client):
+    new_user = get_fake_user()
+    new_user.pop("id")
+
+    # Valid
+    res = await admin1_client.post("/users", json=new_user)
+    assert res.status == 200
+
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], dict)
+
+    all_users = await User.query.gino.all()
+    assert len(all_users) == len(users) + 1
+    assert profile_created_from_origin(new_user, all_users[-1].to_dict())
+
+    # Valid
+    new_user = get_fake_user()
+    new_user.pop("id")
+    res = await admin1_client.post("/users", json=new_user)
+    assert res.status == 200
+
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], dict)
+
+    all_users = await User.query.gino.all()
+    assert len(all_users) == len(users) + 2
+    assert profile_created_from_origin(new_user, all_users[-1].to_dict())
+
+    # Create an existing user
+    res = await admin1_client.post("/users", json=new_user)
+    assert res.status == 400
+
+
+async def test_create_user_as_supervisor(users, supervisor1_client):
     new_user = get_fake_user()
     new_user.pop("id")
 

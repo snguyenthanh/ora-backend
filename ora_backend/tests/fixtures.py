@@ -63,13 +63,13 @@ users += [
         "full_name": "Admin 1",
         "email": "admin1",
         "password": "cs3216final",
-        "role_id": 3,
+        "role_id": 1,
     },
     {
         "id": generate_uuid(),
         "full_name": "Admin 2",
         "email": "admin2",
         "password": "cs3216final",
-        "role_id": 3,
+        "role_id": 1,
     },
 ]
