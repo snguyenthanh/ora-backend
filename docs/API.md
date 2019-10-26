@@ -361,7 +361,16 @@ Return the most recent chat messages of the visitor.
      'content': <content>,
      'created_at': 1572074948,
      'id': '721931f8ee084597b09f891d88010bff',
-     'sender': 'fabd2da7215a4ed3ba16ad9c98941ce4',
+     'sender': {
+       'created_at': 1572086368,
+       'disabled': False,
+       'email': 'agent1@gmail.com',
+       'full_name': 'Agent 1',
+       'id': '581f09322163438da5b888dff84b4e44',
+       'organisation_id': 'ee2b74f3294347578063eb4e2c9fa949',
+       'role_id': 3,
+       'updated_at': None
+      },
      'sequence_num': 2,
      'type_id': 1,
      'updated_at': None}
