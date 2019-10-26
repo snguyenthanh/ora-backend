@@ -2,7 +2,7 @@ from pprint import pprint
 from random import randint
 from pytest import raises
 
-from ora_backend import cache
+from ora_backend import cache, db
 from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
 from ora_backend.models import Chat, ChatMessage, Organisation, Visitor, User
 from ora_backend.utils.query import get_one
@@ -43,14 +43,16 @@ async def test_get_chat_messages(visitor1_client, visitors, users):
     messages = []
     for sequence_num in range(1, 25):
         content = {"value": fake.sentence(nb_words=10)}
+        sender = users[-6]["id"] if randint(0, 1) else None
         chat_msg = {
             "chat_id": chat["id"],
             "sequence_num": sequence_num,
             "content": content,
-            "sender": users[-6]["id"] if randint(0, 1) else None,
+            "sender": sender,
         }
-        messages.append(chat_msg)
         await ChatMessage.add(**chat_msg)
+        chat_msg["sender"] = users[-6] if sender else None
+        messages.append(chat_msg)
 
     # Try getting the chat messages
     res = await visitor1_client.get("/visitors/{}/messages".format(visitor_id))
@@ -61,7 +63,8 @@ async def test_get_chat_messages(visitor1_client, visitors, users):
     assert len(body["data"]) == 15  # The limit
 
     for expected, actual in zip(messages[9:], body["data"]):
-        assert profile_created_from_origin(expected, actual)
+        assert profile_created_from_origin(expected, actual, ignore={"sender"})
+        assert profile_created_from_origin(expected["sender"], actual["sender"])
 
     # Ensure that getting the next messages work too
     next_page_link = get_next_page_link(body)
@@ -73,7 +76,8 @@ async def test_get_chat_messages(visitor1_client, visitors, users):
     assert len(body["data"]) == 9
 
     for expected, actual in zip(messages[:9], body["data"]):
-        assert profile_created_from_origin(expected, actual)
+        assert profile_created_from_origin(expected, actual, ignore={"sender"})
+        assert profile_created_from_origin(expected["sender"], actual["sender"])
 
     # Ensure that getting the next messages are empty
     next_page_link = get_next_page_link(body)

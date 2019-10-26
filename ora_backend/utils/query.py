@@ -5,6 +5,11 @@ from sqlalchemy import and_, desc
 
 from ora_backend import db
 from ora_backend.exceptions import UniqueViolationError as DuplicatedError
+from ora_backend.schemas import (
+    CHAT_MESSAGE_READ_SCHEMA,
+    USER_READ_SCHEMA,
+    QUERY_PARAM_READ_SCHEMA,
+)
 from ora_backend.utils.exceptions import raise_not_found_exception
 from ora_backend.utils.transaction import in_transaction
 
@@ -89,8 +94,28 @@ async def get_many(
     )
 
 
-async def get_messages(model, *, chat_id, before_id=None, limit=15, **kwargs):
-    # Get the `internal_id` value from the starting row
+async def get_messages(model, user, *, chat_id, before_id=None, limit=15, **kwargs):
+    ignore_fields = set(QUERY_PARAM_READ_SCHEMA.keys())
+    message_fields = [
+        key
+        for key, val in CHAT_MESSAGE_READ_SCHEMA.items()
+        if not val.get("readonly", False) and key not in ignore_fields
+    ]
+    user_fields = [
+        key
+        for key, val in USER_READ_SCHEMA.items()
+        if not val.get("readonly", False) and key not in ignore_fields
+    ]
+
+    # Join the tables to extract the user's info
+    query = db.select(
+        [
+            *(getattr(model, key) for key in message_fields),
+            *(getattr(user, key) for key in user_fields),
+        ]
+    ).select_from(model.outerjoin(user, model.sender == user.id))
+
+    # Get the `before_id` value from the starting row
     # And use it to query the next page of results
     if before_id:
         row_of_before_id = await model.query.where(model.id == before_id).gino.first()
@@ -98,7 +123,7 @@ async def get_messages(model, *, chat_id, before_id=None, limit=15, **kwargs):
             raise_not_found_exception(model, **kwargs)
 
         last_sequence_num = row_of_before_id.sequence_num
-        query = model.query.where(
+        query = query.where(
             and_(
                 model.chat_id == chat_id,
                 *dict_to_filter_args(model, **kwargs),
@@ -106,13 +131,42 @@ async def get_messages(model, *, chat_id, before_id=None, limit=15, **kwargs):
             )
         )
     else:
-        query = model.query.where(
+        query = query.where(
             and_(model.chat_id == chat_id, *dict_to_filter_args(model, **kwargs))
         )
 
-    return (await query.order_by(desc(model.sequence_num)).limit(limit).gino.all())[
+    """
+    result = await db.select([
+        ChatMessage.sequence_num,
+        ChatMessage.content,
+        User.id,
+        User.full_name,
+    ]).select_from(ChatMessage.join(User, ChatMessage.sender == User.id)).gino.all()
+    """
+
+    data = (await query.order_by(desc(model.sequence_num)).limit(limit).gino.all())[
         ::-1
     ]
+
+    result = []
+    # Parse the message and sender
+    for row in data:
+        message = {}
+        sender = None
+        index = 0
+        for key in message_fields:
+            message[key] = row[index]
+            index += 1
+
+        if message["sender"]:
+            sender = {}
+            for key in user_fields:
+                sender[key] = row[index]
+                index += 1
+
+        result.append({**message, "sender": sender})
+
+    return result
 
 
 async def get_one_latest(model, order_by="internal_id", **kwargs):

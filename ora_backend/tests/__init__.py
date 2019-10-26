@@ -62,6 +62,12 @@ async def get_refresh_token_for_user(user, app=None):
 
 
 def profile_created_from_origin(origin: dict, created: dict, ignore=None):
+    if not origin and not created:
+        return True
+
+    if not origin or not created:
+        return False
+
     ignore = ignore or set()
     ignore.update({"password", "updated_at"})
     for key, val in origin.items():

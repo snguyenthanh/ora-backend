@@ -273,9 +273,9 @@ class ChatMessage(BaseModel):
 
     @classmethod
     async def get(cls, *, chat_id, **kwargs):
-        messages = await get_messages(cls, chat_id=chat_id, **kwargs)
-        serialized_data = serialize_to_dict(messages)
-        return serialized_data
+        messages = await get_messages(cls, User, chat_id=chat_id, **kwargs)
+        # serialized_data = serialize_to_dict(messages)
+        return messages
 
 
 class Chat(BaseModel):

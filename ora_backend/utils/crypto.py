@@ -32,14 +32,19 @@ def validate_password_strength(password: str):
     - Minimum length: 8 characters
     - Has at least 1 number
     """
-    if len(password) >= 8 and any(char.isdigit() for char in password):
+    if (
+        len(password) >= 8
+        and any(char.isdigit() for char in password)
+        and any(char.isalpha() for char in password)
+    ):
         return
 
     raise InvalidUsage(
         {
             "password": [
-                "Your password is not strong enough. "
-                "Ensure it has at least 8 characters, and at least 1 number."
+                "Your password is not strong enough.\n"
+                "Ensure its length is more than 8, "
+                "have at least 1 number and 1 alphabetic character."
             ]
         }
     )

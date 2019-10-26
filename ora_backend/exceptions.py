@@ -20,7 +20,10 @@ async def sanic_error_handler(request, exception):
     return json(
         {"error": exc_message},
         status=status_code,
-        headers={"Access-Control-Allow-Origin": "*"},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": True,
+        },
     )
 
 
