@@ -58,6 +58,97 @@ In the case of disconnection, *ALL* the chat rooms will be closed, and each visi
 
 ### 3.1. Send
 
+All emitted events will return 2 variables:
+  - result (`boolean`): if the event succeeds.
+  - error_message (`str`): why it fails.
+
+#### staff_join
+
+For staff to join a room.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+	"room": <str>,	# The room's id
+}
+```
+
+#### visitor_first_msg
+
+For visitor to send the first message to start a new chat session.
+
+Args:
+
+`content` (dict): the message content.
+
+```
+content=<content>
+```
+
+#### visitor_msg_unclaimed
+
+For visitor to send more messages after the first one, while the chat is *NOT* claimed.
+
+Args:
+
+`content` (dict): the message content.
+
+```
+content=<content>
+```
+
+#### visitor_msg
+
+For visitor to send a message to the staff in the chat room.
+
+Args:
+
+`content` (dict): the message content.
+
+```
+content=<content>
+```
+
+#### staff_msg
+
+For staff to send a message to the visitor.
+
+Args:
+
+`data` (dict):
+
+```
+data={
+	"room": <room_id>,
+	"content": <content>,	# dict
+}
+```
+
+#### staff_leave_room
+
+For a staff to leave a chat room.
+
+Args:
+
+`data` (dict):
+
+```
+data={
+	"room": <room_id>
+}
+```
+
+#### visitor_leave_room
+
+For a visitor to leave the chat room.
+
+The event `visitor_first_msg` must be sent to create a new chat sesssion.
+
+Args: `None`
+
 ### 3.2. Receive
 
 #### staff_init
@@ -164,6 +255,7 @@ This event is emitted to staffs if the visitor sends other messages after the fi
 This is to update all the staffs of new incoming messages from the visitor.
 
 Args:
+
 `data` (dict)
 
 ```

@@ -188,9 +188,6 @@ async def test_visitor_send_msg_after_a_staff_join(
     unclaimed_chats = await cache.get(queue_room)
     assert unclaimed_chats is None
 
-    # Get the chat room
-    chat_room = await Chat.get(visitor_id=visitor["id"])
-
     # A staff connects first
     await sio_client_agent1.connect(
         server_path, headers={"Authorization": token_agent_1}
@@ -205,6 +202,9 @@ async def test_visitor_send_msg_after_a_staff_join(
     await sio_client_visitor.connect(
         server_path, headers={"Authorization": token_visitor_1}
     )
+
+    # Get the chat room
+    chat_room = await Chat.get(visitor_id=visitor["id"])
 
     # Send the first message
     new_content = {"value": "This is the first message"}
