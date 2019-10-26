@@ -56,3 +56,7 @@ async def create_tables(app, loop):
 
 # Register the listeners
 app.register_listener(create_tables, "after_server_start")
+
+@app.middleware("response")
+async def add_cors_to_response(request, response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
