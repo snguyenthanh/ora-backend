@@ -275,12 +275,6 @@ class ChatMessage(BaseModel):
     async def get(cls, *, chat_id, **kwargs):
         messages = await get_messages(cls, chat_id=chat_id, **kwargs)
         serialized_data = serialize_to_dict(messages)
-
-        # Raise NotFound if no single resource is found
-        # Ignore if many=True, as returning an empty List is expected
-        if not serialized_data:
-            raise_not_found_exception(cls, **kwargs)
-
         return serialized_data
 
 

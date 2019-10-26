@@ -93,9 +93,7 @@ async def get_messages(model, *, chat_id, before_id=None, limit=15, **kwargs):
     # Get the `internal_id` value from the starting row
     # And use it to query the next page of results
     if before_id:
-        row_of_before_id = await model.query.where(
-            model.sequence_num == before_id
-        ).gino.first()
+        row_of_before_id = await model.query.where(model.id == before_id).gino.first()
         if not row_of_before_id:
             raise_not_found_exception(model, **kwargs)
 

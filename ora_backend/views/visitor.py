@@ -1,9 +1,9 @@
 from sanic.response import json
-from sanic.exceptions import Forbidden
+from sanic.exceptions import Forbidden, NotFound
 
 from ora_backend.views.urls import visitor_blueprint as blueprint
-from ora_backend.models import Visitor
-from ora_backend.utils.exceptions import raise_role_authorization_exception
+from ora_backend.models import Visitor, Chat, ChatMessage
+from ora_backend.utils.links import generate_pagination_links
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import validate_request, validate_permission
 
@@ -57,3 +57,32 @@ async def visitor_route_single(
         request, req_args={**req_args, "id": visitor_id}, req_body=req_body, **kwargs
     )
     return json(response)
+
+
+@blueprint.route("/<visitor_id>/messages", methods=["GET"])
+@unpack_request
+@validate_permission
+@validate_request(model=Chat, skip_body=True)
+async def get_chat_messages(
+    request, visitor_id, *, req_args=None, query_params=None, **kwargs
+):
+    visitor_id = visitor_id.strip()
+    req_args = req_args or {}
+    query_params = query_params or {}
+
+    # Ensure that the chat exists
+    try:
+        chat = await Chat.get(visitor_id=visitor_id)
+    except NotFound:
+        messages = []
+    else:
+        messages = await ChatMessage.get(chat_id=chat["id"], **req_args, **query_params)
+
+    return json(
+        {
+            "data": messages,
+            "links": generate_pagination_links(
+                request.url, messages, field="before_id", index=0
+            ),
+        }
+    )

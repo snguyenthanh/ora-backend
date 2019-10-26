@@ -71,3 +71,11 @@ def profile_created_from_origin(origin: dict, created: dict, ignore=None):
         if val != created[key]:
             return False
     return True
+
+
+def get_next_page_link(request_body: dict):
+    next_page_link = request_body["links"]["next"]
+
+    # Strip the host, as it is a testing host
+    next_page_link = "/" + "/".join(next_page_link.split("/")[3:])
+    return next_page_link

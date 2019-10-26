@@ -1,5 +1,4 @@
 from pprint import pprint
-from unittest import mock
 
 from pytest import raises
 from socketio.exceptions import ConnectionError

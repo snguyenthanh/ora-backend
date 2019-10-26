@@ -311,3 +311,57 @@ Response:
     }
 }
 ```
+
+### 4. ChatMessage
+
+Each `ChatMessage` will have the following fields:
+- `chat_id` (str): a unique ID for each chat room, persists to each visitor.
+- `content` (dict): the `content` passed by front-end in SocketIO chat.
+- `id` (str): the ID of the chat message.
+- `sender` (str): the ID of the staff who sends the message. If it is the `visitor` who sends it, `sender` is `None`.
+- `sequence_num` (int): It determines the exact ordering of messages for *EACH* visitor.
+- `type_id` (int): There are 2 types of chat messages:
+  + 0: System (for joining and leaving messages)
+  + 1: User/Visitor
+- `created_at`/`updated_at` (int): Unix timestamps.
+
+#### 4.1. Retrieve
+
+Request:
+
+```
+GET /visitors/<visitor_id>/messages
+```
+
+Response:
+
+*Notes*  
+>  The `data` field will be empty if:  
+    - The visitor doesn't exist.  
+    - The visitor has no messages yet.  
+    - There are no messages left to shown.
+
+> The `links.next` will has a link to retrieve to previously sent messages, on top of the ones in the response.  
+  `next` is not in `links` if the `data` is empty.
+
+```
+{'data': [
+    {'chat_id': '67986ad411ff4072947b5a2f0bf9c730',
+     'content': <content>,
+     'created_at': 1572074948,
+     'id': '1e9a98d81ea54a0b808aebf1b54b612a',
+     'sender': None,
+     'sequence_num': 1,
+     'type_id': 1,
+     'updated_at': None},
+    {'chat_id': '67986ad411ff4072947b5a2f0bf9c730',
+     'content': <content>,
+     'created_at': 1572074948,
+     'id': '721931f8ee084597b09f891d88010bff',
+     'sender': 'fabd2da7215a4ed3ba16ad9c98941ce4',
+     'sequence_num': 2,
+     'type_id': 1,
+     'updated_at': None}
+  ],
+ 'links': {'next': 'http://127.0.0.1:60013/visitors/b9d1dccb1aa24ed7b2c306db437f1363/messages?before_id=6010d9d8ef7f407bb6cadb12144576f0'}}
+```
