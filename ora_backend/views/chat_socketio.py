@@ -35,11 +35,13 @@ async def authenticate_user(environ: dict):
     except (JWTExtendedException, Unauthorized):
         raise ConnectionRefusedError("Authentication fails")
 
+    user_type = Visitor.__tablename__
     if "name" in user:  # Is visitor
         user = await Visitor.get(id=user["id"])
     else:
         user = await User.get(id=user["id"])
-    return user
+        user_type = User.__tablename__
+    return user, user_type
 
 
 async def get_sequence_num_for_room(room_id: str):
@@ -55,10 +57,10 @@ async def get_sequence_num_for_room(room_id: str):
 # Ora events
 @sio.event
 async def connect(sid, environ: dict):
-    user = await authenticate_user(environ)
+    user, user_type = await authenticate_user(environ)
 
-    # `role_id` is a field only existing for Staff
-    if "role_id" in user:
+    # Staff
+    if user_type == User.__tablename__:
         org_id = UNCLAIMED_CHATS_PREFIX + user["organisation_id"]
         sio.enter_room(sid, org_id)
         await sio.save_session(sid, {"user": user, "org_room": org_id})
@@ -355,9 +357,10 @@ async def visitor_leave_room(sid, _):
 @sio.event
 async def disconnect(sid):
     session = await sio.get_session(sid)
+    user = session["user"]
 
-    # Visitor has `room`
-    if "room" in session:
+    # Visitor has `name`
+    if "name" in user:
         await handle_visitor_leave(sid)
     else:  # while Staff has `org_room`
         org_room = session["org_room"]
