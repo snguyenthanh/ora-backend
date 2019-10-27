@@ -336,7 +336,7 @@ async def test_staff_claim_a_visitor(
             "sequence_num": 2,
             "type_id": 0,
             "content": {"value": "join room"},
-            "sender": agent["id"],
+            "sender": agent,
             "chat_id": chat_room["id"],
         },
         {
@@ -344,7 +344,7 @@ async def test_staff_claim_a_visitor(
             "chat_id": chat_room["id"],
             "type_id": 1,
             "content": staff_first_content,
-            "sender": agent["id"],
+            "sender": agent,
         },
         {
             "sequence_num": 4,
@@ -357,12 +357,13 @@ async def test_staff_claim_a_visitor(
             "sequence_num": 5,
             "type_id": 0,
             "content": {"value": "leave room"},
-            "sender": agent["id"],
+            "sender": agent,
             "chat_id": chat_room["id"],
         },
     ]
     for expected, message in zip(expected_msgs, messages):
-        assert profile_created_from_origin(expected, message)
+        assert profile_created_from_origin(expected, message, ignore={"sender"})
+        assert profile_created_from_origin(expected["sender"], message["sender"])
 
     await sio_client_visitor.disconnect()
     await sio_client_agent1.disconnect()
@@ -448,7 +449,7 @@ async def test_visitor_second_session(
             "sequence_num": 2,
             "type_id": 0,
             "content": {"value": "join room"},
-            "sender": agent["id"],
+            "sender": agent,
             "chat_id": chat_room["id"],
         },
         {
@@ -456,7 +457,7 @@ async def test_visitor_second_session(
             "chat_id": chat_room["id"],
             "type_id": 1,
             "content": staff_first_content,
-            "sender": agent["id"],
+            "sender": agent,
         },
         {
             "sequence_num": 4,
@@ -469,7 +470,7 @@ async def test_visitor_second_session(
             "sequence_num": 5,
             "type_id": 0,
             "content": {"value": "leave room"},
-            "sender": agent["id"],
+            "sender": agent,
             "chat_id": chat_room["id"],
         },
         {
@@ -481,7 +482,8 @@ async def test_visitor_second_session(
         },
     ]
     for expected, message in zip(expected_msgs, messages):
-        assert profile_created_from_origin(expected, message)
+        assert profile_created_from_origin(expected, message, ignore={"sender"})
+        assert profile_created_from_origin(expected["sender"], message["sender"])
 
     await sio_client_visitor.disconnect()
     await sio_client_agent1.disconnect()

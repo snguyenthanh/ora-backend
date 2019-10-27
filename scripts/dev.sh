@@ -12,6 +12,7 @@ docker start -a dev_postgres_ora_backend &
 
 # Also, run the Python app
 pipenv run python app.py &
+pipenv run python app_socketio.py &
 # pipenv run hypercorn --keep-alive 10 --workers 3 --bind 127.0.0.1:8000 app:app
 
 # Allow both the Postgres container and Python app

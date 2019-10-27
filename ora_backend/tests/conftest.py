@@ -5,7 +5,7 @@ import socketio
 from sanic.websocket import WebSocketProtocol
 
 from ora_backend import app as _app, db
-from ora_backend.config import SANIC_CONFIG
+from ora_backend.views.chat_socketio import app as _app_socketio
 from ora_backend.tests.setup_dev_db import setup_db
 from ora_backend.tests import get_access_token_for_user, get_refresh_token_for_user
 from ora_backend.tests.async_client import create_async_client
@@ -52,8 +52,10 @@ def client(loop, app, sanic_client):
 
 
 @pytest.fixture
-def server(loop, app, test_server):
-    return loop.run_until_complete(test_server(app, protocol=WebSocketProtocol))
+def server(loop, test_server):
+    return loop.run_until_complete(
+        test_server(_app_socketio, protocol=WebSocketProtocol)
+    )
 
 
 @pytest.fixture

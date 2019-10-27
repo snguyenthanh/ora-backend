@@ -36,7 +36,7 @@ db.init_app(app)
 JWTManager(app)
 CORS(app, origins=CORS_ORIGINS)
 
-logging.getLogger('sanic_cors').level = logging.DEBUG
+logging.getLogger("sanic_cors").level = logging.DEBUG
 
 
 # Register the routes/views
@@ -50,7 +50,7 @@ from ora_backend.exceptions import sanic_error_handler
 app.error_handler.add(SanicException, sanic_error_handler)
 
 # Register SocketIO
-from ora_backend.views.chat_socketio import app
+# from ora_backend.views.chat_socketio import app
 
 
 async def create_tables(app, loop):

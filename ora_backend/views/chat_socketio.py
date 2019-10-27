@@ -12,8 +12,16 @@ from ora_backend.utils.auth import get_token_requester
 from ora_backend.utils.query import get_one_latest
 
 
-mgr = socketio.AsyncRedisManager('redis://:{}@127.0.0.1:6379/0'.format(environ.get("DB_PASSWORD")))
-sio = socketio.AsyncServer(async_mode="sanic", cors_allowed_origins=[], client_manager=mgr)
+mode = environ.get("MODE", "development").lower()
+if mode == "production":
+    mgr = socketio.AsyncRedisManager(
+        "redis://:{}@127.0.0.1:6379/0".format(environ.get("DB_PASSWORD"))
+    )
+    sio = socketio.AsyncServer(
+        async_mode="sanic", cors_allowed_origins=[], client_manager=mgr
+    )
+else:
+    sio = socketio.AsyncServer(async_mode="sanic", cors_allowed_origins=[])
 sio.attach(app)
 
 

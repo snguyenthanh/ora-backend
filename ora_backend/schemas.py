@@ -95,7 +95,8 @@ VISITOR_WRITE_SCHEMA = {
 
 USER_READ_SCHEMA = {
     "id": is_string,
-    "full_name": {"type": "string"},
+    "full_name": is_string,
+    "display_name": is_string,
     "email": {"type": "string"},
     "password": {"readonly": True},
     "role_id": is_integer,
