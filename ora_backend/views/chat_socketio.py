@@ -64,6 +64,9 @@ async def connect(sid, environ: dict):
         org_id = UNCLAIMED_CHATS_PREFIX + user["organisation_id"]
         sio.enter_room(sid, org_id)
         await sio.save_session(sid, {"user": user, "org_room": org_id})
+        await cache.set(
+            "user_{}".format(sid), {"user": user, "type": user_type, "org_room": org_id}
+        )
 
         # Update the current unclaimed chats to the newly connected staff
         unclaimed_chats = await cache.get(org_id, [])
@@ -73,6 +76,9 @@ async def connect(sid, environ: dict):
         chat_room = await Chat.get_or_create(visitor_id=user["id"])
         sio.enter_room(sid, chat_room["id"])
         await sio.save_session(sid, {"user": user, "room": chat_room})
+        await cache.set(
+            "user_{}".format(sid), {"user": user, "type": user_type, "room": chat_room}
+        )
 
         # Inform the frontend the chat room info, to be forwarded by staffs
         # await sio.emit("visitor_init", {"room": chat_room}, room=chat_room["id"])
@@ -284,12 +290,11 @@ async def staff_msg(sid, data):
     return True, None
 
 
-async def handle_staff_leave(sid, data):
+async def handle_staff_leave(sid, session, data):
     # Validation
     if "room" not in data or not isinstance(data["room"], str):
         return False, "Missing/Invalid field: room"
 
-    session = await sio.get_session(sid)
     room = data["room"]
     user = session["user"]
 
@@ -314,12 +319,11 @@ async def handle_staff_leave(sid, data):
 
 @sio.event
 async def staff_leave_room(sid, data):
-    return await handle_staff_leave(sid, data)
-
-
-async def handle_visitor_leave(sid):
-    # Get visitor info from session
     session = await sio.get_session(sid)
+    return await handle_staff_leave(sid, session, data)
+
+
+async def handle_visitor_leave(sid, session):
     room = session["room"]
 
     # Remove the room from the queue if there is
@@ -350,19 +354,25 @@ async def handle_visitor_leave(sid):
 
 @sio.event
 async def visitor_leave_room(sid, _):
-    await handle_visitor_leave(sid)
+    session = await sio.get_session(sid)
+    await handle_visitor_leave(sid, session)
     return True, None
 
 
 @sio.event
-async def disconnect(sid):
-    session = await sio.get_session(sid)
-    user = session["user"]
+async def disconnect_request(sid):
+    await sio.disconnect(sid)
 
-    # Visitor has `name`
-    if "name" in user:
-        await handle_visitor_leave(sid)
-    else:  # while Staff has `org_room`
+
+@sio.event
+async def disconnect(sid):
+    # session = await sio.get_session(sid)
+    session = await cache.get("user_{}".format(sid))
+
+    # Visitor
+    if session["type"] == Visitor.__tablename__:
+        await handle_visitor_leave(sid, session)
+    else:  # Staff
         org_room = session["org_room"]
         rooms = sio.rooms(sid)
 
@@ -371,10 +381,11 @@ async def disconnect(sid):
             if room == sid:
                 await sio.close_room(sid)
             elif room != org_room:
-                await handle_staff_leave(sid, {"room": {"id": room}})
+                await handle_staff_leave(sid, session, {"room": {"id": room}})
 
         # Disconnect from queue room
         org_room_id = org_room.replace(UNCLAIMED_CHATS_PREFIX, "")
         sio.leave_room(sid, org_room_id)
 
+    await cache.delete("user_{}".format(sid), {})
     return True, None
