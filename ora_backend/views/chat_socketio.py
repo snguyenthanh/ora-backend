@@ -1,3 +1,5 @@
+from os import environ
+
 import socketio
 from socketio.exceptions import ConnectionRefusedError
 from sanic.exceptions import Unauthorized
@@ -10,7 +12,8 @@ from ora_backend.utils.auth import get_token_requester
 from ora_backend.utils.query import get_one_latest
 
 
-sio = socketio.AsyncServer(async_mode="sanic", cors_allowed_origins=[])
+mgr = socketio.AsyncRedisManager('redis://:{}@127.0.0.1:6379/0'.format(environ.get("DB_PASSWORD")))
+sio = socketio.AsyncServer(async_mode="sanic", cors_allowed_origins=[], client_manager=mgr)
 sio.attach(app)
 
 
@@ -50,7 +53,8 @@ async def connect(sid, environ: dict):
     if "role_id" in user:
         org_id = UNCLAIMED_CHATS_PREFIX + user["organisation_id"]
         sio.enter_room(sid, org_id)
-        await sio.save_session(sid, {"user": user, "org_room": org_id})
+        await cache.set(sid, {"user": user, "org_room": org_id})
+        # await sio.save_session(sid, {"user": user, "org_room": org_id})
 
         # Update the current unclaimed chats to the newly connected staff
         unclaimed_chats = await cache.get(org_id, [])
@@ -59,7 +63,9 @@ async def connect(sid, environ: dict):
         # Get/Create a chat room for each visitor
         chat_room = await Chat.get_or_create(visitor_id=user["id"])
         sio.enter_room(sid, chat_room["id"])
-        await sio.save_session(sid, {"user": user, "room": chat_room})
+
+        await cache.set(sid, {"user": user, "org_room": org_id})
+        # await sio.save_session(sid, {"user": user, "room": chat_room})
 
         # Inform the frontend the chat room info, to be forwarded by staffs
         # await sio.emit("visitor_init", {"room": chat_room}, room=chat_room["id"])
@@ -85,7 +91,8 @@ async def staff_join(sid, data):
     if "room" not in data or not isinstance(data["room"], str):
         return False, "Missing/Invalid field: room"
 
-    session = await sio.get_session(sid)
+    # session = await sio.get_session(sid)
+    session = await cache.get(sid)
     room = data["room"]
     user = session["user"]
     org_room = session["org_room"]
@@ -138,7 +145,8 @@ async def visitor_first_msg(sid, content):
     if not content or not isinstance(content, dict):
         return False, "Missing/Invalid data"
 
-    session = await sio.get_session(sid)
+    # session = await sio.get_session(sid)
+    session = await cache.get(sid)
     chat_room = session["room"]
     user = session["user"]
     data = {"user": user, "room": chat_room, "contents": [content]}
@@ -171,7 +179,8 @@ async def visitor_msg_unclaimed(sid, content):
     if not content or not isinstance(content, dict):
         return False, "Missing/Invalid data"
 
-    session = await sio.get_session(sid)
+    # session = await sio.get_session(sid)
+    session = await cache.get(sid)
     chat_room = session["room"]
 
     chat_room_info = await cache.get(chat_room["id"], {})
@@ -212,7 +221,8 @@ async def visitor_msg(sid, content):
         return False, "Missing/Invalid data"
 
     # Get visitor info from session
-    session = await sio.get_session(sid)
+    # session = await sio.get_session(sid)
+    session = await cache.get(sid)
     chat_room = session["room"]
     visitor = session["user"]
 
@@ -242,7 +252,8 @@ async def staff_msg(sid, data):
         return False, "Missing/Invalid field: content"
 
     # Get visitor info from session
-    session = await sio.get_session(sid)
+    # session = await sio.get_session(sid)
+    session = await cache.get(sid)
     room = data["room"]
     content = data["content"]
     user = session["user"]
@@ -268,7 +279,8 @@ async def handle_staff_leave(sid, data):
     if "room" not in data or not isinstance(data["room"], str):
         return False, "Missing/Invalid field: room"
 
-    session = await sio.get_session(sid)
+    # session = await sio.get_session(sid)
+    session = await cache.get(sid)
     room = data["room"]
     user = session["user"]
 
@@ -288,6 +300,7 @@ async def handle_staff_leave(sid, data):
     # When either the staff or visitor ends the chat, close the room
     await sio.close_room(room)
     await cache.delete(room)
+    await cache.delete(sid)
     return True, None
 
 
@@ -298,7 +311,8 @@ async def staff_leave_room(sid, data):
 
 async def handle_visitor_leave(sid):
     # Get visitor info from session
-    session = await sio.get_session(sid)
+    # session = await sio.get_session(sid)
+    session = await cache.get(sid)
     room = session["room"]
 
     # Emit the msg before closing the room
@@ -308,6 +322,7 @@ async def handle_visitor_leave(sid):
 
     await sio.close_room(room["id"])
     await cache.delete(room["id"])
+    await cache.delete(sid)
 
 
 @sio.event
@@ -318,7 +333,8 @@ async def visitor_leave_room(sid, _):
 
 @sio.event
 async def disconnect(sid):
-    session = await sio.get_session(sid)
+    # session = await sio.get_session(sid)
+    session = await cache.get(sid)
 
     # Visitor has `room`
     if "room" in session:
