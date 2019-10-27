@@ -31,6 +31,7 @@ async def test_visitor_join(sio_client_visitor, server_path, token_visitor_1, vi
     assert await cache.exists(chat.id)
 
     await sio_client_visitor.disconnect()
+    await sio_client_visitor.sleep(1)
 
     # The chat room in cache is deleted when either of the visitor/staff leaves
     assert not await cache.exists(chat.id)
@@ -168,6 +169,79 @@ async def test_visitor_send_msg_before_a_staff_join(
 
     await sio_client_visitor.disconnect()
     await sio_client_agent1.disconnect()
+
+
+async def test_visitor_send_msgs_then_disconnect(
+    sio_client_visitor, server_path, token_visitor_1, visitors
+):
+    # Get the visitor info
+    visitor = await Visitor.get(id=visitors[-1]["id"])
+
+    await sio_client_visitor.connect(
+        server_path, headers={"Authorization": token_visitor_1}
+    )
+
+    # Get the queue room
+    org = (await Organisation.query.gino.all())[0]
+    queue_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
+    unclaimed_chats = await cache.get(queue_room)
+    assert unclaimed_chats is None
+
+    # Get the chat room
+    chat_room = await Chat.get(visitor_id=visitor["id"])
+
+    # Send the first message
+    new_content = {"value": "This is the first message"}
+    await sio_client_visitor.call("visitor_first_msg", new_content)
+
+    # Assert no errors are raised when the staff connects
+    excs = await cache.get("exceptions", [])
+    assert not excs
+
+    # Visitor sends another message (chat is still unclaimed)
+    second_content = {"value": "Second message"}
+    await sio_client_visitor.call("visitor_msg_unclaimed", second_content)
+
+    # Check if the message has been updated to backend
+    messages = await ChatMessage.get(chat_id=chat_room["id"])
+    assert len(messages) == 2
+    expected_msgs = [
+        {
+            "sequence_num": 1,
+            "chat_id": chat_room["id"],
+            "type_id": 1,
+            "content": new_content,
+            "sender": None,
+        },
+        {
+            "sequence_num": 2,
+            "chat_id": chat_room["id"],
+            "type_id": 1,
+            "content": second_content,
+            "sender": None,
+        },
+    ]
+    for expected, message in zip(expected_msgs, messages):
+        assert profile_created_from_origin(expected, message)
+
+    # Ensure that the chat in queue room is also updated
+    unclaimed_chats = await cache.get(queue_room)
+    assert len(unclaimed_chats) == 1
+    assert unclaimed_chats == [
+        {"user": visitor, "room": chat_room, "contents": [new_content, second_content]}
+    ]
+
+    # Assert no errors are raised when the visitor sends the 2nd msg
+    excs = await cache.get("exceptions", [])
+    assert not excs
+
+    await sio_client_visitor.disconnect()
+    await sio_client_visitor.sleep(1)
+
+    # Ensure the chat has been removed from queue room after visitor disconnects
+    unclaimed_chats = await cache.get(queue_room)
+    assert isinstance(unclaimed_chats, list)
+    assert not unclaimed_chats
 
 
 async def test_visitor_send_msg_after_a_staff_join(

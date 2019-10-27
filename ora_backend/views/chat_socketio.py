@@ -161,7 +161,12 @@ async def visitor_first_msg(sid, content):
 
     # Append the user to the in-memory unclaimed chats
     unclaimed_chats = await cache.get(org_room, [])
-    unclaimed_chats.append(data)
+    for index, chat in enumerate(unclaimed_chats):
+        if chat["user"]["id"] == user["id"]:
+            unclaimed_chats[index] = data
+            break
+    else:
+        unclaimed_chats.append(data)
     await cache.set(org_room, unclaimed_chats)
 
     # Add the chat to unclaimed chats
@@ -312,11 +317,28 @@ async def handle_visitor_leave(sid):
     session = await sio.get_session(sid)
     room = session["room"]
 
+    # Remove the room from the queue if there is
+    org = (await Organisation.query.gino.all())[0]
+    org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
+
+    # Append the user to the in-memory unclaimed chats
+    unclaimed_chats = await cache.get(org_room, [])
+
+    for index, _chat in enumerate(unclaimed_chats):
+        if _chat["room"]["id"] == room["id"]:
+            del unclaimed_chats[index]
+            await cache.set(org_room, unclaimed_chats)
+
+            # Annouce to the staffs that the room has been removed
+            await sio.emit(
+                "visitor_leave_queue", {"user": session["user"]}, room=org_room
+            )
+            break
+
     # Emit the msg before closing the room
     await sio.emit(
         "visitor_leave", {"user": session["user"]}, room=room["id"], skip_sid=sid
     )
-
     await sio.close_room(room["id"])
     await cache.delete(room["id"])
 

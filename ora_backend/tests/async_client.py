@@ -43,6 +43,37 @@ def create_async_client(sio):
             await cache.set("exceptions", excs)
 
     @sio.event
+    async def visitor_leave_queue(data: dict):
+        """
+        Emitted to all staffs in queue room to inform them to remove a chat from the queue,
+        because the visitor has disconnected.
+
+        Args:
+            `data` (dict):
+                data={
+                  "user": { # The visitor
+                    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+                    "name": "Visitor 1",
+                    "email": "visitor1"
+                  }
+                }
+        """
+        org = (await Organisation.query.gino.all())[0]
+        org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
+        cached_unclaims = await cache.get(org_room, [])
+
+        if any(item["user"]["id"] == data["user"]["id"] for item in cached_unclaims):
+            excs = await cache.get("exceptions", [])
+            excs.append(
+                {
+                    "event": "visitor_leave_queue",
+                    "condition": """any(item["user"]["id"] == data["user"]["id"]"""
+                    """ for item in cached_unclaims)""",
+                }
+            )
+            await cache.set("exceptions", excs)
+
+    @sio.event
     async def staff_claim_chat(data: dict):
         """
         Broadcast to queue room, to remove the unclaimed chat from others' clients.

@@ -52,23 +52,11 @@ def client(loop, app, sanic_client):
 
 
 @pytest.fixture
-def server(loop, test_server):
-    return loop.run_until_complete(
-        test_server(_app_socketio, protocol=WebSocketProtocol)
-    )
-
-
-@pytest.fixture
-def server_path(server):
-    return "{}://{}:{}".format(server.scheme, server.host, server.port)
-
-
-@pytest.fixture
 def sio_client_visitor(loop):
     sio = socketio.AsyncClient(logger=True, request_timeout=1, engineio_logger=True)
     yield create_async_client(sio)
     loop.run_until_complete(sio.disconnect())
-    loop.run_until_complete(sio.wait())
+    # loop.run_until_complete(sio.wait())
 
 
 @pytest.fixture
@@ -76,7 +64,7 @@ def sio_client_agent1(loop):
     sio = socketio.AsyncClient(logger=True, request_timeout=1, engineio_logger=True)
     yield create_async_client(sio)
     loop.run_until_complete(sio.disconnect())
-    loop.run_until_complete(sio.wait())
+    # loop.run_until_complete(sio.wait())
 
 
 @pytest.fixture
@@ -84,7 +72,21 @@ def sio_client_agent2(loop):
     sio = socketio.AsyncClient(logger=True, request_timeout=1, engineio_logger=True)
     yield create_async_client(sio)
     loop.run_until_complete(sio.disconnect())
-    loop.run_until_complete(sio.wait())
+    # loop.run_until_complete(sio.wait())
+
+
+@pytest.fixture
+def server(loop, test_server):
+    _server = loop.run_until_complete(
+        test_server(_app_socketio, protocol=WebSocketProtocol)
+    )
+    yield _server
+    loop.run_until_complete(_server.close())
+
+
+@pytest.fixture
+def server_path(server):
+    return "{}://{}:{}".format(server.scheme, server.host, server.port)
 
 
 @pytest.fixture

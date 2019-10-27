@@ -86,7 +86,7 @@ async def test_refresh_token_visitor(visitor1_client):
 
     body = await res.json()
     assert isinstance(body, dict)
-    assert "access_token" not in body
+    assert "access_token" in body
     assert "access_token" in res.cookies
     assert "refresh_token" in res.cookies
 
@@ -98,7 +98,7 @@ async def test_refresh_token_user(agent1_client):
 
     body = await res.json()
     assert isinstance(body, dict)
-    assert "access_token" not in body
+    assert "access_token" in body
     assert "access_token" in res.cookies
     assert "refresh_token" in res.cookies
     # new_access_token = body["access_token"]

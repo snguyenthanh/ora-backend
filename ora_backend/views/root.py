@@ -69,7 +69,7 @@ async def create_new_access_token(request):
         identity=jwt_token_data["identity"], app=request.app
     )
     signed_access_token = sign_str(access_token)
-    response = json({})
+    response = json({"access_token": signed_access_token})
     response.cookies["access_token"] = signed_access_token
     response.cookies["refresh_token"] = request.cookies["refresh_token"]
     response.cookies["access_token"]["httponly"] = True

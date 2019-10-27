@@ -149,6 +149,7 @@ The event `visitor_first_msg` must be sent to create a new chat sesssion.
 
 Args: `None`
 
+
 ### 3.2. Receive
 
 #### staff_init
@@ -245,6 +246,24 @@ data={
       "severity_level": 0,
   },
   "contents": [<content>],  # `content` is a Dict
+}
+```
+
+#### visitor_leave_queue
+
+Emitted to all staffs in queue room to inform them to remove a chat from the queue, because the visitor has disconnected.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": { # The visitor
+    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+    "name": "Visitor 1",
+    "email": "visitor1"
+  }
 }
 ```
 
