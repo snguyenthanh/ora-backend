@@ -23,7 +23,7 @@ SANIC_RUN_CONFIG = {
     "port": 8000,
     "debug": MODE != "production",
     "access_log": MODE != "production",
-    "workers": 3,
+    "workers": 1,
     "protocol": WebSocketProtocol,
 }
 
