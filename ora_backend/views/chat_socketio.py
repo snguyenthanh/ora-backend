@@ -103,6 +103,9 @@ async def staff_join(sid, data):
 
     # If the chat is already claimed, reject the request
     chat_room_info = await cache.get(room, {})
+    if not chat_room_info:
+        return False, "The chat room is either closed or doesn't exist."
+
     if chat_room_info["staff"]:
         return False, "This chat is already claimed."
 
