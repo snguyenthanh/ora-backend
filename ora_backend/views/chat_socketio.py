@@ -1,4 +1,5 @@
 from os import environ
+from pprint import pprint
 
 import socketio
 from socketio.exceptions import ConnectionRefusedError
@@ -92,7 +93,7 @@ async def connect(sid, environ: dict):
             sequence_num = latest_chat_msg.sequence_num
         await cache.set(
             chat_room["id"],
-            {**chat_room, "staff": None, "sequence_num": sequence_num + 1},
+            {**chat_room, "staff": 0, "sequence_num": sequence_num + 1},
         )
 
     return True, None
@@ -203,7 +204,7 @@ async def visitor_msg_unclaimed(sid, content):
 
     chat_room_info = await cache.get(chat_room["id"], {})
     sequence_num = chat_room_info.get("sequence_num", 1)
-    await cache.set(chat_room["id"], {**chat_room, "sequence_num": sequence_num + 1})
+    await cache.set(chat_room["id"], {**chat_room_info, "sequence_num": sequence_num + 1})
 
     # For now, there are no logic of choosing which orgs
     # And as there is only 1 org, choose it
