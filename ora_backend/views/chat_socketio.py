@@ -21,8 +21,12 @@ if mode == "production":
     sio = socketio.AsyncServer(
         async_mode="sanic", cors_allowed_origins=[], client_manager=mgr
     )
-else:
+elif mode == "testing":
     sio = socketio.AsyncServer(async_mode="sanic", cors_allowed_origins=[])
+else:
+    sio = socketio.AsyncServer(
+        async_mode="sanic", cors_allowed_origins=[], logger=True, engineio_logger=True
+    )
 sio.attach(app)
 
 
@@ -92,8 +96,7 @@ async def connect(sid, environ: dict):
         if latest_chat_msg:
             sequence_num = latest_chat_msg.sequence_num
         await cache.set(
-            chat_room["id"],
-            {**chat_room, "staff": 0, "sequence_num": sequence_num + 1},
+            chat_room["id"], {**chat_room, "staff": 0, "sequence_num": sequence_num + 1}
         )
 
     return True, None
@@ -148,7 +151,7 @@ async def staff_join(sid, data):
     await ChatMessage.add(
         sequence_num=sequence_num,
         type_id=0,
-        content={"value": "join room"},
+        content={"content": "join room"},
         sender=user["id"],
         chat_id=room,
     )
@@ -164,7 +167,13 @@ async def visitor_first_msg(sid, content):
     session = await sio.get_session(sid)
     chat_room = session["room"]
     user = session["user"]
-    data = {"user": user, "room": chat_room, "contents": [content]}
+
+    # Store the first msg the visitor sends
+    sequence_num = await get_sequence_num_for_room(chat_room["id"])
+    chat_msg = await ChatMessage.add(
+        sequence_num=sequence_num, content=content, chat_id=chat_room["id"]
+    )
+    data = {"user": user, "room": chat_room, "contents": [chat_msg]}
 
     # For now, there are no logic of choosing which orgs
     # And as there is only 1 org, choose it
@@ -184,11 +193,6 @@ async def visitor_first_msg(sid, content):
     # Add the chat to unclaimed chats
     await sio.emit("append_unclaimed_chats", data, room=org_room)
 
-    # Store the first the visitor sends
-    sequence_num = await get_sequence_num_for_room(chat_room["id"])
-    await ChatMessage.add(
-        sequence_num=sequence_num, content=content, chat_id=chat_room["id"]
-    )
     return True, None
 
 
@@ -204,18 +208,25 @@ async def visitor_msg_unclaimed(sid, content):
 
     chat_room_info = await cache.get(chat_room["id"], {})
     sequence_num = chat_room_info.get("sequence_num", 1)
-    await cache.set(chat_room["id"], {**chat_room_info, "sequence_num": sequence_num + 1})
+    await cache.set(
+        chat_room["id"], {**chat_room_info, "sequence_num": sequence_num + 1}
+    )
 
     # For now, there are no logic of choosing which orgs
     # And as there is only 1 org, choose it
     org = (await Organisation.query.gino.all())[0]
     org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
 
+    # Store the msg the visitor sends
+    chat_msg = await ChatMessage.add(
+        sequence_num=sequence_num, content=content, chat_id=chat_room["id"]
+    )
+
     # Update the unclaimed chats
     unclaimed_chats = await cache.get(org_room, [])
     for _, _chat in enumerate(unclaimed_chats):
         if _chat["room"]["id"] == chat_room["id"]:
-            _chat["contents"].append(content)
+            _chat["contents"].append(chat_msg)
             break
     await cache.set(org_room, unclaimed_chats)
 
@@ -226,10 +237,6 @@ async def visitor_msg_unclaimed(sid, content):
         room=org_room,
     )
 
-    # Store the msg the visitor sends
-    await ChatMessage.add(
-        sequence_num=sequence_num, content=content, chat_id=chat_room["id"]
-    )
     return True, None
 
 
@@ -308,7 +315,7 @@ async def handle_staff_leave(sid, session, data):
         sequence_num=sequence_num,
         type_id=0,
         sender=user["id"],
-        content={"value": "leave room"},
+        content={"content": "leave room"},
         chat_id=room,
     )
 
@@ -379,10 +386,10 @@ async def disconnect(sid):
 
         # Disconnect and close all chat rooms if a staff disconnects
         for room in rooms:
-            if room == sid:
-                await sio.close_room(sid)
-            elif room != org_room:
-                await handle_staff_leave(sid, session, {"room": {"id": room}})
+            # if room == sid:
+            #     await sio.close_room(sid)
+            if room not in [org_room, sid]:
+                await handle_staff_leave(sid, session, {"room": room})
 
         # Disconnect from queue room
         org_room_id = org_room.replace(UNCLAIMED_CHATS_PREFIX, "")
