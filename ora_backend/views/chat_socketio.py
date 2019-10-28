@@ -5,6 +5,7 @@ import socketio
 from socketio.exceptions import ConnectionRefusedError
 from sanic.exceptions import Unauthorized
 from sanic_jwt_extended.exceptions import JWTExtendedException
+from jwt.exceptions import ExpiredSignatureError
 
 from ora_backend import app, cache
 from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
@@ -39,6 +40,8 @@ async def authenticate_user(environ: dict):
         user = await get_token_requester(token)
     except (JWTExtendedException, Unauthorized):
         raise ConnectionRefusedError("Authentication fails")
+    except ExpiredSignatureError:
+        raise ConnectionRefusedError("Token has expired")
 
     user_type = Visitor.__tablename__
     if "name" in user:  # Is visitor
