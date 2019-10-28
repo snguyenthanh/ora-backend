@@ -376,6 +376,8 @@ async def disconnect_request(sid):
 async def disconnect(sid):
     # session = await sio.get_session(sid)
     session = await cache.get("user_{}".format(sid))
+    if not session:
+        return False, "The user has already been disconnected."
 
     # Visitor
     if session["type"] == Visitor.__tablename__:
