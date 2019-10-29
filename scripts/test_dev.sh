@@ -15,7 +15,7 @@ echo "Setting up the test DB..."
 docker exec -it test_postgres_ora_backend psql -U postgres -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;"
 
 # Run the actual tests
-# pipenv run pytest --loop uvloop --ignore=ora_backend/tests/test_chat.py
+pipenv run pytest --loop uvloop --ignore=ora_backend/tests/test_chat.py
 pipenv run pytest -s --loop uvloop ora_backend/tests/test_chat.py
 # pipenv run pytest --loop uvloop ora_backend/tests/test_login.py
 # pipenv run pytest --loop uvloop ora_backend/tests/test_user.py::test_get_one_user

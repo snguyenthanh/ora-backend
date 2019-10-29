@@ -35,4 +35,4 @@ SOCKETIO_RUN_CONFIG = {
     "protocol": WebSocketProtocol,
 }
 
-CORS_ORIGINS = "http://localhost:3000"
+CORS_ORIGINS = ["http://localhost:3000", "https://ora-frontend.firebaseapp.com"]

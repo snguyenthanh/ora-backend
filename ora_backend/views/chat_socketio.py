@@ -54,12 +54,15 @@ async def authenticate_user(environ: dict):
 
 async def get_sequence_num_for_room(room_id: str):
     chat_room_info = await cache.get(room_id, {})
+    if not chat_room_info:
+        return False, "The chat room is either closed or doesn't exist."
+
     sequence_num = chat_room_info.get("sequence_num", 0)
 
     chat_room_info["sequence_num"] += 1
     await cache.set(room_id, chat_room_info)
 
-    return sequence_num
+    return sequence_num, None
 
 
 # Ora events
@@ -116,11 +119,11 @@ async def staff_join(sid, data):
     user = session["user"]
     org_room = session["org_room"]
 
-    # If the chat is already claimed, reject the request
     chat_room_info = await cache.get(room, {})
     if not chat_room_info:
         return False, "The chat room is either closed or doesn't exist."
 
+    # If the chat is already claimed, reject the request
     if chat_room_info["staff"]:
         return False, "This chat is already claimed."
 
@@ -172,7 +175,10 @@ async def visitor_first_msg(sid, content):
     user = session["user"]
 
     # Store the first msg the visitor sends
-    sequence_num = await get_sequence_num_for_room(chat_room["id"])
+    sequence_num, error_msg = await get_sequence_num_for_room(chat_room["id"])
+    if error_msg:
+        return False, error_msg
+
     chat_msg = await ChatMessage.add(
         sequence_num=sequence_num, content=content, chat_id=chat_room["id"]
     )
@@ -210,6 +216,9 @@ async def visitor_msg_unclaimed(sid, content):
     chat_room = session["room"]
 
     chat_room_info = await cache.get(chat_room["id"], {})
+    if not chat_room_info:
+        return False, "The chat room is either closed or doesn't exist."
+
     sequence_num = chat_room_info.get("sequence_num", 1)
     await cache.set(
         chat_room["id"], {**chat_room_info, "sequence_num": sequence_num + 1}
@@ -255,7 +264,9 @@ async def visitor_msg(sid, content):
     visitor = session["user"]
 
     # Get the sequence number, and store in memory DB
-    sequence_num = await get_sequence_num_for_room(chat_room["id"])
+    sequence_num, error_msg = await get_sequence_num_for_room(chat_room["id"])
+    if error_msg:
+        return False, error_msg
 
     # Emit the msg before storing it in DB
     await sio.emit(
@@ -286,7 +297,9 @@ async def staff_msg(sid, data):
     user = session["user"]
 
     # Get the sequence number, and store in memory DB
-    sequence_num = await get_sequence_num_for_room(room)
+    sequence_num, error_msg = await get_sequence_num_for_room(room)
+    if error_msg:
+        return False, error_msg
 
     # Emit the msg before storing it in DB
     await sio.emit(
@@ -310,7 +323,9 @@ async def handle_staff_leave(sid, session, data):
     user = session["user"]
 
     # Get the sequence number, and store in memory DB
-    sequence_num = await get_sequence_num_for_room(room)
+    sequence_num, error_msg = await get_sequence_num_for_room(room)
+    if error_msg:
+        return False, error_msg
 
     # Emit the msg before storing it in DB
     await sio.emit("staff_leave", {"user": session["user"]}, room=room, skip_sid=sid)
