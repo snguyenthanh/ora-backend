@@ -340,6 +340,12 @@ async def handle_staff_leave(sid, session, data):
     # When either the staff or visitor ends the chat, close the room
     # await sio.close_room(room)
     # await cache.delete(room)
+
+    # Remove assigned `staff` to room
+    chat_room_info = await cache.get(room)
+    chat_room_info["staff"] = 0
+    await cache.set(room, chat_room_info)
+
     return True, None
 
 
