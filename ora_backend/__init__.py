@@ -34,7 +34,7 @@ cache = Cache(serializer=JsonSerializer())
 # to avoid circular importing
 db.init_app(app)
 JWTManager(app)
-CORS(app, origins=CORS_ORIGINS)
+CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
 
 # logging.getLogger("sanic_cors").level = logging.DEBUG
 

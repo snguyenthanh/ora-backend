@@ -74,7 +74,6 @@ async def user_route(
     request, *, req_args=None, req_body=None, query_params=None, requester=None
 ):
     """Only supervisor and admin could see and create users."""
-
     call_funcs = {"GET": user_retrieve, "POST": user_create}
     response = await call_funcs[request.method](
         request,
