@@ -338,8 +338,8 @@ async def handle_staff_leave(sid, session, data):
     )
 
     # When either the staff or visitor ends the chat, close the room
-    await sio.close_room(room)
-    await cache.delete(room)
+    # await sio.close_room(room)
+    # await cache.delete(room)
     return True, None
 
 
@@ -379,7 +379,7 @@ async def handle_visitor_leave(sid, session):
 
 
 @sio.event
-async def visitor_leave_room(sid, _):
+async def visitor_leave_room(sid):
     session = await sio.get_session(sid)
     await handle_visitor_leave(sid, session)
     return True, None
