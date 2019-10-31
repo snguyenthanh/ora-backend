@@ -295,3 +295,43 @@ def visitor1_client(loop, app, sanic_client):
         "refresh_token": sign_str(refresh_token),
     }
     return loop.run_until_complete(sanic_client(app, cookies=cookies))
+
+
+@pytest.fixture
+async def token_anonymous_1(app):
+    return sign_str(await get_access_token_for_user(_visitors[-4], app=app))
+
+
+@pytest.fixture
+def anonymous1_client(loop, app, sanic_client):
+    access_token = loop.run_until_complete(
+        get_access_token_for_user(_visitors[-4], app=app)
+    )
+    refresh_token = loop.run_until_complete(
+        get_refresh_token_for_user(_visitors[-4], app=app)
+    )
+    cookies = {
+        "access_token": sign_str(access_token),
+        "refresh_token": sign_str(refresh_token),
+    }
+    return loop.run_until_complete(sanic_client(app, cookies=cookies))
+
+
+@pytest.fixture
+async def token_anonymous_2(app):
+    return sign_str(await get_access_token_for_user(_visitors[-3], app=app))
+
+
+@pytest.fixture
+def anonymous2_client(loop, app, sanic_client):
+    access_token = loop.run_until_complete(
+        get_access_token_for_user(_visitors[-3], app=app)
+    )
+    refresh_token = loop.run_until_complete(
+        get_refresh_token_for_user(_visitors[-3], app=app)
+    )
+    cookies = {
+        "access_token": sign_str(access_token),
+        "refresh_token": sign_str(refresh_token),
+    }
+    return loop.run_until_complete(sanic_client(app, cookies=cookies))

@@ -31,7 +31,10 @@ async def setup_db():
     # Register the visitors
     for visitor in _visitors:
         _visitor = deepcopy(visitor)
-        _visitor["password"] = hash_password(_visitor["password"])
+
+        # Anonymous users don't have passwords
+        if "password" in _visitor:
+            _visitor["password"] = hash_password(_visitor["password"])
         await Visitor(**_visitor).create()
 
 

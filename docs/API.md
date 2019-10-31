@@ -89,7 +89,9 @@ Response:
         "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
         "email": "admin1",
         "display_name": null,
-        "role_id": 3
+        "role_id": 3,
+        "disabled": False,
+        "is_anonymous": False,
     },
     "access_token": <str>,
 }
@@ -114,7 +116,35 @@ Response:
     "user": {
         "name": "Visitor 1",
         "email": "visitor1",
-        "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+        "id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
+        "is_anonymous": False,
+        "disabled": False,
+    },
+    "access_token": <str>,
+}
+```
+
+#### 1.3. Anonymous (Guest)
+
+An anonymous account will be created upon login.
+
+Request:
+
+```
+POST /anonymous/login
+body={
+  "name": "John"
+}
+```
+
+Response:
+
+```
+{
+    "user": {
+        "name": "Visitor 1",
+        "is_anonymous": true,
+        "disabled": false,
     },
     "access_token": <str>,
 }
@@ -144,6 +174,7 @@ Response:
         "email": "visitor1",
         "name": "Visitor 1",
         "disabled": false,
+        "is_anonymous": false,
         "updated_at": null,
         "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
     }

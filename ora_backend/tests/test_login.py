@@ -1,8 +1,26 @@
 from ora_backend.tests import profile_created_from_origin
 
 
+async def test_login_anonymous(client):
+    """Anonymous login means creating a new accoun"""
+    res = await client.post("/anonymous/login", json={"name": "George"})
+    assert res.status == 200
+
+    body = await res.json()
+    assert isinstance(body, dict)
+    assert "access_token" in body and "refresh_token" not in body
+    assert "user" in body
+    assert "access_token" in res.cookies
+    assert "refresh_token" in res.cookies
+    assert profile_created_from_origin(
+        body["user"],
+        {"name": "George", "is_anonymous": True, "email": None, "disabled": False},
+        ignore={"id"},
+    )
+
+
 async def test_login_visitor(client, visitors):
-    for user in visitors:
+    for user in visitors[:-4] + visitors[-2:]:
         res = await client.post(
             "/visitor/login",
             json={"email": user["email"], "password": user["password"]},
@@ -15,7 +33,11 @@ async def test_login_visitor(client, visitors):
         assert "user" in body
         assert "access_token" in res.cookies
         assert "refresh_token" in res.cookies
-        assert profile_created_from_origin(body["user"], user)
+        assert profile_created_from_origin(
+            body["user"], user, ignore={"is_anonymous", "disabled"}
+        )
+        assert not body["user"]["is_anonymous"]
+        assert not body["user"]["disabled"]
 
     # Login with wrong password
     user = visitors[-1]
@@ -78,6 +100,17 @@ async def test_login_user(client, users):
     user = users[-1]
     res = await client.post("/login", json={"password": user["password"]})
     assert res.status == 400
+
+
+async def test_refresh_token_anonymous(anonymous1_client):
+    res = await anonymous1_client.post("/refresh")
+    assert res.status == 200
+
+    body = await res.json()
+    assert isinstance(body, dict)
+    assert "access_token" in body
+    assert "access_token" in res.cookies
+    assert "refresh_token" in res.cookies
 
 
 async def test_refresh_token_visitor(visitor1_client):

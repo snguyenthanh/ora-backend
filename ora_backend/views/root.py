@@ -34,6 +34,14 @@ async def login(request, identity):
     return response
 
 
+@blueprint.route("/anonymous/login", methods=["POST"])
+@unpack_request
+@validate_request(schema="anonymous_login", skip_args=True)
+async def anonymous_login(request, *, req_body, **kwargs):
+    user = await Visitor.login(**req_body, is_anonymous=True)
+    return await login(request, user)
+
+
 @blueprint.route("/visitor/login", methods=["POST"])
 @unpack_request
 @validate_request(schema="user_login", skip_args=True)

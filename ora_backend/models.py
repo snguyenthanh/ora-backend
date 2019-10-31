@@ -169,21 +169,25 @@ class BaseUser(BaseModel):
         await super(BaseUser, cls).modify(kwargs, {"disabled": True})
 
     @classmethod
-    async def login(cls, email=None, password=None, **kwargs):
-        if not email:
-            raise InvalidUsage("Missing field 'email' in request's body.")
-        if not password:
-            raise InvalidUsage("Missing field 'password' in request's body.")
-
-        password = hash_password(password)
+    async def login(cls, email=None, password=None, *, is_anonymous=False, **kwargs):
         user = None
-        try:
-            user = await cls.get(email=email, password=password, **kwargs)
-        except NotFound:
-            pass
+        if not is_anonymous:
+            if not email:
+                raise InvalidUsage("Missing field 'email' in request's body.")
+            if not password:
+                raise InvalidUsage("Missing field 'password' in request's body.")
 
-        if not user:
-            raise LoginFailureError()
+            password = hash_password(password)
+            try:
+                user = await cls.get(email=email, password=password, **kwargs)
+            except NotFound:
+                pass
+
+            if not user:
+                raise LoginFailureError()
+        else:  # Anonymous login
+            kwargs["is_anonymous"] = True
+            user = await cls.add(**kwargs)
 
         # Only store minimum info for user
         fields = {
@@ -194,6 +198,8 @@ class BaseUser(BaseModel):
             "email",
             "role_id",
             "organisation_id",
+            "is_anonymous",
+            "disabled",
         }
         for key in list(user.keys()):
             if key not in fields:
@@ -210,8 +216,9 @@ class Visitor(BaseUser):
     )
     internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
-    email = db.Column(db.String, unique=True, nullable=False)
-    password = db.Column(db.String, nullable=False)
+    email = db.Column(db.String, unique=True, nullable=True)
+    password = db.Column(db.String, nullable=True)
+    is_anonymous = db.Column(db.Boolean, nullable=False, default=False)
     disabled = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
     updated_at = db.Column(db.BigInteger, onupdate=unix_time)

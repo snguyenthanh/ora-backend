@@ -78,6 +78,7 @@ VISITOR_READ_SCHEMA = {
     "name": {"type": "string"},
     "email": {"type": "string"},
     "password": {"readonly": True},
+    "is_anonymous": is_boolean,
     "disabled": is_boolean,
     "created_at": is_unsigned_integer,
     "updated_at": is_unsigned_integer,
@@ -88,6 +89,7 @@ VISITOR_WRITE_SCHEMA = {
     "name": is_required_string,
     "email": is_required_string,
     "password": {**is_required_string, "minlength": 8, "maxlength": 128},
+    "is_anonymous": is_boolean,
     "disabled": {"readonly": True},
     "created_at": {"readonly": True},
     "updated_at": {"readonly": True},
@@ -120,6 +122,8 @@ USER_WRITE_SCHEMA = {
 }
 
 USER_LOGIN_SCHEMA = {"email": is_required_string, "password": is_required_string}
+
+ANONYMOUS_LOGIN_SCHEMA = {"name": is_required_string}
 
 ORGANISATION_READ_SCHEMA = {
     "id": is_string,
@@ -168,5 +172,6 @@ schemas = {
     "user_read": USER_READ_SCHEMA,
     "user_write": USER_WRITE_SCHEMA,
     "user_login": USER_LOGIN_SCHEMA,
+    "anonymous_login": ANONYMOUS_LOGIN_SCHEMA,
     "organisation_read": ORGANISATION_READ_SCHEMA,
 }

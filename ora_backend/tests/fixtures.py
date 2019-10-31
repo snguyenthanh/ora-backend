@@ -17,6 +17,8 @@ from ora_backend.tests import (
 organisations = [get_fake_organisation()]
 visitors = [get_fake_visitor() for _ in range(number_of_visitors)]
 visitors += [
+    {"id": generate_uuid(), "name": "Anonymous 1", "is_anonymous": True},
+    {"id": generate_uuid(), "name": "Anonymous 2", "is_anonymous": True},
     {
         "id": generate_uuid(),
         "name": "Visitor 1",
