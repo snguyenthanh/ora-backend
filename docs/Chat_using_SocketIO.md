@@ -152,34 +152,52 @@ Args: `None`
 
 ### 3.2. Receive
 
-#### staff_init
+#### 3.2.1. All staffs
+
+##### staff_init
 
 The staff will receive a list of all unclaimed chats
 right after connecting to the server.
 
 Args:
 
-`data` (List[Dict]): The data of the event is a list of unclaimed chats to show on front-end.
+`data` (dict): A list of unclaimed chats and a list of currently online staffs to show on front-end.
 
-Each chat in unclaimed_chats has the format:
 ```
-{
-    "user": { # The visitor
-        "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-        "name": "Visitor 1",
-        "email": "visitor1"
-    },
-    "room": { # A Chat object. Refers to models.Chat
-        "id": "qwkelqwkleqwlken123123b12312l3kn",
-        "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
-        "tags": [],
-        "severity_level": 0,
-    },
-    "contents": [content] # A list of `ChatMessage.content`, format decided by front-end
+data={
+  "online_users": [
+    {
+      email: "agent1@gmail.com",
+      created_at: 1572522995,
+      full_name: "Agent 1",
+      updated_at: null,
+      id: "06274871777d40f387ab430da6b3aa08",
+      display_name: null,
+      organisation_id: "bd9c4046763440769e3af30197a2482e",
+      disabled: false,
+      role_id: 3,
+    }
+  ],
+  "unclaimed_chats": [
+    {
+        "user": { # The visitor
+            "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+            "name": "Visitor 1",
+            "email": "visitor1"
+        },
+        "room": { # A Chat object. Refers to models.Chat
+            "id": "qwkelqwkleqwlken123123b12312l3kn",
+            "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
+            "tags": [],
+            "severity_level": 0,
+        },
+        "contents": [content] # A list of `ChatMessage.content`, format decided by front-end
+    }
+  ]
 }
 ```
 
-#### staff_claim_chat
+##### staff_claim_chat
 
 Broadcast to queue room, to remove the unclaimed chat from others' clients.
 
@@ -203,7 +221,7 @@ data={
 }
 ```
 
-#### staff_join_room
+##### staff_join_room
 
 Emit to the visitor's room, to let him know a staff has joined.
 
@@ -224,7 +242,7 @@ Args:
 }
 ```
 
-#### append_unclaimed_chats
+##### append_unclaimed_chats
 
 When a visitor just opens the app and sends the first message, this event will be sent to *ALL* staffs, to append the chat to the `queue room` on their browsers.
 
@@ -249,7 +267,7 @@ data={
 }
 ```
 
-#### visitor_leave_queue
+##### visitor_leave_queue
 
 Emitted to all staffs in queue room to inform them to remove a chat from the queue, because the visitor has disconnected.
 
@@ -267,7 +285,7 @@ data={
 }
 ```
 
-#### visitor_unclaimed_msg
+##### visitor_unclaimed_msg
 
 This event is emitted to staffs if the visitor sends other messages after the first init one, while the chat is *NOT* yet claimed.
 
@@ -288,7 +306,7 @@ data={
 }
 ```
 
-#### visitor_send
+##### visitor_send
 
 For the staff serving the visitor to receive the visitor's messages.
 
@@ -307,7 +325,7 @@ data={
 }
 ```
 
-#### staff_send
+##### staff_send
 
 For the visitor to receive the messages from the serving staff in the room.
 
@@ -329,7 +347,7 @@ data={
 }
 ```
 
-#### staff_leave
+##### staff_leave
 
 For the visitor to be notified about the staff having left the chat.
 
@@ -350,7 +368,7 @@ data={
 }
 ```
 
-#### visitor_leave
+##### visitor_leave
 
 For staff to be notified which visitor has left the chat.
 
@@ -365,5 +383,198 @@ data={
     "name": "Visitor 1",
     "email": "visitor1"
   },
+}
+```
+
+
+##### staff_goes_online
+
+All staffs receive this event to be notified who has gone online.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": {
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
+  }
+}
+```
+
+##### staff_goes_offline
+
+All staffs receive this event to be notified who has gone online.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": {
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
+  }
+}
+```
+
+#### 3.2.2. Supervisors + Admins
+
+These events are for supervisors and admins to monitor the chats of agents.
+
+##### agent_new_chat
+
+This event is emitted to inform supervisors/admins that an agent has claimed a chat (a `staff_claim_chat` event of an agent has been emitted).
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": {
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
+  },
+  "room": <str>,
+  "contents": [
+    {
+      sender: null,
+      updated_at: null,
+      id: "37700da96bbc42258fae9c9bea28f277",
+      content: {
+        content: "Hello"
+        timestamp: 1572526821849
+      },
+      chat_id: "9ef0178dce9e4b95aa01f48b6a447154",
+      created_at: 1572526821,
+      type_id: 1,
+      sequence_num: 1,
+    }
+  ]
+}
+```
+
+##### new_staff_msg_for_supervisor
+
+Emitted when there is a new message sent by a **staff** in any chats.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": {
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
+  },
+  "content": {
+    content: "Yes ?",
+    timestamp: 1572526840074,
+  }
+}
+```
+
+##### new_visitor_msg_for_supervisor
+
+Emitted when there is a new message sent by a **visitor** in any chats.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": {
+    email: "visitor2@gmail.com",
+    is_anonymous: false,
+    created_at: 1572522995,
+    updated_at: null,
+    name: "Visitor 2",
+    id: "b25162f797fb4182b69d8b2141274525",
+    disabled: false,
+  },
+  "content": {
+    content: "Good",
+    timestamp: 1572526845416,
+  }
+}
+```
+
+##### staff_leave_chat_for_supervisor
+
+Emitted when an **staff** has left a chat.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": {
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
+  }
+}
+```
+
+##### visitor_leave_chat_for_supervisor
+
+Emitted when a visitor has left a chat.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": {
+    email: "visitor2@gmail.com"
+    is_anonymous: false
+    created_at: 1572522995
+    updated_at: null
+    name: "Visitor 2"
+    id: "b25162f797fb4182b69d8b2141274525"
+    disabled: false
+  }
 }
 ```
