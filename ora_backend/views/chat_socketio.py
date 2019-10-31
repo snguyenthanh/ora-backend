@@ -350,6 +350,7 @@ async def visitor_msg(sid, content):
             "new_visitor_msg_for_supervisor",
             {"user": visitor, "content": content},
             room=monitor_room,
+            skip_sid=sid,
         )
 
     await ChatMessage.add(
@@ -390,6 +391,7 @@ async def staff_msg(sid, data):
         "new_staff_msg_for_supervisor",
         {"user": user, "content": content},
         room=monitor_room,
+        skip_sid=sid,
     )
 
     await ChatMessage.add(
@@ -439,7 +441,10 @@ async def handle_staff_leave(sid, session, data):
         staff_info = await cache.get("user_" + staff["sid"])
         monitor_room = staff_info["monitor_room"]
         await sio.emit(
-            "staff_leave_chat_for_supervisor", {"user": user}, room=monitor_room
+            "staff_leave_chat_for_supervisor",
+            {"user": user},
+            room=monitor_room,
+            skip_sid=sid,
         )
 
     return True, None
@@ -478,7 +483,10 @@ async def handle_visitor_leave(sid, session):
         staff_info = await cache.get("user_" + staff["sid"])
         monitor_room = staff_info["monitor_room"]
         await sio.emit(
-            "visitor_leave_chat_for_supervisor", {"user": user}, room=monitor_room
+            "visitor_leave_chat_for_supervisor",
+            {"user": user},
+            room=monitor_room,
+            skip_sid=sid,
         )
 
     # Emit the msg before closing the room
