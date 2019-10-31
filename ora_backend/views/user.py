@@ -1,5 +1,6 @@
 from sanic.response import json
 
+from ora_backend.constants import ROLES
 from ora_backend.views.urls import user_blueprint as blueprint
 from ora_backend.models import User
 from ora_backend.utils.exceptions import raise_role_authorization_exception
@@ -23,10 +24,11 @@ async def user_create(req, *, req_args, req_body, requester, **kwargs):
     create_user_role_id = req_body.get("role_id", 3)
 
     # An user cannot create an account with equal/larger position than itself
-    if create_user_role_id <= requester["role_id"]:
-        raise_role_authorization_exception(
-            create_user_role_id, action="create an admin account for your organisation"
-        )
+    if (
+        create_user_role_id < requester["role_id"]
+        or requester["role_id"] >= ROLES.inverse["agent"]
+    ):
+        raise_role_authorization_exception(create_user_role_id)
 
     # Inject the organiation_id to the new user
     # An user can only create a new user within its org
@@ -48,7 +50,10 @@ async def user_update(req, *, req_args, req_body, requester, **kwargs):
     update_user = await User.get(id=user_id)
 
     # Only the user himself or the higher-level acc can modify a lower one
-    if requester["id"] != user_id and update_user["role_id"] <= requester["role_id"]:
+    if requester["id"] != user_id and (
+        update_user["role_id"] < requester["role_id"]
+        or requester["role_id"] >= ROLES.inverse["agent"]
+    ):
         raise_role_authorization_exception(update_user["role_id"])
 
     return {"data": await User.modify(req_args, req_body)}
@@ -61,7 +66,9 @@ async def user_delete(req, *, req_args, req_body, requester, **kwargs):
     update_user = await User.get(id=user_id)
 
     # Only the user himself or the higher-level acc can modify a lower one
-    if requester["id"] != user_id and update_user["role_id"] <= requester["role_id"]:
+    if (
+        requester["id"] != user_id and update_user["role_id"] < requester["role_id"]
+    ) or requester["role_id"] >= ROLES.inverse["agent"]:
         raise_role_authorization_exception(update_user["role_id"])
 
     await User.remove(**req_args)

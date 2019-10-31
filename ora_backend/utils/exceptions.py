@@ -17,9 +17,9 @@ def raise_permission_exception():
 
 
 def raise_role_authorization_exception(target_role_id, action: str = None):
-    action = action or "perform this action"
-    if ROLES[target_role_id] == "admin":
-        raise Forbidden("Please contact the service provider" " to {}.".format(action))
+    # action = action or "perform this action"
+    # if ROLES[target_role_id] == "admin":
+    #     raise Forbidden("Please contact the service provider" " to {}.".format(action))
 
     raise Forbidden(
         "Only {} and upper are allowed to create {} accounts.".format(
