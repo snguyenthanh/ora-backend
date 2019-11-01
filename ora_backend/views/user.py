@@ -13,6 +13,9 @@ from ora_backend.utils.validation import validate_request, validate_permission
 async def user_retrieve(
     req, *, req_args, req_body, requester=None, many=True, query_params, **kwargs
 ):
+    # The requester can only get the users from his org
+    req_args["organisation_id"] = requester["organisation_id"]
+
     data = await User.get(**req_args, many=many, **query_params)
     if many:
         return {"data": data, "links": generate_pagination_links(req.url, data)}
@@ -30,7 +33,7 @@ async def user_create(req, *, req_args, req_body, requester, **kwargs):
     ):
         raise_role_authorization_exception(create_user_role_id)
 
-    # Inject the organiation_id to the new user
+    # Inject the organisation_id to the new user
     # An user can only create a new user within its org
     req_body["organisation_id"] = requester["organisation_id"]
 
@@ -43,7 +46,6 @@ async def user_create(req, *, req_args, req_body, requester, **kwargs):
 #     return {"data": await User.modify(req_args, req_body)}
 
 
-@validate_permission
 @validate_request(schema="user_write", update=True)
 async def user_update(req, *, req_args, req_body, requester, **kwargs):
     user_id = req_args["id"]
@@ -54,22 +56,21 @@ async def user_update(req, *, req_args, req_body, requester, **kwargs):
         update_user["role_id"] < requester["role_id"]
         or requester["role_id"] >= ROLES.inverse["agent"]
     ):
-        raise_role_authorization_exception(update_user["role_id"])
+        raise_role_authorization_exception(update_user["role_id"], action="update")
 
     return {"data": await User.modify(req_args, req_body)}
 
 
-@validate_permission(model=User)
 @validate_request(schema="user_read", skip_body=True)
 async def user_delete(req, *, req_args, req_body, requester, **kwargs):
     user_id = req_args["id"]
-    update_user = await User.get(id=user_id)
+    delete_user = await User.get(id=user_id)
 
     # Only the user himself or the higher-level acc can modify a lower one
     if (
-        requester["id"] != user_id and update_user["role_id"] < requester["role_id"]
+        requester["id"] != user_id and delete_user["role_id"] < requester["role_id"]
     ) or requester["role_id"] >= ROLES.inverse["agent"]:
-        raise_role_authorization_exception(update_user["role_id"])
+        raise_role_authorization_exception(delete_user["role_id"], action="delete")
 
     await User.remove(**req_args)
 
@@ -94,8 +95,9 @@ async def user_route(
 
 @blueprint.route("/<user_id>", methods=["GET", "PUT", "PATCH"])
 @unpack_request
+@validate_permission
 async def user_route_single(
-    request, user_id, *, req_args=None, req_body=None, query_params
+    request, user_id, *, req_args=None, req_body=None, requester, query_params
 ):
     user_id = user_id.strip()
 
@@ -112,5 +114,6 @@ async def user_route_single(
         req_body=req_body,
         many=False,
         query_params=query_params,
+        requester=requester,
     )
     return json(response)

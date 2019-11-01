@@ -21,6 +21,7 @@ from ora_backend.utils.query import get_one_latest
 
 mode = _environ.get("MODE", "development").lower()
 if mode == "production":
+    # Internally, socketio.AsyncRedisManager uses `aioredis`
     mgr = socketio.AsyncRedisManager(
         "redis://:{}@127.0.0.1:6379/0".format(_environ.get("DB_PASSWORD"))
     )
@@ -609,7 +610,7 @@ async def disconnect(sid):
         # Disconnect from queue room
         # org_room_id = org_room.replace(UNCLAIMED_CHATS_PREFIX, "")
         sio.leave_room(sid, org_room)
-        sio.leave_room(monitor_room)
+        sio.leave_room(sid, monitor_room)
 
         # Update the current online staffs
         user = session["user"]

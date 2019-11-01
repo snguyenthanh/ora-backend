@@ -3,8 +3,15 @@
 # Client: aiohttp
 # https://docs.aiohttp.org/en/stable/client_quickstart.html#json-request
 
-from ora_backend.models import Visitor
-from ora_backend.tests import get_fake_visitor, profile_created_from_origin
+from copy import deepcopy
+
+from ora_backend.models import Visitor, Chat, ChatMessage
+from ora_backend.tests import (
+    get_fake_visitor,
+    profile_created_from_origin,
+    fake,
+    get_next_page_link,
+)
 from ora_backend.utils.query import get_one
 from ora_backend.utils.crypto import hash_password
 
@@ -174,6 +181,98 @@ async def test_update_visitor_as_admin(visitors, admin1_client):
         "/visitors/{}".format(visitors[2]["id"]), json=new_changes
     )
     assert res.status == 403
+
+
+async def test_get_visitors_most_recent_without_token(client):
+    res = await client.get("/visitors/most_recent")
+    assert res.status == 401
+
+
+async def test_get_visitors_most_recent_as_visitor(visitor1_client):
+    res = await visitor1_client.get("/visitors/most_recent")
+    assert res.status == 403
+
+
+async def test_get_visitors_most_recent_as_agent(agent1_client):
+    res = await agent1_client.get("/visitors/most_recent")
+    assert res.status == 403
+
+
+async def test_get_visitors_most_recent(users, supervisor1_client):
+    # Create a lot more visitors to test
+    visitors = [get_fake_visitor() for _ in range(32)]
+    for visitor in visitors:
+        _visitor = deepcopy(visitor)
+
+        # Anonymous users don't have passwords
+        if "password" in _visitor:
+            _visitor["password"] = hash_password(_visitor["password"])
+        await Visitor(**_visitor).create()
+
+    # Create some dummy chat messages
+    created_at = 1
+    staff = users[-5]
+    for visitor in visitors[::-1]:
+        chat = await Chat.add(visitor_id=visitor["id"])
+        for sequence_num in range(1):
+            content = {"content": fake.sentence(nb_words=10)}
+            chat_msg = {
+                "chat_id": chat["id"],
+                "sequence_num": sequence_num,
+                "content": content,
+                "sender": None,
+                "created_at": created_at,
+            }
+            created_at += 1
+            await ChatMessage.add(**chat_msg)
+
+        # Let a staff send a message, as staffs can only fetch visitors
+        # that chatted with the staffs from his org
+        await ChatMessage.add(
+            **{
+                "chat_id": chat["id"],
+                "sequence_num": sequence_num + 1,
+                "content": {"content": fake.sentence(nb_words=10)},
+                "sender": staff["id"],
+                "created_at": created_at,
+            }
+        )
+
+    # Get the most recent visitors that chatted with the staffs from org
+    res = await supervisor1_client.get("/visitors/most_recent")
+    assert res.status == 200
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], list)
+    assert len(body["data"]) == 15
+    assert "links" in body and "next" in body["links"]
+    for expected, actual in zip(visitors, body["data"]):
+        assert profile_created_from_origin(expected, actual)
+
+    # Ensure that the next links work as well
+    next_page_link = get_next_page_link(body)
+    res = await supervisor1_client.get(next_page_link)
+    assert res.status == 200
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], list)
+    assert len(body["data"]) == 15
+    assert "links" in body and "next" in body["links"]
+    for expected, actual in zip(visitors[15:], body["data"]):
+        assert profile_created_from_origin(expected, actual)
+
+    # Last page
+    next_page_link = get_next_page_link(body)
+    res = await supervisor1_client.get(next_page_link)
+    assert res.status == 200
+    assert res.status == 200
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], list)
+    assert len(body["data"]) == 2
+    assert "links" in body and "next" in body["links"]
+    for expected, actual in zip(visitors[30:], body["data"]):
+        assert profile_created_from_origin(expected, actual)
 
 
 ## REPLACE USER ##

@@ -137,6 +137,10 @@ ORGANISATION_READ_SCHEMA = {
 
 GLOBAL_SCHEMA = {"internal_id": {"readonly": True}}
 QUERY_PARAM_READ_SCHEMA = {"after_id": is_string, "limit": is_unsigned_integer_with_max}
+QUERY_PARAM_GET_VISITORS = {
+    "page": is_unsigned_integer_with_max,
+    "limit": is_unsigned_integer_with_max,
+}
 
 ## INJECT FIELDS TO SCHEMAS
 variables = locals()
@@ -174,4 +178,5 @@ schemas = {
     "user_login": USER_LOGIN_SCHEMA,
     "anonymous_login": ANONYMOUS_LOGIN_SCHEMA,
     "organisation_read": ORGANISATION_READ_SCHEMA,
+    "query_params_get_visitors": QUERY_PARAM_GET_VISITORS,
 }

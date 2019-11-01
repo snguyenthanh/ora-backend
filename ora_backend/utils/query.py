@@ -1,7 +1,7 @@
 from typing import Tuple
 
 from asyncpg.exceptions import UniqueViolationError
-from sqlalchemy import and_, desc
+from sqlalchemy import and_, desc, func
 
 from ora_backend import db
 from ora_backend.exceptions import UniqueViolationError as DuplicatedError
@@ -9,9 +9,29 @@ from ora_backend.schemas import (
     CHAT_MESSAGE_READ_SCHEMA,
     USER_READ_SCHEMA,
     QUERY_PARAM_READ_SCHEMA,
+    VISITOR_READ_SCHEMA,
 )
 from ora_backend.utils.exceptions import raise_not_found_exception
 from ora_backend.utils.transaction import in_transaction
+
+
+# Define fields for custom selection
+ignore_fields = set(QUERY_PARAM_READ_SCHEMA.keys())
+message_fields = [
+    key
+    for key, val in CHAT_MESSAGE_READ_SCHEMA.items()
+    if not val.get("readonly", False) and key not in ignore_fields
+]
+user_fields = [
+    key
+    for key, val in USER_READ_SCHEMA.items()
+    if not val.get("readonly", False) and key not in ignore_fields
+]
+visitor_fields = [
+    key
+    for key, val in VISITOR_READ_SCHEMA.items()
+    if not val.get("readonly", False) and key not in ignore_fields
+]
 
 
 def dict_to_filter_args(model, **kwargs):
@@ -95,18 +115,6 @@ async def get_many(
 
 
 async def get_messages(model, user, *, chat_id, before_id=None, limit=15, **kwargs):
-    ignore_fields = set(QUERY_PARAM_READ_SCHEMA.keys())
-    message_fields = [
-        key
-        for key, val in CHAT_MESSAGE_READ_SCHEMA.items()
-        if not val.get("readonly", False) and key not in ignore_fields
-    ]
-    user_fields = [
-        key
-        for key, val in USER_READ_SCHEMA.items()
-        if not val.get("readonly", False) and key not in ignore_fields
-    ]
-
     # Join the tables to extract the user's info
     query = db.select(
         [
@@ -193,6 +201,60 @@ async def get_many_with_count_and_group_by(
         .group_by(*[getattr(model, column) for column in columns])
         .gino.all()
     )
+
+
+async def get_visitors_with_most_recent_chats(
+    chat_model,
+    chat_message,
+    visitor,
+    staff,
+    requester: dict,
+    *,
+    page=0,
+    limit=15,
+    **kwargs,
+):
+    """Return the visitors with the most recent chats to your organisation."""
+
+    # Join the tables to get the staffs
+    query = db.select(
+        [
+            # *(getattr(visitor, key) for key in visitor_fields),
+            visitor.id,
+            func.max(chat_message.created_at).label("max_created_at"),
+        ]
+    ).select_from(
+        staff.join(chat_message, chat_message.sender == staff.id)
+        .join(chat_model, chat_model.id == chat_message.chat_id)
+        .join(visitor, chat_model.visitor_id == visitor.id)
+    )
+
+    query = query.where(
+        and_(
+            staff.organisation_id == requester["organisation_id"],
+            *dict_to_filter_args(staff, **kwargs),
+        )
+    ).group_by(visitor.id)
+
+    # Execute the query
+    visitor_alias = visitor.alias("alias_visitor")
+    temp = query.alias("alias_visitor")
+    data = (
+        await db.select([*(getattr(visitor, key) for key in visitor_fields)])
+        .select_from(visitor.join(temp, visitor_alias.id == visitor.id))
+        .order_by(desc("max_created_at"))
+        .limit(limit)
+        .offset(page * limit)
+        .gino.all()
+    )
+
+    result = []
+    # Parse the visitors
+    for row in data:
+        visitor_data = {key: value for key, value in zip(visitor_fields, row)}
+        result.append(visitor_data)
+
+    return result
 
 
 @in_transaction

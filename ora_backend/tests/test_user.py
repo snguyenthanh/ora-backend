@@ -3,6 +3,7 @@
 # Client: aiohttp
 # https://docs.aiohttp.org/en/stable/client_quickstart.html#json-request
 
+from ora_backend.constants import ROLES
 from ora_backend.models import User
 from ora_backend.tests import get_fake_user, profile_created_from_origin
 from ora_backend.utils.query import get_one
@@ -11,8 +12,13 @@ from ora_backend.utils.crypto import hash_password
 ## GET ##
 
 
-async def test_get_one_user(client, users):
-    res = await client.get("/users/{}".format(users[0]["id"]))
+async def get_one_user_without_token(client, users):
+    res = await client.get("/users/{}".format(users[2]["id"]))
+    assert res.status == 401
+
+
+async def test_get_one_user(agent1_client, users):
+    res = await agent1_client.get("/users/{}".format(users[0]["id"]))
     assert res.status == 200
 
     body = await res.json()
@@ -21,10 +27,10 @@ async def test_get_one_user(client, users):
     assert profile_created_from_origin(users[0], body["data"])
 
     # User doesnt exist
-    res = await client.get("/users/{}".format("9" * 32))
+    res = await agent1_client.get("/users/{}".format("9" * 32))
     assert res.status == 404
 
-    res = await client.get("/users/true")
+    res = await agent1_client.get("/users/true")
     assert res.status == 404
 
 
@@ -101,6 +107,20 @@ async def test_get_all_users(supervisor1_client, users):
     # -1 users
     res = await supervisor1_client.get("/users?limit=-1")
     assert res.status == 400
+
+
+async def test_get_all_agents(users, supervisor1_client):
+    res = await supervisor1_client.get(
+        "/users?role_id={}".format(ROLES.inverse["agent"])
+    )
+    assert res.status == 200
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], list)
+    assert all(user["role_id"] == ROLES.inverse["agent"] for user in body["data"])
+
+    for expected, actual in zip(users[-6:-4], body["data"][-2:]):
+        profile_created_from_origin(expected, actual)
 
 
 async def test_get_users_with_after_id(users, supervisor1_client):

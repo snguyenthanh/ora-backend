@@ -206,7 +206,36 @@ Response:
 }
 ```
 
-#### 2.3. Update
+#### 2.2. Retrieve visitors with most recent chats
+
+> Protected
+
+Request:
+
+```
+GET /visitors/most_recent
+```
+
+Response:
+
+```
+{
+    "data": [
+      {
+        email: "visitor2@gmail.com",
+        is_anonymous: false,
+        created_at: 1572522995,
+        updated_at: null,
+        name: "Visitor 2",
+        id: "b25162f797fb4182b69d8b2141274525",
+        disabled: false,
+      },
+      ...
+    ]
+}
+```
+
+#### 2.4. Update
 
 > Protected
 

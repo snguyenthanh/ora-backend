@@ -1,11 +1,17 @@
 from sanic.response import json
 from sanic.exceptions import Forbidden, NotFound
 
+from ora_backend.constants import ROLES
 from ora_backend.views.urls import visitor_blueprint as blueprint
-from ora_backend.models import Visitor, Chat, ChatMessage
-from ora_backend.utils.links import generate_pagination_links
+from ora_backend.models import Visitor, Chat, ChatMessage, User
+from ora_backend.utils.links import generate_pagination_links, generate_next_page_link
+from ora_backend.utils.query import get_visitors_with_most_recent_chats
 from ora_backend.utils.request import unpack_request
-from ora_backend.utils.validation import validate_request, validate_permission
+from ora_backend.utils.validation import (
+    validate_request,
+    validate_permission,
+    validate_against_schema,
+)
 
 
 @validate_permission
@@ -63,7 +69,7 @@ async def visitor_route_single(
 @unpack_request
 @validate_permission
 @validate_request(model=Chat, skip_body=True)
-async def get_chat_messages(
+async def get_chat_messages_of_visitor(
     request, visitor_id, *, req_args=None, query_params=None, **kwargs
 ):
     visitor_id = visitor_id.strip()
@@ -86,3 +92,28 @@ async def get_chat_messages(
             ),
         }
     )
+
+
+@blueprint.route("/most_recent", methods=["GET"])
+@unpack_request
+@validate_permission
+async def most_recent_visitors(
+    request, *, req_args=None, requester=None, query_params=None, **kwargs
+):
+    # A visitor or agent cannot get other visitors
+    if "name" in requester or requester["role_id"] >= ROLES.inverse["agent"]:
+        raise Forbidden("You are not allowed to perform this action.")
+
+    req_args = req_args or {}
+    query_params = query_params or {}
+    params = validate_against_schema(
+        {**req_args, **query_params}, "query_params_get_visitors"
+    )
+    visitors = await get_visitors_with_most_recent_chats(
+        Chat, ChatMessage, Visitor, User, requester, **params
+    )
+
+    next_page_link = generate_next_page_link(
+        request.url, cur_page=params.get("page", 0)
+    )
+    return json({"data": visitors, "links": {"next": next_page_link or {}}})
