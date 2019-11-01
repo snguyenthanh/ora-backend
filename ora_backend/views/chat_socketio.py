@@ -229,6 +229,72 @@ async def staff_join(sid, data):
 
 
 @sio.event
+async def take_over_chat(sid, data):
+    """A higher-up staff could take over a chat of a lower one."""
+    # Validation
+    if "room" not in data or not isinstance(data["room"], str):
+        return False, "Missing/Invalid field: room"
+
+    session = await sio.get_session(sid)
+    room = data["room"]
+    requester = session["user"]
+    monitor_room = session["monitor_room"]
+
+    # Get current serving staff
+    chat_room_info = await cache.get(room, {})
+    if not chat_room_info:
+        return False, "The chat room is either closed or doesn't exist."
+    cur_staff = chat_room_info["staff"]
+
+    if not cur_staff:
+        return False, "Cannot take over an unclaimed chat."
+
+    # Only higher-up staffs can take over a lower one
+    if requester["role_id"] >= cur_staff["role_id"]:
+        return (
+            False,
+            "A {} cannot take over a chat from a {}.".format(
+                ROLES[requester["role_id"]], ROLES[cur_staff["role_id"]]
+            ),
+        )
+
+    # Let the staff and visitor know he has been kicked out
+    await sio.emit("staff_being_taken_over_chat", {"user": requester}, room=room)
+
+    # Kick the current staff out of the room
+    staff_sid = cur_staff["sid"]
+    sio.leave_room(staff_sid, room)
+
+    # Requester join room
+    sio.enter_room(sid, room)
+
+    # Update "staff" in cache for room
+    sequence_num = chat_room_info.get("sequence_num", 0)
+    chat_room_info["sequence_num"] += 1
+    chat_room_info["staff"] = {**requester, "sid": sid}
+    await cache.set(room, chat_room_info)
+
+    # Save the chat message of staff being taken over
+    await ChatMessage.add(
+        sequence_num=sequence_num,
+        type_id=0,
+        content={"content": "take over room"},
+        sender=requester["id"],
+        chat_id=room,
+    )
+
+    # Broadcast to all supervisors/admins that this chat has been taken over
+    await sio.emit(
+        "staff_take_over_chat",
+        {"user": requester, "room": room},
+        room=monitor_room,
+        skip_sid=sid,
+    )
+
+    return True, None
+
+
+@sio.event
 async def visitor_first_msg(sid, content):
     # Validation
     if not content or not isinstance(content, dict):

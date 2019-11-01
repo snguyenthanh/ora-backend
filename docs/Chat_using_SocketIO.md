@@ -149,6 +149,19 @@ The event `visitor_first_msg` must be sent to create a new chat sesssion.
 
 Args: `None`
 
+#### take_over_chat
+
+For a supervisor / admin to take over a chat from a low-level staff (agent).
+
+Args:
+
+`data` (dict):
+
+```
+data={
+	"room": <room_id> # The room for the supervisor/admin to take over
+}
+```
 
 ### 3.2. Receive
 
@@ -435,9 +448,59 @@ data={
 }
 ```
 
+##### staff_being_taken_over_chat
+
+Let the staff (agent) and the visitor know that the staff has been kicked out, and a higher-level staff is taking over the chat.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": {   # The supervisor / admin that takes over the chat
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
+  }
+}
+```
+
+
 #### 3.2.2. Supervisors + Admins
 
 These events are for supervisors and admins to monitor the chats of agents.
+
+##### staff_take_over_chat
+
+Emitted to all supervisors/admins that the chat has been taken over.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": {   # The supervisor / admin that takes over the chat
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
+  },
+  "room": <room_id>
+}
+```
 
 ##### agent_new_chat
 
