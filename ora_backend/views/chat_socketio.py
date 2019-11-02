@@ -13,6 +13,7 @@ from ora_backend.constants import (
     ONLINE_USERS_PREFIX,
     ROLES,
     MONITOR_ROOM_PREFIX,
+    ONLINE_VISITORS_PREFIX,
 )
 from ora_backend.models import Chat, ChatMessage, Organisation, Visitor, User
 from ora_backend.utils.auth import get_token_requester
@@ -88,6 +89,7 @@ async def get_sequence_num_for_room(room_id: str):
 @sio.event
 async def connect(sid, environ: dict):
     user, user_type = await authenticate_user(environ)
+    online_visitors_room = ONLINE_VISITORS_PREFIX
 
     # Staff
     if user_type == User.__tablename__:
@@ -137,9 +139,14 @@ async def connect(sid, environ: dict):
 
         # Update the current unclaimed chats to the newly connected staff
         unclaimed_chats = await cache.get(org_id, [])
+        online_visitors = await cache.get(online_visitors_room, [])
         await sio.emit(
             "staff_init",
-            data={"unclaimed_chats": unclaimed_chats, "online_users": onl_users},
+            data={
+                "unclaimed_chats": unclaimed_chats,
+                "online_users": onl_users,
+                "online_visitors": online_visitors,
+            },
             room=sid,
         )
     else:  # Visitor
@@ -161,6 +168,15 @@ async def connect(sid, environ: dict):
         await cache.set(
             chat_room["id"], {**chat_room, "staff": 0, "sequence_num": sequence_num + 1}
         )
+
+        # Mark the visitor as online
+        onl_visitors = await cache.get(online_visitors_room, [])
+        for visitor in onl_visitors:
+            if visitor["id"] == user["id"]:
+                break
+        else:
+            onl_visitors.append(user)
+        await cache.set(online_visitors_room, onl_visitors)
 
     return True, None
 
@@ -591,6 +607,15 @@ async def handle_visitor_leave(sid, session):
     )
     await sio.close_room(room["id"])
     await cache.delete(room["id"])
+
+    # Remove the visitor from cache
+    online_visitors_room = ONLINE_VISITORS_PREFIX
+    onl_visitors = await cache.get(online_visitors_room, [])
+    for index, visitor in enumerate(onl_visitors):
+        if visitor["id"] == user["id"]:
+            del onl_visitors[index]
+            break
+    await cache.set(online_visitors_room, onl_visitors)
 
 
 @sio.event
