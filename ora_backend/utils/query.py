@@ -10,6 +10,7 @@ from ora_backend.schemas import (
     USER_READ_SCHEMA,
     QUERY_PARAM_READ_SCHEMA,
     VISITOR_READ_SCHEMA,
+    BOOKMARK_VISITOR_READ_SCHEMA,
 )
 from ora_backend.utils.exceptions import raise_not_found_exception
 from ora_backend.utils.transaction import in_transaction
@@ -30,6 +31,11 @@ user_fields = [
 visitor_fields = [
     key
     for key, val in VISITOR_READ_SCHEMA.items()
+    if not val.get("readonly", False) and key not in ignore_fields
+]
+bookmark_fields = [
+    key
+    for key, val in BOOKMARK_VISITOR_READ_SCHEMA.items()
     if not val.get("readonly", False) and key not in ignore_fields
 ]
 
@@ -197,6 +203,60 @@ async def get_messages(
                 index += 1
 
         result.append({**message, "sender": sender})
+
+    return result
+
+
+async def get_bookmarked_visitors(
+    visitor_model, bookmark_model, staff_id, *, limit=15, after_id=None, **kwargs
+):
+    # Get the `internal_id` value from the starting row
+    # And use it to query the next page of results
+    last_internal_id = None
+    if after_id:
+        row_of_after_id = await bookmark_model.query.where(
+            bookmark_model.visitor_id == after_id
+        ).gino.first()
+        if not row_of_after_id:
+            raise_not_found_exception(bookmark_model, visitor_id=after_id)
+
+        last_internal_id = row_of_after_id.internal_id
+
+    query = (
+        db.select(
+            [
+                *(getattr(visitor_model, key) for key in visitor_fields),
+                *(getattr(bookmark_model, key) for key in bookmark_fields),
+            ]
+        )
+        .select_from(
+            visitor_model.join(
+                bookmark_model, visitor_model.id == bookmark_model.visitor_id
+            )
+        )
+        .where(
+            and_(
+                bookmark_model.staff_id == staff_id,
+                bookmark_model.is_bookmarked,
+                bookmark_model.internal_id < last_internal_id
+                if last_internal_id is not None
+                else True,
+            )
+        )
+        .order_by(desc(bookmark_model.internal_id))
+        .limit(limit)
+        .gino.all()
+    )
+    data = await query
+
+    result = []
+    # Parse the visitor
+    for row in data:
+        visitor_info = {}
+        for key, val in zip(visitor_fields, row):
+            visitor_info[key] = val
+
+        result.append(visitor_info)
 
     return result
 

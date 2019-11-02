@@ -261,6 +261,55 @@ class User(BaseUser):
     _idx_user_organisation_id = db.Index("_idx_user_organisation_id", "organisation_id")
 
 
+class BookmarkVisitor(BaseModel):
+    __tablename__ = "bookmark_visitor"
+
+    id = db.Column(db.String(length=32), primary_key=True, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    visitor_id = db.Column(db.String(length=32), nullable=False)
+    staff_id = db.Column(db.String(length=32), nullable=False)
+    is_bookmarked = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_bookmark_visitor_id = db.Index("idx_bookmark_visitor_id", "id")
+    _idx_bookmark_visitor_staff_id = db.Index(
+        "idx_bookmark_visitor_staff_id", "staff_id"
+    )
+    _idx_bookmark_visitor_staff_visitor = db.Index(
+        "idx_bookmark_visitor_staff_visitor", "staff_id", "visitor_id"
+    )
+
+    @classmethod
+    async def get_or_create(cls, **kwargs):
+        payload = await get_one(cls, **kwargs)
+        if payload:
+            return serialize_to_dict(payload)
+
+        # Create
+        data = await create_one(
+            cls, staff_id=kwargs["staff_id"], visitor_id=kwargs["visitor_id"]
+        )
+        return serialize_to_dict(data)
+
+    @classmethod
+    async def update_or_create(cls, get_kwargs, update_kwargs):
+        payload = await get_one(cls, **get_kwargs)
+
+        if not payload:
+            data = await create_one(
+                cls,
+                **update_kwargs,
+                staff_id=get_kwargs["staff_id"],
+                visitor_id=get_kwargs["visitor_id"],
+            )
+            return serialize_to_dict(data)
+        # Update the existing one
+        data = await update_one(payload, **update_kwargs)
+        return serialize_to_dict(data)
+
+
 class ChatMessage(BaseModel):
     __tablename__ = "chat_message"
 
@@ -274,6 +323,7 @@ class ChatMessage(BaseModel):
     updated_at = db.Column(db.BigInteger, onupdate=unix_time)
 
     # Index
+    _idx_chat_msg_id = db.Index("idx_chat_msg_id", "id")
     _idx_chat_msg_chat_id = db.Index("idx_chat_msg_chat_id", "chat_id")
     _idx_chat_msg_sender = db.Index("idx_chat_msg_sender", "sender")
 

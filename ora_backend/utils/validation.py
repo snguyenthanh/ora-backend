@@ -89,7 +89,7 @@ def validate_request(
         if not skip_args:
             # For request's arguments,
             # use READ schema
-            model_name = schema.split("_")[0]
+            model_name = "_".join(schema.split("_")[:-1])
             _schema = model_name + "_read"
             req_args = validate_against_schema(req_args, _schema)
 

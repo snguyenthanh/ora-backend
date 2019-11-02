@@ -3,10 +3,20 @@ from sanic.exceptions import Forbidden, NotFound, InvalidUsage
 
 from ora_backend.constants import ROLES
 from ora_backend.views.urls import visitor_blueprint as blueprint
-from ora_backend.models import Visitor, Chat, ChatMessage, User, ChatMessageSeen
+from ora_backend.models import (
+    Visitor,
+    Chat,
+    ChatMessage,
+    User,
+    ChatMessageSeen,
+    BookmarkVisitor,
+)
 from ora_backend.schemas import to_boolean
 from ora_backend.utils.links import generate_pagination_links, generate_next_page_link
-from ora_backend.utils.query import get_visitors_with_most_recent_chats
+from ora_backend.utils.query import (
+    get_visitors_with_most_recent_chats,
+    get_bookmarked_visitors,
+)
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import (
     validate_request,
@@ -39,11 +49,40 @@ async def visitor_update(req, *, req_args, req_body, requester, **kwargs):
     return {"data": await Visitor.modify(req_args, req_body)}
 
 
-@blueprint.route("/", methods=["POST"])
-@unpack_request
 @validate_request(schema="visitor_write", skip_args=True)
 async def visitor_create(req, *, req_args, req_body, **kwargs):
-    return json({"data": await Visitor.add(**req_body)})
+    return {"data": await Visitor.add(**req_body)}
+
+
+@validate_permission
+async def visitor_get_many(
+    request,
+    *,
+    req_args=None,
+    req_body=None,
+    query_params=None,
+    requester=None,
+    **kwargs,
+):
+    visitors = await get_bookmarked_visitors(
+        Visitor, BookmarkVisitor, requester["id"], **query_params
+    )
+    return {"data": visitors, "links": generate_pagination_links(request.url, visitors)}
+
+
+@blueprint.route("/", methods=["GET", "POST"])
+@unpack_request
+async def visitor_route_multiple(request, *, req_args, req_body, **kwargs):
+    call_funcs = {
+        "GET": visitor_get_many,
+        "POST": visitor_create,
+        # "DELETE": user_delete,
+    }
+
+    response = await call_funcs[request.method](
+        request, req_args=req_args, req_body=req_body, **kwargs
+    )
+    return json(response)
 
 
 @blueprint.route("/<visitor_id>", methods=["GET", "PUT", "PATCH"])
@@ -141,6 +180,51 @@ async def get_chat_messages_of_visitor(
     if next_link:
         links["next"] = next_link
     return json({"data": messages, "links": links})
+
+
+@validate_request(schema="bookmark_visitor_read")
+async def get_visitor_bookmark(
+    request, visitor_id, *, req_args, req_body, requester, **kwargs
+):
+    staff_bookmark = await BookmarkVisitor.get_or_create(
+        staff_id=requester["id"], visitor_id=visitor_id
+    )
+    return {"data": staff_bookmark}
+
+
+@validate_request(schema="bookmark_visitor_write", update=True)
+async def update_visitor_bookmark(
+    request, visitor_id, *, req_args=None, req_body=None, requester=None, **kwargs
+):
+    staff_bookmark = await BookmarkVisitor.update_or_create(
+        {"staff_id": requester["id"], "visitor_id": visitor_id}, req_body
+    )
+    return {"data": staff_bookmark}
+
+
+@blueprint.route("/<visitor_id>/bookmark", methods=["GET", "PUT", "PATCH"])
+@unpack_request
+@validate_permission
+async def visitor_bookmark_route(
+    request, visitor_id, *, req_args=None, req_body=None, requester=None, **kwargs
+):
+    visitor_id = visitor_id.strip()
+
+    call_funcs = {
+        "GET": get_visitor_bookmark,
+        "PUT": update_visitor_bookmark,
+        "PATCH": update_visitor_bookmark,
+    }
+
+    response = await call_funcs[request.method](
+        request,
+        visitor_id,
+        req_args=req_args,
+        req_body=req_body,
+        requester=requester,
+        **kwargs,
+    )
+    return json(response)
 
 
 @blueprint.route("/most_recent", methods=["GET"])

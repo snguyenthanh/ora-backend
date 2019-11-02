@@ -38,6 +38,9 @@ async def reset_db():
     await db.status(db.text("""TRUNCATE "visitor" RESTART IDENTITY CASCADE;"""))
     await db.status(db.text("""TRUNCATE "chat" RESTART IDENTITY CASCADE;"""))
     await db.status(db.text("""TRUNCATE "chat_message" RESTART IDENTITY CASCADE;"""))
+    await db.status(
+        db.text("""TRUNCATE "bookmark_visitor" RESTART IDENTITY CASCADE;""")
+    )
 
     # Re-setup the db
     await setup_db()

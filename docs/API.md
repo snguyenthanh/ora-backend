@@ -206,36 +206,43 @@ Response:
 }
 ```
 
-#### 2.3. Retrieve visitors with most recent chats
+#### 2.3. Retrieve bookmarked visitors of the staff
 
 > Protected
 
 Request:
 
 ```
-GET /visitors/most_recent
+GET /visitors
 ```
 
 Response:
 
 ```
 {
-    "data": [
-      {
-        email: "visitor2@gmail.com",
-        is_anonymous: false,
-        created_at: 1572522995,
-        updated_at: null,
-        name: "Visitor 2",
-        id: "b25162f797fb4182b69d8b2141274525",
-        disabled: false,
-      },
-      ...
-    ],
-    "links" :{
-      "next": <url_to_get_the_next_messages>,
-      "prev": <url_to_get_the_previous_messages>,
+  "data": [
+    {
+      'created_at': 1572708622,
+      'disabled': False,
+      'email': 'kathysampson@yahoo.com',
+      'id': '92c04d72a8af4d9fad34f1059ec384d6',
+      'is_anonymous': False,
+      'name': 'Bradley Owens',
+      'updated_at': None
+    },
+    {
+      'created_at': 1572708622,
+      'disabled': False,
+      'email': 'shellydavis@hotmail.com',
+      'id': 'fc027745297b4ce3b1cd77e618daf484',
+      'is_anonymous': False,
+      'name': 'Michael Harmon',
+      'updated_at': None
     }
+  ],
+  'links': {
+    'next': 'http://127.0.0.1:58048/visitors?after_id=fc027745297b4ce3b1cd77e618daf484'
+  }
 }
 ```
 

@@ -219,9 +219,12 @@ async def staff_join(sid, data):
     sio.enter_room(sid, room)
 
     # Announce all supervisors + admins about the new chat
+    # Return the visitor's info
+    chat_room_info = await Chat.get(id=room)
+    visitor_info = await Visitor.get(id=chat_room_info["visitor_id"])
     await sio.emit(
         "agent_new_chat",
-        {"user": user, "room": room, "contents": visitor_contents},
+        {"user": user, "visitor": visitor_info, "contents": visitor_contents},
         room=monitor_room,
         skip_sid=sid,
     )

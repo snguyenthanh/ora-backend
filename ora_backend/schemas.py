@@ -151,6 +151,24 @@ CHAT_MESSAGE_SEEN_WRITE_SCHEMA = {
     "updated_at": {"readonly": True},
 }
 
+BOOKMARK_VISITOR_READ_SCHEMA = {
+    "id": is_string,
+    "staff_id": is_string,
+    "visitor_id": is_string,
+    "is_bookmarked": is_boolean,
+    "created_at": is_unsigned_integer,
+    "updated_at": is_unsigned_integer,
+}
+
+BOOKMARK_VISITOR_WRITE_SCHEMA = {
+    "id": {"readonly": True},
+    "staff_id": is_required_string,
+    "visitor_id": is_required_string,
+    "is_bookmarked": is_boolean,
+    "created_at": {"readonly": True},
+    "updated_at": {"readonly": True},
+}
+
 
 # INJECTED SCHEMAS
 
@@ -200,4 +218,6 @@ schemas = {
     "query_params_get_visitors": QUERY_PARAM_GET_VISITORS,
     "chat_message_seen_read": CHAT_MESSAGE_SEEN_READ_SCHEMA,
     "chat_message_seen_write": CHAT_MESSAGE_SEEN_WRITE_SCHEMA,
+    "bookmark_visitor_read": BOOKMARK_VISITOR_READ_SCHEMA,
+    "bookmark_visitor_write": BOOKMARK_VISITOR_WRITE_SCHEMA,
 }

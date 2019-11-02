@@ -552,7 +552,15 @@ data={
     disabled: false,
     role_id: 3,
   },
-  "room": <str>,
+  "visitor": {
+    email: "visitor2@gmail.com",
+    is_anonymous: false,
+    created_at: 1572522995,
+    updated_at: null,
+    name: "Visitor 2",
+    id: "b25162f797fb4182b69d8b2141274525",
+    disabled: false,
+  },
   "contents": [
     {
       sender: null,
