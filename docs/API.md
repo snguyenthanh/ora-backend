@@ -246,7 +246,48 @@ Response:
 }
 ```
 
-#### 2.4. Update
+#### 2.4. Staff bookmarks a visitor
+
+Request:
+
+```
+PATCH /visitors/<visitor_id>/bookmark
+data={
+  "is_bookmarked": True
+}
+```
+
+Response:
+
+```
+{
+  "staff_id": <str>,
+  "visitor_id": <str>,
+  "is_bookmarked": True,
+  ...
+}
+```
+
+#### 2.5. Staff gets a bookmark from a visitor
+
+Request:
+
+```
+GET /visitors/<visitor_id>/bookmark
+```
+
+Response:
+
+```
+{
+  "staff_id": <str>,
+  "visitor_id": <str>,
+  "is_bookmarked": False, # Default: False
+  ...
+}
+```
+
+#### 2.6. Update
 
 > Protected
 
