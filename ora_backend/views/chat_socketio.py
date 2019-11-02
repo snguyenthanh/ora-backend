@@ -428,6 +428,35 @@ async def visitor_msg(sid, content):
 
 
 @sio.event
+async def change_chat_priority(sid, data):
+    # Validation
+    if "room" not in data or not isinstance(data["room"], str):
+        return False, "Missing/Invalid field: room"
+    if "severity_level" not in data or not isinstance(data["severity_level"], int):
+        return False, "Missing/Invalid field: severity_level"
+
+    # Get visitor info from session
+    session = await sio.get_session(sid)
+    room = data["room"]
+    user = session["user"]
+
+    # Broadcast the the flagged_chat to all high-level staffs
+    staff_info = await cache.get("user_{}".format(sid))
+    monitor_room = staff_info["monitor_room"]
+
+    # Update the severity_level of the chat
+    chat_room_info = await Chat.modify(
+        {"id": room}, {"severity_level": data["severity_level"]}
+    )
+    await sio.emit(
+        "chat_has_changed_priority",
+        {"room": chat_room_info, "user": user},
+        room=monitor_room,
+        skip_sid=sid,
+    )
+
+
+@sio.event
 async def staff_msg(sid, data):
     # Validation
     if "room" not in data or not isinstance(data["room"], str):

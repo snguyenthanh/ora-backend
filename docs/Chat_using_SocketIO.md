@@ -163,6 +163,22 @@ data={
 }
 ```
 
+#### change_chat_priority
+
+For any staffs to change a chat's priority (flag/unflag).
+
+Args:
+
+`data` (dict):
+
+```
+data={
+  "severity_level": <int>, # Default: 0
+	"room": <room_id> # The room of the chat
+
+}
+```
+
 ### 3.2. Receive
 
 #### 3.2.1. All staffs
