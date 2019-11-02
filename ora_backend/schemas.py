@@ -133,6 +133,25 @@ ORGANISATION_READ_SCHEMA = {
     "updated_at": is_unsigned_integer,
 }
 
+CHAT_MESSAGE_SEEN_READ_SCHEMA = {
+    "id": is_string,
+    "staff_id": is_string,
+    "chat_id": is_string,
+    "last_seen_msg_id": is_string,
+    "created_at": is_unsigned_integer,
+    "updated_at": is_unsigned_integer,
+}
+
+CHAT_MESSAGE_SEEN_WRITE_SCHEMA = {
+    "id": {"readonly": True},
+    "staff_id": is_required_string,
+    "chat_id": is_required_string,
+    "last_seen_msg_id": is_required_string,
+    "created_at": {"readonly": True},
+    "updated_at": {"readonly": True},
+}
+
+
 # INJECTED SCHEMAS
 
 GLOBAL_SCHEMA = {"internal_id": {"readonly": True}}
@@ -179,4 +198,6 @@ schemas = {
     "anonymous_login": ANONYMOUS_LOGIN_SCHEMA,
     "organisation_read": ORGANISATION_READ_SCHEMA,
     "query_params_get_visitors": QUERY_PARAM_GET_VISITORS,
+    "chat_message_seen_read": CHAT_MESSAGE_SEEN_READ_SCHEMA,
+    "chat_message_seen_write": CHAT_MESSAGE_SEEN_WRITE_SCHEMA,
 }

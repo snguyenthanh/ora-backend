@@ -275,6 +275,7 @@ class ChatMessage(BaseModel):
 
     # Index
     _idx_chat_msg_chat_id = db.Index("idx_chat_msg_chat_id", "chat_id")
+    _idx_chat_msg_sender = db.Index("idx_chat_msg_sender", "sender")
 
     @classmethod
     async def get(cls, *, chat_id, **kwargs):
@@ -311,3 +312,51 @@ class Chat(BaseModel):
             return serialize_to_dict(data)
 
         return serialize_to_dict(created_attempt)
+
+
+class ChatMessageSeen(BaseModel):
+    __tablename__ = "chat_message_seen"
+
+    id = db.Column(
+        db.String(length=32), nullable=False, unique=True, default=generate_uuid
+    )
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    staff_id = db.Column(db.String(length=32), nullable=False)
+    chat_id = db.Column(db.String(length=32), nullable=False)
+    last_seen_msg_id = db.Column(db.String(length=32), nullable=True)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_chat_msg_seen_id = db.Index("idx_chat_msg_seen_id", "id")
+    _idx_chat_msg_seen_staff_chat = db.Index(
+        "idx_chat_msg_seen_staff_chat", "staff_id", "chat_id"
+    )
+
+    @classmethod
+    async def get_or_create(cls, **kwargs):
+        payload = await get_one(cls, **kwargs)
+        if payload:
+            return serialize_to_dict(payload)
+
+        # Create
+        data = await create_one(
+            cls, staff_id=kwargs["staff_id"], chat_id=kwargs["chat_id"]
+        )
+        return serialize_to_dict(data)
+
+    @classmethod
+    async def update_or_create(cls, get_kwargs, update_kwargs):
+        payload = await get_one(cls, **get_kwargs)
+
+        if not payload:
+            data = await create_one(
+                cls,
+                **update_kwargs,
+                staff_id=get_kwargs["staff_id"],
+                chat_id=get_kwargs["chat_id"],
+            )
+            return serialize_to_dict(data)
+        # Update the existing one
+        data = await update_one(payload, **update_kwargs)
+        return serialize_to_dict(data)

@@ -17,7 +17,7 @@ docker exec -it test_postgres_ora_backend psql -U postgres -c "DROP SCHEMA publi
 # Run the actual tests
 pipenv run pytest --loop uvloop --ignore=ora_backend/tests/test_chat.py
 # pipenv run pytest -s --loop uvloop ora_backend/tests/test_chat.py
-# pipenv run pytest --loop uvloop ora_backend/tests/test_visitor.py
+# pipenv run pytest --loop uvloop ora_backend/tests/test_chat_msg_seen.py::test_update_last_seen_message_of_staff
 # pipenv run pytest --loop uvloop ora_backend/tests/test_user.py::test_get_one_user
 
 # Stop the container after running

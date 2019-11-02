@@ -214,7 +214,7 @@ async def test_get_visitors_most_recent(users, supervisor1_client):
     staff = users[-5]
     for visitor in visitors[::-1]:
         chat = await Chat.add(visitor_id=visitor["id"])
-        for sequence_num in range(1):
+        for sequence_num in range(3):
             content = {"content": fake.sentence(nb_words=10)}
             chat_msg = {
                 "chat_id": chat["id"],
