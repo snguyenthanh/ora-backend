@@ -3,7 +3,7 @@ from pprint import pprint
 
 import socketio
 from socketio.exceptions import ConnectionRefusedError
-from sanic.exceptions import Unauthorized
+from sanic.exceptions import Unauthorized, NotFound
 from sanic_jwt_extended.exceptions import JWTExtendedException
 from jwt.exceptions import ExpiredSignatureError
 
@@ -58,7 +58,7 @@ async def authenticate_user(environ: dict):
     token = environ["HTTP_AUTHORIZATION"].replace("Bearer ", "")
     try:
         user = await get_token_requester(token)
-    except (JWTExtendedException, Unauthorized):
+    except (JWTExtendedException, Unauthorized, NotFound):
         raise ConnectionRefusedError("Authentication fails")
     except ExpiredSignatureError:
         raise ConnectionRefusedError("Token has expired")
@@ -232,7 +232,7 @@ async def staff_join(sid, data):
     # Get the sequence number, and store in memory DB
     sequence_num = chat_room_info.get("sequence_num", 0)
 
-    chat_room_info["sequence_num"] += 1
+    chat_room_info["sequence_num"] = sequence_num + 1
     chat_room_info["staff"] = {**user, "sid": sid}
     await cache.set(room, chat_room_info)
 
