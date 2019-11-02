@@ -398,7 +398,7 @@ async def visitor_msg_unclaimed(sid, content):
     # Emit to add the message to listening clients
     await sio.emit(
         "visitor_unclaimed_msg",
-        {"user": session["user"], "content": content},
+        {"user": session["user"], "content": chat_msg},
         room=org_room,
     )
 
@@ -421,10 +421,13 @@ async def visitor_msg(sid, content):
     if error_msg:
         return False, error_msg
 
-    # Emit the msg before storing it in DB
+    # Store the message before emitting it
+    chat_msg = await ChatMessage.add(
+        sequence_num=sequence_num, content=content, chat_id=chat_room["id"]
+    )
     await sio.emit(
         "visitor_send",
-        {"user": visitor, "content": content},
+        {"user": visitor, "content": chat_msg},
         room=chat_room["id"],
         skip_sid=sid,
     )
@@ -437,14 +440,10 @@ async def visitor_msg(sid, content):
         monitor_room = staff_info["monitor_room"]
         await sio.emit(
             "new_visitor_msg_for_supervisor",
-            {"user": visitor, "content": content},
+            {"user": visitor, "content": chat_msg},
             room=monitor_room,
             skip_sid=sid,
         )
-
-    await ChatMessage.add(
-        sequence_num=sequence_num, content=content, chat_id=chat_room["id"]
-    )
 
     return True, None
 
@@ -503,9 +502,15 @@ async def staff_msg(sid, data):
     if error_msg:
         return False, error_msg
 
-    # Emit the msg before storing it in DB
+    # Store the message in DB before emitting it
+    chat_msg = await ChatMessage.add(
+        sequence_num=sequence_num,
+        content=data["content"],
+        chat_id=room,
+        sender=user["id"],
+    )
     await sio.emit(
-        "staff_send", {"content": content, "user": user}, room=room, skip_sid=sid
+        "staff_send", {"content": chat_msg, "user": user}, room=room, skip_sid=sid
     )
 
     # Broadcast the message to all high-level staffs
@@ -513,17 +518,11 @@ async def staff_msg(sid, data):
     monitor_room = staff_info["monitor_room"]
     await sio.emit(
         "new_staff_msg_for_supervisor",
-        {"user": user, "content": content},
+        {"user": user, "content": chat_msg},
         room=monitor_room,
         skip_sid=sid,
     )
 
-    await ChatMessage.add(
-        sequence_num=sequence_num,
-        content=data["content"],
-        chat_id=room,
-        sender=user["id"],
-    )
     return True, None
 
 
