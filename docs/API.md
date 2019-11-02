@@ -456,3 +456,58 @@ Return the most recent chat messages of the visitor.
   }
 }
 ```
+
+
+### 5. Chat
+
+#### 5.1. Last read message
+
+##### 5.1.1. Retrieve last read message id
+
+Return the information of the last read message indication.
+
+Request:
+
+```
+GET /chats/<chat_id>/last_seen
+```
+
+Response:
+
+```
+{
+  "data": {
+      id: <str>,
+      staff_id: <str>, # Same as the requester's auth token
+      chat_id: <str>,
+      last_seen_msg_id: <str>, # The ID of the last seen ChatMessage
+      created_at: <int>,
+      updated_at: <int>,
+  }
+}
+```
+
+##### 5.1.2. Update last read message id
+
+Update the information of the last read message indication.
+
+Request:
+
+```
+PATCH /chats/<chat_id>/last_seen
+```
+
+Response:
+
+```
+{
+  "data": {
+      id: <str>,
+      staff_id: <str>, # Same as the requester's auth token
+      chat_id: <str>,
+      last_seen_msg_id: <str>, # The ID of the last seen ChatMessage
+      created_at: <int>,
+      updated_at: <int>,
+  }
+}
+```
