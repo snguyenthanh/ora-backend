@@ -449,7 +449,7 @@ async def change_chat_priority(sid, data):
         {"id": room}, {"severity_level": data["severity_level"]}
     )
     await sio.emit(
-        "chat_has_changed_priority",
+        "chat_has_changed_priority_for_supervisor",
         {"room": chat_room_info, "user": user},
         room=monitor_room,
         skip_sid=sid,

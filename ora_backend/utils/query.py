@@ -114,7 +114,17 @@ async def get_many(
     )
 
 
-async def get_messages(model, user, *, chat_id, before_id=None, limit=15, **kwargs):
+async def get_messages(
+    model,
+    user,
+    *,
+    chat_id,
+    before_id=None,
+    after_id=None,
+    limit=15,
+    exclude=True,
+    **kwargs,
+):
     # Join the tables to extract the user's info
     query = db.select(
         [
@@ -125,19 +135,33 @@ async def get_messages(model, user, *, chat_id, before_id=None, limit=15, **kwar
 
     # Get the `before_id` value from the starting row
     # And use it to query the next page of results
-    if before_id:
-        row_of_before_id = await model.query.where(model.id == before_id).gino.first()
+    if before_id or after_id:
+        row_id = before_id or after_id
+        row_of_before_id = await model.query.where(model.id == row_id).gino.first()
         if not row_of_before_id:
             raise_not_found_exception(model, **kwargs)
 
         last_sequence_num = row_of_before_id.sequence_num
-        query = query.where(
-            and_(
-                model.chat_id == chat_id,
-                *dict_to_filter_args(model, **kwargs),
-                model.sequence_num < last_sequence_num,
+        if after_id:
+            query = query.where(
+                and_(
+                    model.chat_id == chat_id,
+                    *dict_to_filter_args(model, **kwargs),
+                    model.sequence_num > last_sequence_num
+                    if exclude
+                    else model.sequence_num >= last_sequence_num,
+                )
             )
-        )
+        else:  # before_id
+            query = query.where(
+                and_(
+                    model.chat_id == chat_id,
+                    *dict_to_filter_args(model, **kwargs),
+                    model.sequence_num < last_sequence_num
+                    if exclude
+                    else model.sequence_num <= last_sequence_num,
+                )
+            )
     else:
         query = query.where(
             and_(model.chat_id == chat_id, *dict_to_filter_args(model, **kwargs))

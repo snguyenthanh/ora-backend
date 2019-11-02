@@ -85,3 +85,11 @@ def get_next_page_link(request_body: dict):
     # Strip the host, as it is a testing host
     next_page_link = "/" + "/".join(next_page_link.split("/")[3:])
     return next_page_link
+
+
+def get_prev_page_link(request_body: dict):
+    prev_page_link = request_body["links"]["prev"]
+
+    # Strip the host, as it is a testing host
+    prev_page_link = "/" + "/".join(prev_page_link.split("/")[3:])
+    return prev_page_link

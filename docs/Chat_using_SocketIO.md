@@ -657,3 +657,33 @@ data={
   }
 }
 ```
+
+##### chat_has_changed_priority_for_supervisor
+
+Emitted to supervisors/admins when a staff has changed a chat's priority.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": {
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
+  },
+  "room": { # The chat whose priority has been changed
+      "id": "qwkelqwkleqwlken123123b12312l3kn",
+      "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
+      "tags": [],
+      "severity_level": 1,
+  },
+}
+```

@@ -206,7 +206,7 @@ Response:
 }
 ```
 
-#### 2.2. Retrieve visitors with most recent chats
+#### 2.3. Retrieve visitors with most recent chats
 
 > Protected
 
@@ -231,7 +231,11 @@ Response:
         disabled: false,
       },
       ...
-    ]
+    ],
+    "links" :{
+      "next": <url_to_get_the_next_messages>,
+      "prev": <url_to_get_the_previous_messages>,
+    }
 }
 ```
 
@@ -394,6 +398,16 @@ Request:
 GET /visitors/<visitor_id>/messages
 ```
 
+Query parameters:
+- `starts_from_unread` (bool): If this param is presented in the query, returns the chat messages that the staff has seen until the last read message.
+
+> *Note*  
+Either `starts_from_unread`, `before_id` or `after_id` should be presented in the url.
+
+```
+GET /visitors/<visitor_id>/messages?starts_from_unread=true
+```
+
 Response:
 
 Return the most recent chat messages of the visitor.
@@ -433,7 +447,12 @@ Return the most recent chat messages of the visitor.
       },
      'sequence_num': 2,
      'type_id': 1,
-     'updated_at': None}
+     'updated_at': None},
+     ...
   ],
- 'links': {'next': 'http://127.0.0.1:60013/visitors/b9d1dccb1aa24ed7b2c306db437f1363/messages?before_id=6010d9d8ef7f407bb6cadb12144576f0'}}
+ 'links': {
+   'prev': 'http://127.0.0.1:60013/visitors/b9d1dccb1aa24ed7b2c306db437f1363/messages?before_id=6010d9d8ef7f407bb6cadb12144576f0',
+   'next': 'http://127.0.0.1:60013/visitors/b9d1dccb1aa24ed7b2c306db437f1363/messages?after_id=721931f8ee084597b09f891d88010bff',
+  }
+}
 ```
