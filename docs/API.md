@@ -213,7 +213,7 @@ Response:
 Request:
 
 ```
-GET /visitors
+GET /visitors/bookmarked
 ```
 
 Response:

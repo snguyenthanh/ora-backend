@@ -99,7 +99,7 @@ async def test_get_visitor_bookmark_of_staff(supervisor1_client, users):
     visitors = visitors[::-1]
 
     # Get the bookmarked visitors
-    res = await supervisor1_client.get("/visitors")
+    res = await supervisor1_client.get("/visitors/bookmarked")
     body = await res.json()
     assert res.status == 200
     assert "data" in body

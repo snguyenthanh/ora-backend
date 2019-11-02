@@ -54,8 +54,10 @@ async def visitor_create(req, *, req_args, req_body, **kwargs):
     return {"data": await Visitor.add(**req_body)}
 
 
+@blueprint.route("/bookmarked", methods=["GET"])
+@unpack_request
 @validate_permission
-async def visitor_get_many(
+async def visitor_get_many_bookmarked(
     request,
     *,
     req_args=None,
@@ -67,14 +69,16 @@ async def visitor_get_many(
     visitors = await get_bookmarked_visitors(
         Visitor, BookmarkVisitor, requester["id"], **query_params
     )
-    return {"data": visitors, "links": generate_pagination_links(request.url, visitors)}
+    return json(
+        {"data": visitors, "links": generate_pagination_links(request.url, visitors)}
+    )
 
 
-@blueprint.route("/", methods=["GET", "POST"])
+@blueprint.route("/", methods=["POST"])
 @unpack_request
 async def visitor_route_multiple(request, *, req_args, req_body, **kwargs):
     call_funcs = {
-        "GET": visitor_get_many,
+        # "GET": visitor_get_many,
         "POST": visitor_create,
         # "DELETE": user_delete,
     }
