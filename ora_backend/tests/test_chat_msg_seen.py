@@ -41,7 +41,10 @@ async def test_get_last_seen_message_of_staff(supervisor1_client):
 
     # Get the last seen messages of unseen chats
     for chat_id in chat_messages:
-        res = await supervisor1_client.get("/chats/{}/last_seen".format(chat_id))
+        chat_info = await Chat.get(id=chat_id)
+        res = await supervisor1_client.get(
+            "/visitors/{}/last_seen".format(chat_info["visitor_id"])
+        )
         assert res.status == 200
         body = await res.json()
         assert "data" in body
@@ -79,8 +82,9 @@ async def test_update_last_seen_message_of_staff(supervisor1_client):
             chat_messages.setdefault(chat["id"], []).append(created_msg)
 
     for chat_id, value in chat_messages.items():
+        chat = await Chat.get(id=chat_id)
         res = await supervisor1_client.patch(
-            "/chats/{}/last_seen".format(chat_id),
+            "/visitors/{}/last_seen".format(chat["visitor_id"]),
             json={"last_seen_msg_id": value[2]["id"]},
         )
         assert res.status == 200

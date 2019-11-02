@@ -317,6 +317,61 @@ Response:
 }
 ```
 
+### 2.7. Last read message
+
+#### 2.7.1. Retrieve last read message id
+
+Return the information of the last read message indication for a staff.
+
+Request:
+
+```
+GET /visitors/<visitor_id>/last_seen
+```
+
+Response:
+
+```
+{
+  "data": {
+      id: <str>,
+      staff_id: <str>, # Same as the requester's auth token
+      chat_id: <str>,
+      last_seen_msg_id: <str>, # The ID of the last seen ChatMessage
+      created_at: <int>,
+      updated_at: <int>,
+  }
+}
+```
+
+#### 2.7.2. Update last read message id
+
+For a staff to update the information of the last read message indication.
+
+Request:
+
+```
+PATCH /visitors/<visitor_id>/last_seen
+
+data={
+  "last_seen_msg_id": <str>,  # ID of the ChatMessage to be marked as last read
+}
+```
+
+Response:
+
+```
+{
+  "data": {
+      id: <str>,
+      staff_id: <str>, # Same as the requester's auth token
+      chat_id: <str>,
+      last_seen_msg_id: <str>, # The ID of the last seen ChatMessage
+      created_at: <int>,
+      updated_at: <int>,
+  }
+}
+```
 
 ### 3. Users (or called `Staffs`)
 
@@ -501,65 +556,6 @@ Return the most recent chat messages of the visitor.
  'links': {
    'prev': 'http://127.0.0.1:60013/visitors/b9d1dccb1aa24ed7b2c306db437f1363/messages?before_id=6010d9d8ef7f407bb6cadb12144576f0',
    'next': 'http://127.0.0.1:60013/visitors/b9d1dccb1aa24ed7b2c306db437f1363/messages?after_id=721931f8ee084597b09f891d88010bff',
-  }
-}
-```
-
-
-### 5. Chat
-
-#### 5.1. Last read message
-
-##### 5.1.1. Retrieve last read message id
-
-Return the information of the last read message indication.
-
-Request:
-
-```
-GET /chats/<chat_id>/last_seen
-```
-
-Response:
-
-```
-{
-  "data": {
-      id: <str>,
-      staff_id: <str>, # Same as the requester's auth token
-      chat_id: <str>,
-      last_seen_msg_id: <str>, # The ID of the last seen ChatMessage
-      created_at: <int>,
-      updated_at: <int>,
-  }
-}
-```
-
-##### 5.1.2. Update last read message id
-
-Update the information of the last read message indication.
-
-Request:
-
-```
-PATCH /chats/<chat_id>/last_seen
-
-data={
-  "last_seen_msg_id": <str>,  # ID of the ChatMessage to be marked as last read
-}
-```
-
-Response:
-
-```
-{
-  "data": {
-      id: <str>,
-      staff_id: <str>, # Same as the requester's auth token
-      chat_id: <str>,
-      last_seen_msg_id: <str>, # The ID of the last seen ChatMessage
-      created_at: <int>,
-      updated_at: <int>,
   }
 }
 ```

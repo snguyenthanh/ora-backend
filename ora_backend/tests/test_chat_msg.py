@@ -229,7 +229,7 @@ async def test_get_messages_unread(supervisor1_client, visitors, users):
 
     # Update the last seen message
     res = await supervisor1_client.patch(
-        "/chats/{}/last_seen".format(chat["id"]),
+        "/visitors/{}/last_seen".format(visitor_id),
         json={"last_seen_msg_id": messages[24]["id"]},
     )
     assert res.status == 200

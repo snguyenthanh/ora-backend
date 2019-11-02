@@ -58,17 +58,20 @@ async def authenticate_user(environ: dict):
     token = environ["HTTP_AUTHORIZATION"].replace("Bearer ", "")
     try:
         user = await get_token_requester(token)
-    except (JWTExtendedException, Unauthorized, NotFound):
+    except (JWTExtendedException, Unauthorized):
         raise ConnectionRefusedError("Authentication fails")
     except ExpiredSignatureError:
         raise ConnectionRefusedError("Token has expired")
 
     user_type = Visitor.__tablename__
-    if "name" in user:  # Is visitor
-        user = await Visitor.get(id=user["id"])
-    else:
-        user = await User.get(id=user["id"])
-        user_type = User.__tablename__
+    try:
+        if "name" in user:  # Is visitor
+            user = await Visitor.get(id=user["id"])
+        else:
+            user = await User.get(id=user["id"])
+            user_type = User.__tablename__
+    except NotFound:
+        raise ConnectionRefusedError("Authentication fails")
     return user, user_type
 
 
@@ -473,6 +476,10 @@ async def change_chat_priority(sid, data):
         room=monitor_room,
         skip_sid=sid,
     )
+
+    # Update cache of the room
+    chat_room_info = await cache.get(room)
+    await cache.set(room, {**chat_room_info, "severity_level": data["severity_level"]})
 
     return True, None
 
