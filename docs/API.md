@@ -495,6 +495,10 @@ Request:
 
 ```
 PATCH /chats/<chat_id>/last_seen
+
+data={
+  "last_seen_msg_id": <str>,  # ID of the ChatMessage to be marked as last read
+}
 ```
 
 Response:
