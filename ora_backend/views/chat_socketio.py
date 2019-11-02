@@ -474,6 +474,8 @@ async def change_chat_priority(sid, data):
         skip_sid=sid,
     )
 
+    return True, None
+
 
 @sio.event
 async def staff_msg(sid, data):
