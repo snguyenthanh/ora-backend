@@ -601,6 +601,9 @@ async def handle_visitor_leave(sid, session):
 
     # Broadcast to high-level staffs to stop monitoring the chat
     room = await cache.get(room["id"])
+    if not room:
+        return False, "The chat room is either closed or doesn't exist."
+
     staff = room["staff"]
     if staff:
         staff_info = await cache.get("user_" + staff["sid"])
