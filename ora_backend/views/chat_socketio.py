@@ -165,7 +165,7 @@ async def connect(sid, environ: dict):
     else:  # Visitor
         # Get/Create a chat room for each visitor
         chat_room = await Chat.get_or_create(visitor_id=user["id"])
-        sio.enter_room(sid, chat_room["id"])
+        # sio.enter_room(sid, chat_room["id"])
         await sio.save_session(sid, {"user": user, "room": chat_room})
         await cache.set(
             "user_{}".format(sid), {"user": user, "type": user_type, "room": chat_room}
@@ -335,6 +335,9 @@ async def visitor_first_msg(sid, content):
 
     session = await sio.get_session(sid)
     chat_room = session["room"]
+
+    # Only enter the chat room on first message
+    sio.enter_room(chat_room)
     user = session["user"]
 
     # Store the first msg the visitor sends
@@ -630,16 +633,16 @@ async def handle_visitor_leave(sid, session):
         "visitor_leave", {"user": session["user"]}, room=room["id"], skip_sid=sid
     )
     await sio.close_room(room["id"])
-    await cache.delete(room["id"])
-
-    # Remove the visitor from cache
-    online_visitors_room = ONLINE_VISITORS_PREFIX
-    onl_visitors = await cache.get(online_visitors_room, [])
-    for index, visitor in enumerate(onl_visitors):
-        if visitor["id"] == user["id"]:
-            del onl_visitors[index]
-            break
-    await cache.set(online_visitors_room, onl_visitors)
+    # await cache.delete(room["id"])
+    #
+    # # Remove the visitor from cache
+    # online_visitors_room = ONLINE_VISITORS_PREFIX
+    # onl_visitors = await cache.get(online_visitors_room, [])
+    # for index, visitor in enumerate(onl_visitors):
+    #     if visitor["id"] == user["id"]:
+    #         del onl_visitors[index]
+    #         break
+    # await cache.set(online_visitors_room, onl_visitors)
 
 
 @sio.event
@@ -664,6 +667,19 @@ async def disconnect(sid):
     # Visitor
     if session["type"] == Visitor.__tablename__:
         await handle_visitor_leave(sid, session)
+        room = session["room"]
+        user = session["user"]
+        await cache.delete(room["id"])
+
+        # Remove the visitor from cache
+        online_visitors_room = ONLINE_VISITORS_PREFIX
+        onl_visitors = await cache.get(online_visitors_room, [])
+        for index, visitor in enumerate(onl_visitors):
+            if visitor["id"] == user["id"]:
+                del onl_visitors[index]
+                break
+        await cache.set(online_visitors_room, onl_visitors)
+
     else:  # Staff
         org_room = session["org_room"]
         monitor_room = session["monitor_room"]
