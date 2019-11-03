@@ -244,6 +244,7 @@ async def test_get_messages_unread(supervisor1_client, visitors, users):
     assert isinstance(body["data"], list)
     assert "links" in body and "next" in body["links"] and "prev" in body["links"]
     assert len(body["data"]) == 15
+
     for expected, actual in zip(messages[10:25], body["data"]):
         assert profile_created_from_origin(expected, actual, ignore={"sender"})
         assert profile_created_from_origin(expected["sender"], actual["sender"])
@@ -280,5 +281,78 @@ async def test_get_messages_unread(supervisor1_client, visitors, users):
     assert "links" in body and "next" in body["links"] and "prev" in body["links"]
     assert len(body["data"]) == 11
     for expected, actual in zip(messages[25:37], body["data"]):
+        assert profile_created_from_origin(expected, actual, ignore={"sender"})
+        assert profile_created_from_origin(expected["sender"], actual["sender"])
+
+
+async def test_get_messages_unread_from_top(supervisor1_client, visitors, users):
+    visitor_id = visitors[-1]["id"]
+
+    # Create some dummy chat messages
+    chat = await Chat.add(visitor_id=visitor_id)
+    messages = []
+    for sequence_num in range(1, 37):
+        content = {"value": fake.sentence(nb_words=10)}
+        sender = users[-6]["id"] if randint(0, 1) else None
+        chat_msg = {
+            "chat_id": chat["id"],
+            "sequence_num": sequence_num,
+            "content": content,
+            "sender": sender,
+        }
+        created_msg = await ChatMessage.add(**chat_msg)
+        created_msg["sender"] = users[-6] if sender else None
+        messages.append(created_msg)
+
+    # When the chat has no unread, starts from top
+    res = await supervisor1_client.get(
+        "/visitors/{}/messages?starts_from_unread=true".format(visitor_id)
+    )
+    assert res.status == 200
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], list)
+    assert "links" in body and "next" in body["links"] and "prev" in body["links"]
+    assert len(body["data"]) == 15
+    for expected, actual in zip(messages[:15], body["data"]):
+        assert profile_created_from_origin(expected, actual, ignore={"sender"})
+        assert profile_created_from_origin(expected["sender"], actual["sender"])
+
+    next_page_link = get_next_page_link(body)
+    prev_page_link = get_prev_page_link(body)
+
+    # Get the prev pages until no more
+    res = await supervisor1_client.get(prev_page_link)
+    assert res.status == 200
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], list)
+    assert (
+        "links" in body and "next" not in body["links"] and "prev" not in body["links"]
+    )
+    assert not body["data"]
+
+    # Get the next messages from unread til most recent
+    res = await supervisor1_client.get(next_page_link)
+    assert res.status == 200
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], list)
+    assert "links" in body and "next" in body["links"] and "prev" in body["links"]
+    assert len(body["data"]) == 15
+    for expected, actual in zip(messages[15:30], body["data"]):
+        assert profile_created_from_origin(expected, actual, ignore={"sender"})
+        assert profile_created_from_origin(expected["sender"], actual["sender"])
+
+    # Get the next messages until end
+    next_page_link = get_next_page_link(body)
+    res = await supervisor1_client.get(next_page_link)
+    assert res.status == 200
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], list)
+    assert "links" in body and "next" in body["links"] and "prev" in body["links"]
+    assert len(body["data"]) == 6
+    for expected, actual in zip(messages[30:], body["data"]):
         assert profile_created_from_origin(expected, actual, ignore={"sender"})
         assert profile_created_from_origin(expected["sender"], actual["sender"])

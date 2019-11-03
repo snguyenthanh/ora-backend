@@ -16,6 +16,7 @@ from ora_backend.utils.query import (
     delete_many,
     execute,
     get_messages,
+    get_one_oldest,
 )
 from ora_backend.utils.crypto import hash_password, validate_password_strength
 from ora_backend.utils.exceptions import raise_not_found_exception
@@ -331,6 +332,11 @@ class ChatMessage(BaseModel):
     async def get(cls, *, chat_id, **kwargs):
         messages = await get_messages(cls, User, chat_id=chat_id, **kwargs)
         return messages
+
+    @classmethod
+    async def get_first_message_of_chat(cls, chat_id, **kwargs):
+        data = await get_one_oldest(cls, chat_id=chat_id, order_by="sequence_num")
+        return serialize_to_dict(data)
 
 
 class Chat(BaseModel):

@@ -53,9 +53,9 @@ app.error_handler.add(SanicException, sanic_error_handler)
 # from ora_backend.views.chat_socketio import app
 
 
-async def create_tables(app, loop):
+async def init_plugins(app, loop):
     await db.gino.create_all()
-
+    await cache.clear()
 
 # Register the listeners
-app.register_listener(create_tables, "after_server_start")
+app.register_listener(init_plugins, "after_server_start")

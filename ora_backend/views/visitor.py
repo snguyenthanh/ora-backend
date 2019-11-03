@@ -154,19 +154,31 @@ async def get_chat_messages_of_visitor(
         messages = []
     else:
         last_read_msg_id = None
+        exclude = after_id is not None or before_id is not None
         if starts_from_unread:
             last_read_message = await ChatMessageSeen.get_or_create(
                 staff_id=requester["id"], chat_id=chat["id"]
             )
             last_read_msg_id = last_read_message["last_seen_msg_id"]
-        before_id = before_id or last_read_msg_id
+
+            # If the chat hasnt been read at all, starts from top
+            if not last_read_msg_id:
+                first_msg = await ChatMessage.get_first_message_of_chat(chat["id"])
+                before_id = None
+                after_id = first_msg["id"]
+                exclude = False
+            else:
+                before_id = last_read_msg_id
+                exclude = False
+
+        # after_id = after_id or last_read_msg_id
         messages = await ChatMessage.get(
             chat_id=chat["id"],
             **req_args,
             **query_params,
             before_id=before_id,
             after_id=after_id,
-            exclude=not starts_from_unread,
+            exclude=exclude,
         )
 
     prev_link = generate_pagination_links(

@@ -238,6 +238,12 @@ async def get_messages(
             and_(model.chat_id == chat_id, *dict_to_filter_args(model, **kwargs))
         )
 
+    if after_id:
+        data = await query.order_by(model.sequence_num).limit(limit).gino.all()
+    else:
+        data = (await query.order_by(desc(model.sequence_num)).limit(limit).gino.all())[
+            ::-1
+        ]
     """
     result = await db.select([
         ChatMessage.sequence_num,
@@ -246,11 +252,6 @@ async def get_messages(
         User.full_name,
     ]).select_from(ChatMessage.join(User, ChatMessage.sender == User.id)).gino.all()
     """
-
-    data = (await query.order_by(desc(model.sequence_num)).limit(limit).gino.all())[
-        ::-1
-    ]
-
     result = []
     # Parse the message and sender
     for row in data:
@@ -330,6 +331,15 @@ async def get_one_latest(model, order_by="internal_id", **kwargs):
     return (
         await model.query.where(and_(*dict_to_filter_args(model, **kwargs)))
         .order_by(desc(getattr(model, order_by)))
+        .limit(1)
+        .gino.first()
+    )
+
+
+async def get_one_oldest(model, order_by="internal_id", **kwargs):
+    return (
+        await model.query.where(and_(*dict_to_filter_args(model, **kwargs)))
+        .order_by(getattr(model, order_by))
         .limit(1)
         .gino.first()
     )
