@@ -337,7 +337,7 @@ async def visitor_first_msg(sid, content):
     chat_room = session["room"]
 
     # Only enter the chat room on first message
-    sio.enter_room(chat_room)
+    sio.enter_room(sid, chat_room)
     user = session["user"]
 
     # Store the first msg the visitor sends
