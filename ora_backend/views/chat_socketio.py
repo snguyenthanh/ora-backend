@@ -152,6 +152,12 @@ async def connect(sid, environ: dict):
                 Visitor, Chat, in_values=onl_visitor_ids
             )
 
+            # Inject the serving staff to the visitors
+            current_chat_room_ids = [visitor["room"] for visitor in online_visitors]
+            current_chat_rooms = await cache.multi_get(current_chat_room_ids)
+            for visitor, chat_room in zip(online_visitors, current_chat_rooms):
+                visitor["staff"] = chat_room.get("staff", 0) if chat_room else 0
+
         await sio.emit(
             "staff_init",
             data={
@@ -188,7 +194,7 @@ async def connect(sid, environ: dict):
             if visitor["id"] == user["id"]:
                 break
         else:
-            onl_visitors.append(user)
+            onl_visitors.append({**user, "room": chat_room["id"]})
         await cache.set(online_visitors_room, onl_visitors)
 
     return True, None

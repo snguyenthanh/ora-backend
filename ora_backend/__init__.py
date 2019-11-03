@@ -57,5 +57,6 @@ async def init_plugins(app, loop):
     await db.gino.create_all()
     await cache.clear()
 
+
 # Register the listeners
 app.register_listener(init_plugins, "after_server_start")
