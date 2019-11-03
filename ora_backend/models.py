@@ -5,7 +5,7 @@ from sanic.exceptions import InvalidUsage, NotFound
 from gino.dialects.asyncpg import ARRAY, JSON
 
 from ora_backend import db
-from ora_backend.constants import ROLES as _ROLES
+from ora_backend.constants import ROLES as _ROLES, DEFAULT_SEVERITY_LEVEL_OF_CHAT
 from ora_backend.exceptions import LoginFailureError
 from ora_backend.utils.query import (
     get_one,
@@ -30,8 +30,8 @@ def generate_uuid():
 
 
 def unix_time():
-    """Return the current unix timestamp."""
-    return int(time())
+    """Return the current unix timestamp, in miliseconds."""
+    return int(time() * 1000)
 
 
 class BaseModel(db.Model):
@@ -342,7 +342,9 @@ class Chat(BaseModel):
     internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     visitor_id = db.Column(db.String(length=32), nullable=False)
     tags = db.Column(ARRAY(JSON()), nullable=False, server_default="{}")
-    severity_level = db.Column(db.SmallInteger, nullable=False, default=0)
+    severity_level = db.Column(
+        db.SmallInteger, nullable=False, default=DEFAULT_SEVERITY_LEVEL_OF_CHAT
+    )
     created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
     updated_at = db.Column(db.BigInteger, onupdate=unix_time)
 

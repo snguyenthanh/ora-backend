@@ -4,6 +4,7 @@ from asyncpg.exceptions import UniqueViolationError
 from sqlalchemy import and_, desc, func
 
 from ora_backend import db
+from ora_backend.constants import DEFAULT_SEVERITY_LEVEL_OF_CHAT
 from ora_backend.exceptions import UniqueViolationError as DuplicatedError
 from ora_backend.schemas import (
     CHAT_MESSAGE_READ_SCHEMA,
@@ -11,6 +12,7 @@ from ora_backend.schemas import (
     QUERY_PARAM_READ_SCHEMA,
     VISITOR_READ_SCHEMA,
     BOOKMARK_VISITOR_READ_SCHEMA,
+    CHAT_READ_SCHEMA,
 )
 from ora_backend.utils.exceptions import raise_not_found_exception
 from ora_backend.utils.transaction import in_transaction
@@ -18,6 +20,11 @@ from ora_backend.utils.transaction import in_transaction
 
 # Define fields for custom selection
 ignore_fields = set(QUERY_PARAM_READ_SCHEMA.keys())
+chat_fields = [
+    key
+    for key, val in CHAT_READ_SCHEMA.items()
+    if not val.get("readonly", False) and key not in ignore_fields
+]
 message_fields = [
     key
     for key, val in CHAT_MESSAGE_READ_SCHEMA.items()
@@ -118,6 +125,64 @@ async def get_many(
         .limit(limit)
         .gino.all()
     )
+
+
+async def get_flagged_chats_of_online_visitors(
+    visitor_model,
+    chat_model,
+    *,
+    in_column="visitor_id",
+    in_values,
+    order_by="updated_at",
+    descrease=True,
+    limit=15,
+    **kwargs,
+):
+    # Join the tables to extract the user's info
+    data = (
+        await db.select(
+            [
+                *(getattr(chat_model, key) for key in chat_fields),
+                *(getattr(visitor_model, key) for key in visitor_fields),
+            ]
+        )
+        .select_from(
+            visitor_model.join(chat_model, visitor_model.id == chat_model.visitor_id)
+        )
+        .where(
+            and_(
+                chat_model.severity_level != DEFAULT_SEVERITY_LEVEL_OF_CHAT,
+                getattr(chat_model, in_column).in_(in_values)
+                if in_column and in_values
+                else True,
+            )
+        )
+        .order_by(
+            desc(getattr(chat_model, order_by))
+            if descrease
+            else getattr(chat_model, order_by)
+        )
+        .limit(limit)
+        .gino.all()
+    )
+
+    result = []
+    # Parse the message and sender
+    for row in data:
+        room = {}
+        index = 0
+        for key in chat_fields:
+            room[key] = row[index]
+            index += 1
+
+        visitor = {}
+        for key in visitor_fields:
+            visitor[key] = row[index]
+            index += 1
+
+        result.append({"room": room, "user": visitor})
+
+    return result
 
 
 async def get_messages(

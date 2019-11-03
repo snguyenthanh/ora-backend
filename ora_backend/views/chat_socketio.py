@@ -17,7 +17,7 @@ from ora_backend.constants import (
 )
 from ora_backend.models import Chat, ChatMessage, Organisation, Visitor, User
 from ora_backend.utils.auth import get_token_requester
-from ora_backend.utils.query import get_one_latest
+from ora_backend.utils.query import get_one_latest, get_flagged_chats_of_online_visitors
 
 
 mode = _environ.get("MODE", "development").lower()
@@ -143,10 +143,20 @@ async def connect(sid, environ: dict):
         # Update the current unclaimed chats to the newly connected staff
         unclaimed_chats = await cache.get(org_id, [])
         online_visitors = await cache.get(online_visitors_room, [])
+
+        # Get the flagged chats of online visitors
+        flagged_chats = []
+        if online_visitors:
+            onl_visitor_ids = [visitor["id"] for visitor in online_visitors]
+            flagged_chats = await get_flagged_chats_of_online_visitors(
+                Visitor, Chat, in_values=onl_visitor_ids
+            )
+
         await sio.emit(
             "staff_init",
             data={
                 "unclaimed_chats": unclaimed_chats,
+                "flagged_chats": flagged_chats,
                 "online_users": onl_users,
                 "online_visitors": online_visitors,
             },

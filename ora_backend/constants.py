@@ -6,6 +6,8 @@ from bidict import bidict
 # 3. Agent
 ROLES = bidict({1: "admin", 2: "supervisor", 3: "agent"})
 
+DEFAULT_SEVERITY_LEVEL_OF_CHAT = 0
+
 UNCLAIMED_CHATS_PREFIX = "cache_unclaimed_chats_"
 ONLINE_USERS_PREFIX = "cache_online_users_"
 ONLINE_VISITORS_PREFIX = "cache_online_visitors_"

@@ -235,7 +235,28 @@ data={
         },
         "contents": [content] # A list of `ChatMessage.content`, format decided by front-end
     }
-  ]
+  ],
+  "flagged_chats": [ # Top-15 recently flagged chats
+  {
+    'room': {
+      'created_at': 1572777087702,
+      'id': '8dfffcfb3d7444cda5ae9cb7f447f767',
+      'severity_level': 1,
+      'tags': [],
+      'updated_at': 1572777088030,
+      'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'user': {
+      'created_at': 1572777087693,
+      'disabled': False,
+      'email': 'duaneferguson@hotmail.com',
+      'id': 'ac2d4a7d56af4a1eb3718327ade0be68',
+      'is_anonymous': False,
+      'name': 'Sarah Wood',
+      'updated_at': None
+    }
+  },
+  ...
+  ],
 }
 ```
 
