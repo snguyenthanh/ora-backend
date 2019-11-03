@@ -40,6 +40,68 @@ async def test_get_one_visitor(visitor1_client, visitors):
     assert res.status == 404
 
 
+async def test_get_many_visitors_without_token(client):
+    res = await client.get("/visitors")
+    assert res.status == 401
+
+
+async def test_get_many_visitors_as_agent(agent1_client):
+    res = await agent1_client.get("/visitors")
+    assert res.status == 200
+
+
+async def test_get_many_visitors(supervisor1_client):
+    # Create some visitors
+    visitors = []
+    for _ in range(33):
+        new_visitor = get_fake_visitor()
+        new_visitor.pop("id")
+
+        res = await supervisor1_client.post("/visitors", json=new_visitor)
+        assert res.status == 200
+        body = await res.json()
+        visitors.append(body["data"])
+
+    visitors = visitors[::-1]
+    # Get the visitor (sorted by created order)
+    res = await supervisor1_client.get("/visitors")
+    assert res.status == 200
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], list)
+    assert len(body["data"]) == 15
+    assert "links" in body and "next" in body["links"]
+
+    for expected, actual in zip(visitors[:15], body["data"]):
+        assert profile_created_from_origin(expected, actual)
+
+    # Get the next page of visitors
+    next_page_link = get_next_page_link(body)
+    res = await supervisor1_client.get(next_page_link)
+    assert res.status == 200
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], list)
+    assert len(body["data"]) == 15
+    assert "links" in body and "next" in body["links"]
+
+    for expected, actual in zip(visitors[15:30], body["data"]):
+        assert profile_created_from_origin(expected, actual)
+
+    # Get the last page of visitors
+    next_page_link = get_next_page_link(body)
+    res = await supervisor1_client.get(next_page_link)
+    assert res.status == 200
+    body = await res.json()
+    assert "data" in body
+    assert isinstance(body["data"], list)
+    assert len(body["data"]) == 10  # = 3 (created just now) + 7 (in fixtures)
+    assert "links" in body and "next" in body["links"]
+
+    for expected, actual in zip(visitors[30:], body["data"]):
+        assert profile_created_from_origin(expected, actual)
+
+
 ## CREATE ##
 
 

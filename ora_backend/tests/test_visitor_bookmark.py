@@ -79,7 +79,7 @@ async def test_update_visitor_bookmark_existing(supervisor1_client, visitors, us
 
 
 async def test_get_visitor_bookmark_of_staff(supervisor1_client, users):
-    # Bookmark some visitors
+    # Create some visitors
     visitors = []
     for _ in range(32):
         new_visitor = get_fake_visitor()
@@ -90,6 +90,7 @@ async def test_get_visitor_bookmark_of_staff(supervisor1_client, users):
         body = await res.json()
         visitors.append(body["data"])
 
+    # Bookmark some visitors
     for visitor in visitors:
         res = await supervisor1_client.patch(
             "/visitors/{}/bookmark".format(visitor["id"]), json={"is_bookmarked": True}

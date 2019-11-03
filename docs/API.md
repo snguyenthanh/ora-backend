@@ -181,7 +181,7 @@ Response:
 }
 ```
 
-#### 2.2. Retrieve
+#### 2.2. Retrieve One
 
 > Protected
 
@@ -206,7 +206,35 @@ Response:
 }
 ```
 
-#### 2.3. Retrieve bookmarked visitors of the staff
+#### 2.3. Retrieve all visitors
+
+> Protected
+
+Request:
+
+```
+GET /visitors/
+```
+
+Response:
+
+```
+{
+    "data": [
+      {
+          "created_at": 1572027886,
+          "email": "visitor1",
+          "name": "Visitor 1",
+          "disabled": false,
+          "updated_at": null,
+          "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
+      },
+      ...
+    ]
+}
+```
+
+#### 2.4. Retrieve bookmarked visitors of the staff
 
 > Protected
 
@@ -246,7 +274,7 @@ Response:
 }
 ```
 
-#### 2.4. Staff bookmarks a visitor
+#### 2.5. Staff bookmarks a visitor
 
 Request:
 
@@ -268,7 +296,7 @@ Response:
 }
 ```
 
-#### 2.5. Staff gets a bookmark from a visitor
+#### 2.6. Staff gets a bookmark from a visitor
 
 Request:
 
@@ -287,7 +315,7 @@ Response:
 }
 ```
 
-#### 2.6. Update
+#### 2.7. Update
 
 > Protected
 
@@ -317,9 +345,9 @@ Response:
 }
 ```
 
-### 2.7. Last read message
+### 2.8. Last read message
 
-#### 2.7.1. Retrieve last read message id
+#### 2.8.1. Retrieve last read message id
 
 Return the information of the last read message indication for a staff.
 
@@ -344,7 +372,7 @@ Response:
 }
 ```
 
-#### 2.7.2. Update last read message id
+#### 2.8.2. Update last read message id
 
 For a staff to update the information of the last read message indication.
 
