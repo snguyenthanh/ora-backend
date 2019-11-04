@@ -581,7 +581,10 @@ async def handle_staff_leave(sid, session, data):
     # Broadcast the leaving msg to all high-level staffs
     if staff:
         # Retrieve the visitor's info
-        visitor = await Visitor.get(id=chat_room_info["visitor_id"])
+        try:
+            visitor = await Visitor.get(id=chat_room_info["visitor_id"])
+        except NotFound:
+            return False, "Unable to find the visitor."
         staff_info = await cache.get("user_" + staff["sid"])
         monitor_room = staff_info["monitor_room"]
         await sio.emit(

@@ -55,7 +55,7 @@ app.error_handler.add(SanicException, sanic_error_handler)
 
 async def init_plugins(app, loop):
     await db.gino.create_all()
-    await cache.clear()
+    # await cache.clear()
 
 
 # Register the listeners
