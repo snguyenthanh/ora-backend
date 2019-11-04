@@ -580,11 +580,13 @@ async def handle_staff_leave(sid, session, data):
 
     # Broadcast the leaving msg to all high-level staffs
     if staff:
+        # Retrieve the visitor's info
+        visitor = await Visitor.get(id=chat_room_info["visitor_id"])
         staff_info = await cache.get("user_" + staff["sid"])
         monitor_room = staff_info["monitor_room"]
         await sio.emit(
             "staff_leave_chat_for_supervisor",
-            {"user": user},
+            {"user": user, "visitor": visitor},
             room=monitor_room,
             skip_sid=sid,
         )
