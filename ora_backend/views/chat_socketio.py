@@ -588,7 +588,6 @@ async def handle_staff_leave(sid, session, data):
             "staff_leave_chat_for_supervisor",
             {"user": user, "visitor": visitor},
             room=monitor_room,
-            skip_sid=sid,
         )
 
     return True, None
