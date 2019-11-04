@@ -16,6 +16,7 @@ from ora_backend.utils.links import generate_pagination_links, generate_next_pag
 from ora_backend.utils.query import (
     get_visitors_with_most_recent_chats,
     get_bookmarked_visitors,
+    get_top_unread_visitors,
 )
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import (
@@ -72,6 +73,15 @@ async def visitor_get_many_bookmarked(
     return json(
         {"data": visitors, "links": generate_pagination_links(request.url, visitors)}
     )
+
+
+@blueprint.route("/unread", methods=["GET"])
+@unpack_request
+@validate_permission
+async def get_unread_visitors(request, *, req_args, req_body, requester, **kwargs):
+    staff_id = requester["id"]
+    visitors = await get_top_unread_visitors(Visitor, Chat, staff_id)
+    return json({"data": visitors})
 
 
 @validate_permission

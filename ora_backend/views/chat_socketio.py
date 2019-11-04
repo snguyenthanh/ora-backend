@@ -239,7 +239,7 @@ async def staff_join(sid, data):
 
     # Announce all supervisors + admins about the new chat
     # Return the visitor's info
-    chat_room_info = await Chat.get(id=room)
+    # chat_room_info = await Chat.get(id=room)
     visitor_info = await Visitor.get(id=chat_room_info["visitor_id"])
     await sio.emit(
         "agent_new_chat",
@@ -523,10 +523,7 @@ async def staff_msg(sid, data):
 
     # Store the message in DB before emitting it
     chat_msg = await ChatMessage.add(
-        sequence_num=sequence_num,
-        content=data["content"],
-        chat_id=room,
-        sender=user["id"],
+        sequence_num=sequence_num, content=content, chat_id=room, sender=user["id"]
     )
     await sio.emit(
         "staff_send", {"content": chat_msg, "user": user}, room=room, skip_sid=sid

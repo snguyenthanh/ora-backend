@@ -1,4 +1,5 @@
 from typing import Tuple
+from itertools import chain
 
 from asyncpg.exceptions import UniqueViolationError
 from sqlalchemy import and_, desc, func
@@ -360,6 +361,76 @@ async def get_many_with_count_and_group_by(
         .group_by(*[getattr(model, column) for column in columns])
         .gino.all()
     )
+
+
+async def get_top_unread_visitors(visitor_model, chat_model, staff_id, *, limit=15):
+    # Add the visitor's table name as a suffix of the fields
+    _visitor_fields = (
+        "{}.{}".format(visitor_model.__tablename__, field) for field in visitor_fields
+    )
+    _chat_fields = (
+        "{}.{}".format(chat_model.__tablename__, field) for field in chat_fields
+    )
+    data = (
+        await db.status(
+            db.text(
+                """
+                WITH seen_chats AS (
+                	SELECT
+                		distinct chat_message_seen.chat_id
+                	FROM chat_message_seen
+                	WHERE
+                		chat_message_seen.staff_id = :staff_id
+                ), most_recent_messages AS (
+                	SELECT DISTINCT t.chat_id, chat_message.id as chat_msg_id
+                	FROM (
+                		SELECT
+                				chat.id as chat_id,
+                				MAX(chat_message.sequence_num) as max_sequence_num
+                			FROM chat
+                			JOIN chat_message on chat.id = chat_message.chat_id
+                			GROUP BY chat.id
+                	) t
+                	JOIN chat_message ON chat_message.chat_id = t.chat_id
+                	WHERE t.max_sequence_num = chat_message.sequence_num
+                )
+                SELECT {}
+                FROM visitor
+                JOIN chat ON chat.visitor_id = visitor.id
+                LEFT OUTER JOIN chat_message_seen ON chat_message_seen.chat_id = chat.id
+                WHERE
+                	chat.id NOT IN (SELECT * FROM seen_chats)
+                	OR chat_message_seen.last_seen_msg_id NOT IN (
+                		SELECT most_recent_messages.chat_msg_id
+                		FROM most_recent_messages
+                		WHERE most_recent_messages.chat_id = chat_message_seen.chat_id
+                	)
+                ORDER BY chat.updated_at DESC, chat.created_at DESC
+                LIMIT :limit
+                """.format(
+                    ", ".join(chain(_visitor_fields, _chat_fields))
+                )
+            ),
+            {"staff_id": staff_id, "limit": limit},
+        )
+    )[1]
+
+    result = []
+    # Parse the visitors and chats
+    for row in data:
+        visitor = {}
+        index = 0
+        for key in visitor_fields:
+            visitor[key] = row[index]
+            index += 1
+
+        chat_info = {}
+        for key in chat_fields:
+            chat_info[key] = row[index]
+            index += 1
+
+        result.append({"user": visitor, "room": chat_info})
+    return result
 
 
 async def get_visitors_with_most_recent_chats(

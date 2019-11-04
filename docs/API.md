@@ -345,9 +345,9 @@ Response:
 }
 ```
 
-### 2.8. Last read message
+#### 2.8. Last read message
 
-#### 2.8.1. Retrieve last read message id
+##### 2.8.1. Retrieve last read message id
 
 Return the information of the last read message indication for a staff.
 
@@ -372,7 +372,7 @@ Response:
 }
 ```
 
-#### 2.8.2. Update last read message id
+##### 2.8.2. Update last read message id
 
 For a staff to update the information of the last read message indication.
 
@@ -398,6 +398,58 @@ Response:
       created_at: <int>,
       updated_at: <int>,
   }
+}
+```
+
+#### 2.9. Unread visitors' chats
+
+Return (at most 15) unread visitors and their chats, sorted by `updated_at`, then `created_at`.
+
+`updated_at` is usually only modified when the `severity_level` is changed.
+
+When all chats are read, it returns an empty list.
+
+Request:
+
+```
+GET /visitors/unread
+```
+
+Response:
+
+```
+{
+  "data": [
+    {
+      'room': {'created_at': 1572888728439, # The chat's info
+               'id': '4f9a57383f6e44a0b8cfd1ddfe1718da',
+               'severity_level': 0,
+               'tags': [],
+               'updated_at': None,
+               'visitor_id': '34f919a939474a4dbb0650f60708cc94'},
+      'user': {'created_at': 1572888728047,
+               'disabled': False,
+               'email': 'chapmancarrie@hotmail.com',
+               'id': '34f919a939474a4dbb0650f60708cc94',
+               'is_anonymous': False,
+               'name': 'Sherry Thomas',
+               'updated_at': None}
+    },
+   {
+      'room': {'created_at': 1572888728394,
+             'id': '85d08367ff2548bba604e41c1ca5e328',
+             'severity_level': 0,
+             'tags': [],
+             'updated_at': None,
+             'visitor_id': '23a60c6ae20549e2968562ef74e46f7b'},
+      'user': {'created_at': 1572888728032,
+             'disabled': False,
+             'email': 'oarroyo@yahoo.com',
+             'id': '23a60c6ae20549e2968562ef74e46f7b',
+             'is_anonymous': False,
+             'name': 'Eric Scott',
+             'updated_at': None}}
+  ]
 }
 ```
 
