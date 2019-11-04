@@ -171,7 +171,13 @@ async def connect(sid, environ: dict):
     else:  # Visitor
         # Get/Create a chat room for each visitor
         chat_room = await Chat.get_or_create(visitor_id=user["id"])
-        # sio.enter_room(sid, chat_room["id"])
+
+        # If the room already exists
+        existing_chat_room = await cache.get(chat_room["id"])
+        if existing_chat_room:
+            await sio.emit("visitor_room_exists", data={"room": existing_chat_room})
+            return False, "The chat room already exists."
+
         await sio.save_session(sid, {"user": user, "room": chat_room})
         await cache.set(
             "user_{}".format(sid), {"user": user, "type": user_type, "room": chat_room}

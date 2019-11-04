@@ -388,49 +388,6 @@ data={
 }
 ```
 
-##### staff_send
-
-For the visitor to receive the messages from the serving staff in the room.
-
-Args:
-
-`data` (dict)
-
-```
-data={
-  "user": {  # The staff's info - models.User
-    "full_name": "Admin 1",
-    "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
-    "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
-    "email": "admin1",
-    "display_name": null,
-    "role_id": 3
-  },
-  "content": <content>,  # dict
-}
-```
-
-##### staff_leave
-
-For the visitor to be notified about the staff having left the chat.
-
-Args:
-
-`data` (dict)
-
-```
-data={
-  "user": {  # The staff who left
-    "full_name": "Admin 1",
-    "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
-    "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
-    "email": "admin1",
-    "display_name": null,
-    "role_id": 3
-  },
-}
-```
-
 ##### visitor_leave
 
 For staff to be notified which visitor has left the chat.
@@ -726,6 +683,79 @@ data={
       "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
       "tags": [],
       "severity_level": 1,
+  },
+}
+```
+
+#### 3.2.3. Visitor
+
+
+##### staff_send
+
+For the visitor to receive the messages from the serving staff in the room.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": {  # The staff's info - models.User
+    "full_name": "Admin 1",
+    "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
+    "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
+    "email": "admin1",
+    "display_name": null,
+    "role_id": 3
+  },
+  "content": <content>,  # dict
+}
+```
+
+##### staff_leave
+
+For the visitor to be notified about the staff having left the chat.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "user": {  # The staff who left
+    "full_name": "Admin 1",
+    "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
+    "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
+    "email": "admin1",
+    "display_name": null,
+    "role_id": 3
+  },
+}
+```
+
+##### visitor_room_exists
+
+For the visitor on `connect`, to be notified that there is an ongoing session, and extra sessions are not allowed.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "room": {
+    "id": "qwkelqwkleqwlken123123b12312l3kn",
+    "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
+    "tags": [],
+    "severity_level": 1,
+    "staff": {  # The chatting staff. This will be `0` if no staffs have claimed the chat
+      "full_name": "Admin 1",
+      "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
+      "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
+      "email": "admin1",
+      "display_name": null,
+      "role_id": 3
+    },
   },
 }
 ```
