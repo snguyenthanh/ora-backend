@@ -1,3 +1,9 @@
+import sys
+from os.path import abspath, dirname
+
+root_dir = dirname(dirname(dirname(abspath(__file__))))
+sys.path.append(root_dir)
+
 from datetime import timedelta
 import logging
 
@@ -34,9 +40,9 @@ cache = Cache(serializer=JsonSerializer())
 # to avoid circular importing
 db.init_app(app)
 JWTManager(app)
-CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
+# CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
 
-logging.getLogger("sanic_cors").level = logging.DEBUG
+# logging.getLogger("sanic_cors").level = logging.DEBUG
 
 
 # Register the routes/views
@@ -60,3 +66,11 @@ async def init_plugins(app, loop):
 
 # Register the listeners
 app.register_listener(init_plugins, "after_server_start")
+
+
+@app.middleware("response")
+async def add_cors_headers(request, response):
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    if "ORIGIN" in request.headers:
+        origin = request.headers["ORIGIN"]
+        response.headers["Access-Control-Allow-Origin"] = origin

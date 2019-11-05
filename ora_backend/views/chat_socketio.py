@@ -32,6 +32,7 @@ if mode == "production":
 elif mode == "testing":
     sio = socketio.AsyncServer(async_mode="sanic", cors_allowed_origins=[])
 else:
+    print("dev mode")
     sio = socketio.AsyncServer(
         async_mode="sanic", cors_allowed_origins=[], logger=True, engineio_logger=True
     )
@@ -52,10 +53,30 @@ async def boss_enter_agent_rooms(boss_sid: str, agents: list):
 
 
 async def authenticate_user(environ: dict):
-    if "HTTP_AUTHORIZATION" not in environ:
+    # print('prepare')
+    # from pprint import pprint
+    # pprint(environ)
+
+    # Try to get the token in both headers and cookie
+    token = None
+    if "HTTP_AUTHORIZATION" in environ:
+        token = environ["HTTP_AUTHORIZATION"].replace("Bearer ", "")
+    elif "HTTP_COOKIE" in environ:
+        cookie_str = environ["HTTP_COOKIE"]
+        all_cookies = [cookie.strip() for cookie in cookie_str.split(";")]
+        cookies = {}
+        for cookie in all_cookies:
+            key, val = cookie.split("=")
+            cookies[key] = val
+
+        token = cookies.get("access_token")
+
+    if not token:
         raise ConnectionRefusedError("Authentication fails")
 
-    token = environ["HTTP_AUTHORIZATION"].replace("Bearer ", "")
+    # token = environ["HTTP_AUTHORIZATION"].replace("Bearer ", "")
+    print("yay")
+    print(token)
     try:
         user = await get_token_requester(token)
     except (JWTExtendedException, Unauthorized):
