@@ -159,7 +159,7 @@ Args:
 
 ```
 data={
-	"room": <room_id> # The room for the supervisor/admin to take over
+	"visitor": <visitor_id> # The visitor for the supervisor/admin to take over
 }
 ```
 

@@ -277,11 +277,13 @@ async def staff_join(sid, data):
 async def take_over_chat(sid, data):
     """A higher-up staff could take over a chat of a lower one."""
     # Validation
-    if "room" not in data or not isinstance(data["room"], str):
-        return False, "Missing/Invalid field: room"
+    if "visitor" not in data or not isinstance(data["visitor"], str):
+        return False, "Missing/Invalid field: visitor"
 
     session = await sio.get_session(sid)
-    room = data["room"]
+    # room = data["room"]
+    db_chat_room_info = await Chat.get(visitor_id=data["visitor"])
+    room = db_chat_room_info["id"]
     requester = session["user"]
     monitor_room = session["monitor_room"]
 
@@ -290,6 +292,7 @@ async def take_over_chat(sid, data):
     if not chat_room_info:
         return False, "The chat room is either closed or doesn't exist."
     cur_staff = chat_room_info["staff"]
+    chat_room_info.update(db_chat_room_info)
 
     if not cur_staff:
         return False, "Cannot take over an unclaimed chat."
