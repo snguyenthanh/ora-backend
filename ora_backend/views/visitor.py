@@ -174,6 +174,10 @@ async def get_chat_messages_of_visitor(
             # If the chat hasnt been read at all, starts from top
             if not last_read_msg_id:
                 first_msg = await ChatMessage.get_first_message_of_chat(chat["id"])
+                # If there is no chat messages at all, return []
+                if not first_msg:
+                    return json({"data": [], "links": {}})
+
                 before_id = None
                 after_id = first_msg["id"]
                 exclude = False

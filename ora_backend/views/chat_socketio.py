@@ -346,6 +346,8 @@ async def visitor_first_msg(sid, content):
         return False, "Missing/Invalid data"
 
     session = await sio.get_session(sid)
+    if "room" not in session:
+        return False, "The chat room is either closed or doesn't exist."
     chat_room = session["room"]
 
     # Only enter the chat room on first message
