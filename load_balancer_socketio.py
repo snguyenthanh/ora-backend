@@ -53,7 +53,6 @@ SOCKETIO_APP_URLS = [
 
 ALLOWED_ORIGINS = set(CORS_ORIGINS)
 
-
 async def validate_token(token, token_type="access"):
     token = unsign_str(token.strip())
 
@@ -61,32 +60,26 @@ async def validate_token(token, token_type="access"):
     await verify_jwt_data_type(jwt_token_data, token_type)
     return jwt_token_data
 
-
 def cors():
     def decorator(f):
         @wraps(f)
         async def decorated_function(request, *args, **kwargs):
             response = await f(request, *args, **kwargs)
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers[
-                "Access-Control-Allow-Headers"
-            ] = "Content-Type, authorization"
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, authorization'
             # print('yay')
             # print(request.cookies.get('access_token'))
             # if request.cookies:
-            # response.headers["Authorization"] = request.cookies.get('access_token', '')
+                # response.headers["Authorization"] = request.cookies.get('access_token', '')
             # response.headers['Access-Control-Allow-Origin'] = '*'
-            if "ORIGIN" in request.headers:
-                origin = request.headers["ORIGIN"]
+            if 'ORIGIN' in request.headers:
+                origin = request.headers['ORIGIN']
                 if origin in ALLOWED_ORIGINS:
-                    response.headers["Access-Control-Allow-Origin"] = origin
+                    response.headers['Access-Control-Allow-Origin'] = origin
 
             return response
-
         return decorated_function
-
     return decorator
-
 
 @app.route(
     "/socket.io", methods=["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
@@ -97,7 +90,7 @@ async def routing(request):
     #     return text('true')
     token = request.headers.get("Authorization")
     if token:
-        print("yay")
+        print('yay')
         print(request.url)
         token = token.replace("Bearer ", "")
         user_id = (await validate_token(token))["identity"]["id"]
