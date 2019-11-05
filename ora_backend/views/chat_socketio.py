@@ -307,7 +307,11 @@ async def take_over_chat(sid, data):
         )
 
     # Let the staff and visitor know he has been kicked out
-    await sio.emit("staff_being_taken_over_chat", {"user": requester}, room=room)
+    await sio.emit(
+        "staff_being_taken_over_chat",
+        {"user": requester, "room": db_chat_room_info},
+        room=room,
+    )
 
     # Kick the current staff out of the room
     staff_sid = cur_staff["sid"]
