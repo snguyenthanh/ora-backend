@@ -545,7 +545,7 @@ async def staff_msg(sid, data):
     monitor_room = staff_info["monitor_room"]
     await sio.emit(
         "new_staff_msg_for_supervisor",
-        {"user": user, "content": chat_msg},
+        {"user": user, "content": chat_msg, "room": room},
         room=monitor_room,
         skip_sid=sid,
     )

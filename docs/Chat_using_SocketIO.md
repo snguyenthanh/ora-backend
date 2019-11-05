@@ -581,7 +581,8 @@ data={
   "content": {
     content: "Yes ?",
     timestamp: 1572526840074,
-  }
+  },
+  "room": <room_id>,  # The chat room between the staff and visitor
 }
 ```
 
