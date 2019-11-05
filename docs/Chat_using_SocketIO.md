@@ -475,6 +475,12 @@ data={
     organisation_id: "bd9c4046763440769e3af30197a2482e",
     disabled: false,
     role_id: 3,
+  },
+  "room": { # The chat room
+    "id": "qwkelqwkleqwlken123123b12312l3kn",
+    "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
+    "tags": [],
+    "severity_level": 1,
   }
 }
 ```
