@@ -35,6 +35,10 @@ elif mode == "testing":
 
 
 def get_db_url():
+    DB_URL = environ.get("DB_URL")
+    if DB_URL:
+        return DB_URL
+
     db_config = DB_CONFIG
     return "postgresql://%s:%s@%s:%s/%s" % (
         db_config["DB_USER"],
