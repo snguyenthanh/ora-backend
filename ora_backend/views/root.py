@@ -1,7 +1,10 @@
+from random import choice
 from uuid import uuid4
+
 from sanic.response import json
 from sanic_jwt_extended import create_access_token, create_refresh_token
 
+from ora_backend.constants import SERVER_IDS
 from ora_backend.models import User, Visitor
 from ora_backend.views.urls import root_blueprint as blueprint
 from ora_backend.utils.auth import get_token_data_from_request
@@ -28,8 +31,12 @@ async def login(request, identity):
     response = json({"user": identity, "access_token": signed_access_token})
     response.cookies["access_token"] = signed_access_token
     response.cookies["refresh_token"] = signed_refresh_token
+    response.cookies["worker"] = choice(SERVER_IDS)
+
+    # HTTP-ONLY
     response.cookies["access_token"]["httponly"] = True
     response.cookies["refresh_token"]["httponly"] = True
+    response.cookies["worker"]["httponly"] = True
 
     return response
 
@@ -80,7 +87,9 @@ async def create_new_access_token(request):
     response = json({"access_token": signed_access_token})
     response.cookies["access_token"] = signed_access_token
     response.cookies["refresh_token"] = request.cookies["refresh_token"]
+    response.cookies["worker"] = request.cookies["server_id"]
     response.cookies["access_token"]["httponly"] = True
     response.cookies["refresh_token"]["httponly"] = True
+    response.cookies["worker"]["httponly"] = True
 
     return response
