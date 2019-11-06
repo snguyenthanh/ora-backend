@@ -15,9 +15,20 @@ from ora_backend.constants import (
     MONITOR_ROOM_PREFIX,
     ONLINE_VISITORS_PREFIX,
 )
-from ora_backend.models import Chat, ChatMessage, Organisation, Visitor, User
+from ora_backend.models import (
+    Chat,
+    ChatMessage,
+    Organisation,
+    Visitor,
+    User,
+    ChatUnclaimed,
+)
 from ora_backend.utils.auth import get_token_requester
-from ora_backend.utils.query import get_one_latest, get_flagged_chats_of_online_visitors
+from ora_backend.utils.query import (
+    get_one_latest,
+    get_flagged_chats_of_online_visitors,
+    get_many,
+)
 
 
 mode = _environ.get("MODE", "development").lower()
@@ -75,17 +86,18 @@ async def authenticate_user(environ: dict):
     return user, user_type
 
 
-async def get_sequence_num_for_room(room_id: str):
-    chat_room_info = await cache.get(room_id, {})
-    if not chat_room_info:
-        return False, "The chat room is either closed or doesn't exist."
+async def get_sequence_num_for_visitor(user_id: str):
+    visitor_info = await cache.get(user_id, {}, namespace="visitor_info")
+    if not visitor_info:
+        return False, {}, "The chat room is either closed or doesn't exist."
 
+    chat_room_info = visitor_info.get("room")
     sequence_num = chat_room_info.get("sequence_num", 0)
 
-    chat_room_info["sequence_num"] += 1
-    await cache.set(room_id, chat_room_info)
+    visitor_info["room"]["sequence_num"] = sequence_num + 1
+    await cache.set(user_id, visitor_info, namespace="visitor_info")
 
-    return sequence_num, None
+    return sequence_num, visitor_info, None
 
 
 # Ora events
@@ -103,7 +115,7 @@ async def connect(sid, environ: dict):
 
         # Update online user for other staffs
         await sio.emit(
-            "staff_goes_online", data={"user": user}, room=org_id, skip_sid=sid
+            "staff_goes_online", data={"staff": user}, room=org_id, skip_sid=sid
         )
 
         # Logs the org_room to update events
@@ -120,32 +132,30 @@ async def connect(sid, environ: dict):
                 "type": user_type,
                 "org_room": org_id,
                 "monitor_room": monitor_room,
+                "rooms": [],
             },
         )
 
         # Store the current online users
-        onl_users = await cache.get(online_users_room, [])
-        for index, _user in enumerate(onl_users):
-            if _user["id"] == user["id"]:
-                onl_users[index] = {**user, "sid": sid}
-                break
-        else:
-            onl_users.append({**user, "sid": sid})
-        await cache.set(online_users_room, onl_users)
+        onl_users = await cache.get(online_users_room, {})
+        if user["id"] not in onl_users:
+            onl_users[user["id"]] = {**user, "sid": sid}
+            await cache.set(online_users_room, onl_users)
 
         # If user is supervisor or admin, he could:
         # - Enter monitor room - whenever there is a new chat, the staff will be informed
         # - Enter all volunteers' chat rooms to monitor
         if user["role_id"] < ROLES.inverse["agent"]:
             sio.enter_room(sid, monitor_room)
-            await boss_enter_agent_rooms(sid, onl_users)
+            # await boss_enter_agent_rooms(sid, onl_users)
 
         # Update the current unclaimed chats to the newly connected staff
-        unclaimed_chats = await cache.get(org_id, [])
+        unclaimed_chats = await cache.get(org_id, {})
         online_visitors = await cache.get(online_visitors_room, {})
 
         # Get the flagged chats of online visitors
         flagged_chats = []
+        onl_visitor_ids = []
         if online_visitors:
             # onl_visitor_ids = [visitor["id"] for visitor in online_visitors]
             onl_visitor_ids = online_visitors.keys()
@@ -163,10 +173,29 @@ async def connect(sid, environ: dict):
                     chat_room.get("staff", 0) if chat_room else 0
                 )
 
+        # # Get the offline unclaimed chats as well
+        # offline_unclaimed_chats_db = await get_many(
+        #     ChatUnclaimed, many=True, descrease=True
+        # )
+        # off_unclaimed_visitor_ids = [
+        #     item.visitor_id for item in offline_unclaimed_chats_db
+        # ]
+        # offline_unclaimed_chats = await Visitor.get(
+        #     many=True, in_column="id", in_values=off_unclaimed_visitor_ids
+        # )
+        # offline_unclaimed_chats_as_dict = {
+        #     visitor["id"]: visitor for visitor in offline_unclaimed_chats
+        # }
+        # offline_unclaimed_chats = [
+        #     offline_unclaimed_chats_as_dict[visitor_id]
+        #     for visitor_id in off_unclaimed_visitor_ids
+        # ]
+
         await sio.emit(
             "staff_init",
             data={
-                "unclaimed_chats": unclaimed_chats,
+                "unclaimed_chats": list(unclaimed_chats.values()),
+                # "offline_unclaimed_chats": offline_unclaimed_chats,
                 "flagged_chats": flagged_chats,
                 "online_users": onl_users,
                 "online_visitors": list(online_visitors.values()),
@@ -178,26 +207,49 @@ async def connect(sid, environ: dict):
         chat_room = await Chat.get_or_create(visitor_id=user["id"])
 
         # If the room already exists
-        existing_chat_room = await cache.get(chat_room["id"])
-        if existing_chat_room:
-            await sio.emit("visitor_room_exists", data={"room": existing_chat_room})
+        # existing_chat_room = await cache.get(chat_room["id"])
+        existing_visitor_info = await cache.get(user["id"], namespace="visitor_info")
+
+        if existing_visitor_info:
+            await sio.emit(
+                "visitor_room_exists",
+                data={
+                    "visitor": {
+                        **existing_visitor_info["room"],
+                        **existing_visitor_info["user"],
+                    }
+                },
+            )
             return False, "The chat room already exists."
 
         await sio.save_session(sid, {"user": user, "room": chat_room})
+        # This cache is used on visitor disconnection to remove caches and clean up rooms
         await cache.set(
             "user_{}".format(sid), {"user": user, "type": user_type, "room": chat_room}
         )
 
         # Update the sequence number of the chat
-        latest_chat_msg = await get_one_latest(
-            ChatMessage, chat_id=chat_room["id"], order_by="sequence_num"
-        )
-        sequence_num = 0
-        if latest_chat_msg:
-            sequence_num = latest_chat_msg.sequence_num
-        await cache.set(
-            chat_room["id"], {**chat_room, "staff": 0, "sequence_num": sequence_num + 1}
-        )
+        # If the room is not created
+        if not existing_visitor_info:
+            latest_chat_msg = await get_one_latest(
+                ChatMessage, chat_id=chat_room["id"], order_by="sequence_num"
+            )
+            sequence_num = 0
+            if latest_chat_msg:
+                sequence_num = latest_chat_msg.sequence_num
+            # await cache.set(
+            #     chat_room["id"], {**chat_room, "staff": 0, "sequence_num": sequence_num + 1}
+            # )
+            # This cache is used to direct the staffs to each visitor's room
+            await cache.set(
+                user["id"],
+                {
+                    "user": user,
+                    "type": user_type,
+                    "room": {**chat_room, "staff": 0, "sequence_num": sequence_num + 1},
+                },
+                namespace="visitor_info",
+            )
 
     return True, None
 
@@ -205,66 +257,118 @@ async def connect(sid, environ: dict):
 @sio.event
 async def staff_join(sid, data):
     # Validation
-    if "room" not in data or not isinstance(data["room"], str):
-        return False, "Missing/Invalid field: room"
+    # if "room" not in data or not isinstance(data["room"], str):
+    #     return False, "Missing/Invalid field: room"
+
+    if "visitor" not in data or not isinstance(data["visitor"], str):
+        return False, "Missing/Invalid field: visitor"
 
     session = await sio.get_session(sid)
-    room = data["room"]
+    visitor_id = data["visitor"]
+    # room = data["room"]
     user = session["user"]
     org_room = session["org_room"]
     monitor_room = session["monitor_room"]
 
-    chat_room_info = await cache.get(room, {})
-    if not chat_room_info:
+    # Remove the chat from unclaimed chats
+    unclaimed_chats = await cache.get(org_room, {})
+    visitor_contents = []
+    if visitor_id in unclaimed_chats:
+        removed_unclaimed_chat = unclaimed_chats.pop(visitor_id, {})
+        visitor_contents = removed_unclaimed_chat.get("contents", [])
+        await cache.set(org_room, unclaimed_chats)
+
+    visitor_info = await cache.get(visitor_id, {}, namespace="visitor_info")
+    if not visitor_info:
         return False, "The chat room is either closed or doesn't exist."
 
-    # If the chat is already claimed, reject the request
-    if chat_room_info["staff"]:
-        return False, "This chat is already claimed."
+    # # Mark the chat as claimed in DB
+    # next_unclaimed
 
-    # Remove the chat from unclaimed chats
-    unclaimed_chats = await cache.get(org_room, [])
-    visitor_contents = []
-    for index, _chat in enumerate(unclaimed_chats):
-        if _chat["room"]["id"] == room:
-            visitor_contents = _chat["contents"]
-            del unclaimed_chats[index]
-            break
-    await cache.set(org_room, unclaimed_chats)
+    # If the visitor is online
+    sequence_num = 0
+    if visitor_info:
+        chat_room_info = visitor_info.get("room")
+        # If the chat is already claimed, reject the request
+        # if chat_room_info["staff"]:
+        #     return False, "This chat is already claimed."
 
-    # Broadcast a message to remove the chat from the queue for other staffs
-    await sio.emit(
-        "staff_claim_chat", {"user": user, "room": room}, room=org_room, skip_sid=sid
-    )
+        # for index, _chat in enumerate(unclaimed_chats):
+        #     if _chat["room"]["id"] == room:
+        #         visitor_contents = _chat["contents"]
+        #         del unclaimed_chats[index]
+        #         break
 
-    sio.enter_room(sid, room)
+        # Broadcast a message to remove the chat from the queue for other staffs
+        await sio.emit(
+            "staff_claim_chat",
+            {
+                "staff": user,
+                "visitor": {**visitor_info["room"], **visitor_info["user"]},
+            },
+            room=org_room,
+            skip_sid=sid,
+        )
 
-    # Announce all supervisors + admins about the new chat
-    # Return the visitor's info
-    # chat_room_info = await Chat.get(id=room)
-    visitor_info = await Visitor.get(id=chat_room_info["visitor_id"])
-    await sio.emit(
-        "agent_new_chat",
-        {"user": user, "visitor": visitor_info, "contents": visitor_contents},
-        room=monitor_room,
-        skip_sid=sid,
-    )
+        sio.enter_room(sid, chat_room_info["id"])
 
-    # Get the sequence number, and store in memory DB
-    sequence_num = chat_room_info.get("sequence_num", 0)
+        # Announce all supervisors + admins about the new chat
+        # Return the visitor's info
+        # chat_room_info = await Chat.get(id=room)
+        # visitor_info = await Visitor.get(id=chat_room_info["visitor_id"])
+        await sio.emit(
+            "agent_new_chat",
+            {
+                "staff": user,
+                "visitor": {**visitor_info["room"], **visitor_info["user"]},
+                "contents": visitor_contents,
+            },
+            room=monitor_room,
+            skip_sid=sid,
+        )
 
-    chat_room_info["sequence_num"] = sequence_num + 1
-    chat_room_info["staff"] = {**user, "sid": sid}
-    await cache.set(room, chat_room_info)
+        # Get the sequence number, and store in memory DB
+        sequence_num = chat_room_info.get("sequence_num", 0)
+        visitor_info["room"]["sequence_num"] = sequence_num + 1
+        visitor_info["staff"] = {**user, "sid": sid}
+        await cache.set(visitor_id, visitor_info, namespace="visitor_info")
 
-    # Emit the msg before storing it in DB
-    await sio.emit("staff_join_room", {"user": user}, room=room, skip_sid=sid)
+        # Emit the msg before storing it in DB
+        await sio.emit(
+            "staff_join_room", {"staff": user}, room=chat_room_info["id"], skip_sid=sid
+        )
+
+        # Update the rooms the staff is in
+        user_info = await cache.get("user_{}".format(sid))
+        if not user_info:
+            return False, "The user does not exist"
+        user_info["rooms"].append(visitor_id)
+        await cache.set("user_{}".format(sid), user_info)
+
+    # else:   # If the visitor is offline
+    #     # Broadcast a message to remove the chat from the queue for other staffs
+    #     await sio.emit(
+    #         "staff_claim_offline_chat",
+    #         {"staff": user, "visitor_id": visitor_id},
+    #         room=org_room,
+    #         skip_sid=sid,
+    #     )
+    #
+    #     # Store the join as a msg in DB
+    #     chat_room_info = await Chat.get(visitor_id=visitor_id)
+    #     latest_chat_msg = await get_one_latest(
+    #         ChatMessage, chat_id=chat_room_info["id"], order_by="sequence_num"
+    #     )
+    #     sequence_num = 0
+    #     if latest_chat_msg:
+    #         sequence_num = latest_chat_msg.sequence_num
+
     await ChatMessage.add(
         sequence_num=sequence_num,
         type_id=0,
         content={"content": "join room"},
         sender=user["id"],
-        chat_id=room,
+        chat_id=chat_room_info["id"],
     )
     return True, None
 
@@ -278,9 +382,15 @@ async def take_over_chat(sid, data):
 
     session = await sio.get_session(sid)
     visitor_id = data["visitor"]
-    online_visitors_room = ONLINE_VISITORS_PREFIX
-    onl_visitors = await cache.get(online_visitors_room, {})
-    room = onl_visitors.get(visitor_id, {}).get("room")
+
+    # onl_visitors = await cache.get(online_visitors_room, {})
+    visitor_info = await cache.get(visitor_id, namespace="visitor_info")
+    if not visitor_info:
+        return False, "The chat room is either closed or doesn't exist."
+    # room = onl_visitors.get(visitor_id, {}).get("room")
+
+    chat_room_info = visitor_info["room"]
+    room = chat_room_info["id"]
     # room = data["room"]
     # db_chat_room_info = await Chat.get(visitor_id=data["visitor"])
     # room = db_chat_room_info["id"]
@@ -288,10 +398,7 @@ async def take_over_chat(sid, data):
     monitor_room = session["monitor_room"]
 
     # Get current serving staff
-    chat_room_info = await cache.get(room, {})
-    if not chat_room_info:
-        return False, "The chat room is either closed or doesn't exist."
-    cur_staff = chat_room_info["staff"]
+    cur_staff = room["staff"]
 
     if not cur_staff:
         return False, "Cannot take over an unclaimed chat."
@@ -308,7 +415,10 @@ async def take_over_chat(sid, data):
     # Let the staff and visitor know he has been kicked out
     await sio.emit(
         "staff_being_taken_over_chat",
-        {"user": requester, "room": chat_room_info},
+        {
+            "staff": requester,
+            "visitor": {**visitor_info["room"], **visitor_info["user"]},
+        },
         room=room,
     )
 
@@ -321,9 +431,10 @@ async def take_over_chat(sid, data):
 
     # Update "staff" in cache for room
     sequence_num = chat_room_info.get("sequence_num", 0)
-    chat_room_info["sequence_num"] += 1
-    chat_room_info["staff"] = {**requester, "sid": sid}
-    await cache.set(room, chat_room_info)
+    visitor_info["room"]["sequence_num"] = sequence_num + 1
+    # chat_room_info["staff"] = {**requester, "sid": sid}
+    visitor_info["room"]["staff"] = {**requester, "sid": sid}
+    await cache.set(visitor_id, visitor_info, namespace="visitor_info")
 
     # Save the chat message of staff being taken over
     await ChatMessage.add(
@@ -337,7 +448,10 @@ async def take_over_chat(sid, data):
     # Broadcast to all supervisors/admins that this chat has been taken over
     await sio.emit(
         "staff_take_over_chat",
-        {"user": requester, "room": room},
+        {
+            "staff": requester,
+            "visitor": {**visitor_info["room"], **visitor_info["user"]},
+        },
         room=monitor_room,
         skip_sid=sid,
     )
@@ -361,14 +475,19 @@ async def visitor_first_msg(sid, content):
     user = session["user"]
 
     # Store the first msg the visitor sends
-    sequence_num, error_msg = await get_sequence_num_for_room(chat_room["id"])
+    sequence_num, visitor_info, error_msg = await get_sequence_num_for_visitor(
+        user["id"]
+    )
     if error_msg:
         return False, error_msg
 
     chat_msg = await ChatMessage.add(
         sequence_num=sequence_num, content=content, chat_id=chat_room["id"]
     )
-    data = {"user": user, "room": chat_room, "contents": [chat_msg]}
+    data = {
+        "visitor": {**visitor_info["room"], **visitor_info["user"]},
+        "contents": [chat_msg],
+    }
 
     # For now, there are no logic of choosing which orgs
     # And as there is only 1 org, choose it
@@ -376,21 +495,24 @@ async def visitor_first_msg(sid, content):
     org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
 
     # Append the user to the in-memory unclaimed chats
-    unclaimed_chats = await cache.get(org_room, [])
-    for index, chat in enumerate(unclaimed_chats):
-        if chat["user"]["id"] == user["id"]:
-            unclaimed_chats[index] = data
-            break
-    else:
-        unclaimed_chats.append(data)
-    await cache.set(org_room, unclaimed_chats)
+    unclaimed_chats = await cache.get(org_room, {})
+    if user["id"] not in unclaimed_chats:
+        unclaimed_chats[user["id"]] = data
+        await cache.set(org_room, unclaimed_chats)
+
+    # for index, chat in enumerate(unclaimed_chats):
+    #     if chat["user"]["id"] == user["id"]:
+    #         unclaimed_chats[index] = data
+    #         break
+    # else:
+    #     unclaimed_chats.append(data)
 
     # Mark the visitor as online
     online_visitors_room = ONLINE_VISITORS_PREFIX
     onl_visitors = await cache.get(online_visitors_room, {})
     if user["id"] not in onl_visitors:
         onl_visitors[user["id"]] = {**user, "room": chat_room["id"]}
-    await cache.set(online_visitors_room, onl_visitors)
+        await cache.set(online_visitors_room, onl_visitors)
 
     # Add the chat to unclaimed chats
     await sio.emit("append_unclaimed_chats", data, room=org_room)
@@ -407,15 +529,16 @@ async def visitor_msg_unclaimed(sid, content):
 
     session = await sio.get_session(sid)
     chat_room = session["room"]
+    user = session["user"]
 
-    chat_room_info = await cache.get(chat_room["id"], {})
-    if not chat_room_info:
+    visitor_info = await cache.get(user["id"], namespace="visitor_info")
+    if not visitor_info:
         return False, "The chat room is either closed or doesn't exist."
 
+    chat_room_info = visitor_info["room"]
     sequence_num = chat_room_info.get("sequence_num", 1)
-    await cache.set(
-        chat_room["id"], {**chat_room_info, "sequence_num": sequence_num + 1}
-    )
+    visitor_info["room"]["sequence_num"] = sequence_num + 1
+    await cache.set(user["id"], visitor_info, namespace="visitor_info")
 
     # For now, there are no logic of choosing which orgs
     # And as there is only 1 org, choose it
@@ -428,17 +551,22 @@ async def visitor_msg_unclaimed(sid, content):
     )
 
     # Update the unclaimed chats
-    unclaimed_chats = await cache.get(org_room, [])
-    for _, _chat in enumerate(unclaimed_chats):
-        if _chat["room"]["id"] == chat_room["id"]:
-            _chat["contents"].append(chat_msg)
-            break
-    await cache.set(org_room, unclaimed_chats)
+    unclaimed_chats = await cache.get(org_room, {})
+    if user["id"] in unclaimed_chats:
+        unclaimed_chats[user["id"]]["contents"].append(chat_msg)
+        await cache.set(org_room, unclaimed_chats)
+    # for _, _chat in enumerate(unclaimed_chats):
+    #     if _chat["room"]["id"] == chat_room["id"]:
+    #         _chat["contents"].append(chat_msg)
+    #         break
 
     # Emit to add the message to listening clients
     await sio.emit(
         "visitor_unclaimed_msg",
-        {"user": session["user"], "content": chat_msg},
+        {
+            "visitor": {**visitor_info["room"], **visitor_info["user"]},
+            "content": chat_msg,
+        },
         room=org_room,
     )
 
@@ -457,7 +585,9 @@ async def visitor_msg(sid, content):
     visitor = session["user"]
 
     # Get the sequence number, and store in memory DB
-    sequence_num, error_msg = await get_sequence_num_for_room(chat_room["id"])
+    sequence_num, visitor_info, error_msg = await get_sequence_num_for_visitor(
+        chat_room["id"]
+    )
     if error_msg:
         return False, error_msg
 
@@ -467,20 +597,26 @@ async def visitor_msg(sid, content):
     )
     await sio.emit(
         "visitor_send",
-        {"user": visitor, "content": chat_msg},
+        {
+            "visitor": {**visitor_info["room"], **visitor_info["user"]},
+            "content": chat_msg,
+        },
         room=chat_room["id"],
         skip_sid=sid,
     )
 
     # Broadcast the message to all high-level staffs
-    room = await cache.get(chat_room["id"])
+    room = visitor_info.get("room", {})
     staff = room["staff"]
     if staff:
         staff_info = await cache.get("user_" + staff["sid"])
         monitor_room = staff_info["monitor_room"]
         await sio.emit(
             "new_visitor_msg_for_supervisor",
-            {"user": visitor, "content": chat_msg},
+            {
+                "visitor": {**visitor_info["room"], **visitor_info["user"]},
+                "content": chat_msg,
+            },
             room=monitor_room,
             skip_sid=sid,
         )
@@ -491,34 +627,41 @@ async def visitor_msg(sid, content):
 @sio.event
 async def change_chat_priority(sid, data):
     # Validation
-    if "room" not in data or not isinstance(data["room"], str):
-        return False, "Missing/Invalid field: room"
+    # if "room" not in data or not isinstance(data["room"], str):
+    #     return False, "Missing/Invalid field: room"
+    if "visitor" not in data or not isinstance(data["visitor"], str):
+        return False, "Missing/Invalid field: visitor"
     if "severity_level" not in data or not isinstance(data["severity_level"], int):
         return False, "Missing/Invalid field: severity_level"
 
     # Get visitor info from session
     session = await sio.get_session(sid)
-    room = data["room"]
+    # room = data["room"]
+    visitor_id = data["visitor"]
     user = session["user"]
+    visitor_info = await cache.get(visitor_id, {}, namespace="visitor_info")
+    if not visitor_info:
+        return False, "The chat room is either closed or doesn't exist."
+
+    room = visitor_info["room"]
 
     # Broadcast the the flagged_chat to all high-level staffs
     staff_info = await cache.get("user_{}".format(sid))
     monitor_room = staff_info["monitor_room"]
 
+    # Update cache of the room
+    # chat_room_info = await cache.get(room)
+    visitor_info["room"]["severity_level"] = data["severity_level"]
+    await cache.set(visitor_id, visitor_info, namespace="visitor_info")
+
     # Update the severity_level of the chat
-    chat_room_info = await Chat.modify(
-        {"id": room}, {"severity_level": data["severity_level"]}
-    )
+    await Chat.modify({"id": room["id"]}, {"severity_level": data["severity_level"]})
     await sio.emit(
         "chat_has_changed_priority_for_supervisor",
-        {"room": chat_room_info, "user": user},
+        {"visitor": {**visitor_info["room"], **visitor_info["user"]}, "staff": user},
         room=monitor_room,
         skip_sid=sid,
     )
-
-    # Update cache of the room
-    chat_room_info = await cache.get(room)
-    await cache.set(room, {**chat_room_info, "severity_level": data["severity_level"]})
 
     return True, None
 
@@ -526,28 +669,40 @@ async def change_chat_priority(sid, data):
 @sio.event
 async def staff_msg(sid, data):
     # Validation
-    if "room" not in data or not isinstance(data["room"], str):
-        return False, "Missing/Invalid field: room"
+    # if "room" not in data or not isinstance(data["room"], str):
+    #     return False, "Missing/Invalid field: room"
+    if "visitor" not in data or not isinstance(data["visitor"], str):
+        return False, "Missing/Invalid field: visitor"
     if "content" not in data or not isinstance(data["content"], dict):
         return False, "Missing/Invalid field: content"
 
     # Get visitor info from session
     session = await sio.get_session(sid)
-    room = data["room"]
+    # room = data["room"]
+    visitor_id = data["visitor"]
     content = data["content"]
     user = session["user"]
 
     # Get the sequence number, and store in memory DB
-    sequence_num, error_msg = await get_sequence_num_for_room(room)
+    sequence_num, visitor_info, error_msg = await get_sequence_num_for_visitor(
+        visitor_id
+    )
     if error_msg:
         return False, error_msg
 
+    room = visitor_info["room"]
     # Store the message in DB before emitting it
     chat_msg = await ChatMessage.add(
-        sequence_num=sequence_num, content=content, chat_id=room, sender=user["id"]
+        sequence_num=sequence_num,
+        content=content,
+        chat_id=room["id"],
+        sender=user["id"],
     )
     await sio.emit(
-        "staff_send", {"content": chat_msg, "user": user}, room=room, skip_sid=sid
+        "staff_send",
+        {"content": chat_msg, "staff": user},
+        room=room["id"],
+        skip_sid=sid,
     )
 
     # Broadcast the message to all high-level staffs
@@ -555,7 +710,11 @@ async def staff_msg(sid, data):
     monitor_room = staff_info["monitor_room"]
     await sio.emit(
         "new_staff_msg_for_supervisor",
-        {"user": user, "content": chat_msg, "room": room},
+        {
+            "staff": user,
+            "content": chat_msg,
+            "visitor": {**visitor_info["room"], **visitor_info["user"]},
+        },
         room=monitor_room,
         skip_sid=sid,
     )
@@ -565,19 +724,26 @@ async def staff_msg(sid, data):
 
 async def handle_staff_leave(sid, session, data):
     # Validation
-    if "room" not in data or not isinstance(data["room"], str):
-        return False, "Missing/Invalid field: room"
+    if "visitor" not in data or not isinstance(data["visitor"], str):
+        return False, "Missing/Invalid field: visitor"
 
-    room = data["room"]
+    # room = data["room"]
+    visitor_id = data["visitor"]
     user = session["user"]
 
     # Get the sequence number, and store in memory DB
-    sequence_num, error_msg = await get_sequence_num_for_room(room)
+    sequence_num, visitor_info, error_msg = await get_sequence_num_for_visitor(
+        visitor_id
+    )
     if error_msg:
         return False, error_msg
 
+    room = visitor_info["room"]
+
     # Emit the msg before storing it in DB
-    await sio.emit("staff_leave", {"user": session["user"]}, room=room, skip_sid=sid)
+    await sio.emit(
+        "staff_leave", {"staff": session["user"]}, room=room["id"], skip_sid=sid
+    )
     await ChatMessage.add(
         sequence_num=sequence_num,
         type_id=0,
@@ -586,28 +752,47 @@ async def handle_staff_leave(sid, session, data):
         chat_id=room,
     )
 
-    # When either the staff or visitor ends the chat, close the room
-    # await sio.close_room(room)
-    # await cache.delete(room)
-
     # Remove assigned `staff` to room
-    chat_room_info = await cache.get(room)
-    staff = chat_room_info["staff"]
-    chat_room_info["staff"] = 0
-    await cache.set(room, chat_room_info)
+    # chat_room_info = await cache.get(room)
+    # chat_room_info = visitor_info["room"]
+    # staff = chat_room_info["staff"]
+    # chat_room_info["staff"] = 0
+    staff = visitor_info["room"]["staff"]
+    visitor_info["room"]["staff"] = 0
+    visitor = visitor_info["user"]
+    # try:
+    #     visitor = await Visitor.get(id=chat_room_info["visitor_id"])
+    # except NotFound:
+    #     return False, "Unable to find the visitor."
+
+    # Update the rooms the staff is in
+    user_info = await cache.get("user_{}".format(sid))
+    if not user_info:
+        return False, "The user does not exist"
+    for index, room in enumerate(user_info["rooms"]):
+        if room == visitor_id:
+            del user_info["rooms"][index]
+            await cache.set("user_{}".format(sid), user_info)
+            break
+
+    # If the visitor is also offline, close the room
+    online_visitors_room = ONLINE_VISITORS_PREFIX
+    onl_visitors = await cache.get(online_visitors_room, {})
+    if visitor["id"] not in onl_visitors:
+        await cache.delete(visitor_id, namespace="visitor_info")
+    else:
+        await cache.set(visitor_id, visitor_info, namespace="visitor_info")
 
     # Broadcast the leaving msg to all high-level staffs
     if staff:
-        # Retrieve the visitor's info
-        try:
-            visitor = await Visitor.get(id=chat_room_info["visitor_id"])
-        except NotFound:
-            return False, "Unable to find the visitor."
         staff_info = await cache.get("user_" + staff["sid"])
         monitor_room = staff_info["monitor_room"]
         await sio.emit(
             "staff_leave_chat_for_supervisor",
-            {"user": user, "visitor": visitor},
+            {
+                "staff": user,
+                "visitor": {**visitor_info["room"], **visitor_info["user"]},
+            },
             room=monitor_room,
         )
 
@@ -620,7 +805,7 @@ async def staff_leave_room(sid, data):
     return await handle_staff_leave(sid, session, data)
 
 
-async def handle_visitor_leave(sid, session):
+async def handle_visitor_leave(sid, session, is_disconnected=False):
     room = session["room"]
     user = session["user"]
 
@@ -628,39 +813,72 @@ async def handle_visitor_leave(sid, session):
     org = (await Organisation.query.gino.all())[0]
     org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
 
-    # Append the user to the in-memory unclaimed chats
-    unclaimed_chats = await cache.get(org_room, [])
+    # Remove the visitor from unclaimed chat
+    unclaimed_chats = await cache.get(org_room, {})
+    if user["id"] in unclaimed_chats:
+        unclaimed_chats.pop(user["id"], None)
 
-    for index, _chat in enumerate(unclaimed_chats):
-        if _chat["room"]["id"] == room["id"]:
-            del unclaimed_chats[index]
-            await cache.set(org_room, unclaimed_chats)
+        # Mark the chat as unclaimed in DB
+        # await Chat.modify({"visitor_id": user["id"]}, {"is_unclaimed": True})
 
-            # Annouce to the staffs that the room has been removed
-            await sio.emit("visitor_leave_queue", {"user": user}, room=org_room)
-            break
+    # for index, _chat in enumerate(unclaimed_chats):
+    #     if _chat["room"]["id"] == room["id"]:
+    #         del unclaimed_chats[index]
+    #         await cache.set(org_room, unclaimed_chats)
+    #
+    #         # Annouce to the staffs that the room has been removed
+    #         await sio.emit("visitor_leave_queue", {"user": user}, room=org_room)
+    #         break
 
-    # Broadcast to high-level staffs to stop monitoring the chat
-    room = await cache.get(room["id"])
-    if not room:
+    # room = await cache.get(room["id"])
+    visitor_info = await cache.get(user["id"], namespace="visitor_info")
+    if not visitor_info:
         return False, "The chat room is either closed or doesn't exist."
 
-    staff = room["staff"]
+    # Annouce to all staffs that the visitor has left
+    await sio.emit(
+        "visitor_leave_queue",
+        {"visitor": {**visitor_info["room"], **visitor_info["user"]}},
+        room=org_room,
+    )
+
+    # Broadcast to high-level staffs to stop monitoring the chat
+    staff = visitor_info["room"]["staff"]
     if staff:
         staff_info = await cache.get("user_" + staff["sid"])
         monitor_room = staff_info["monitor_room"]
         await sio.emit(
             "visitor_leave_chat_for_supervisor",
-            {"user": user},
+            {"visitor": {**visitor_info["room"], **visitor_info["user"]}},
             room=monitor_room,
             skip_sid=sid,
         )
 
     # Emit the msg before closing the room
-    await sio.emit(
-        "visitor_leave", {"user": session["user"]}, room=room["id"], skip_sid=sid
-    )
-    await sio.close_room(room["id"])
+    # await sio.emit(
+    #     "visitor_leave", {"user": session["user"]}, room=room["id"], skip_sid=sid
+    # )
+
+    if is_disconnected:
+        await sio.leave_room(sid, room["id"])
+    else:
+        # If the visitor leaves the chat himself, kick everyone out
+        await sio.close_room(room["id"])
+        await sio.enter_room(sid, room["id"])
+
+    # The user is still online
+    if staff and not is_disconnected:
+        # Remove assigned `staff` in cache
+        # chat_room_info = await cache.get(room["id"])
+        # staff = chat_room_info["staff"]
+        # chat_room_info["staff"] = 0
+        visitor_info["room"]["staff"] = 0
+        await cache.set(user["id"], visitor_info, namespace="visitor_info")
+
+    # If neither the visitor or staff is using the room
+    if not staff and is_disconnected:
+        # await cache.delete(room["id"])
+        await cache.delete(user["id"], namespace="visitor_info")
 
 
 @sio.event
@@ -684,38 +902,38 @@ async def disconnect(sid):
 
     # Visitor
     if session["type"] == Visitor.__tablename__:
-        await handle_visitor_leave(sid, session)
+        await handle_visitor_leave(sid, session, is_disconnected=True)
         room = session["room"]
         user = session["user"]
-        await cache.delete(room["id"])
+        # await cache.delete(room["id"])
 
-        # Remove the visitor from cache
+        # Remove the visitor from online visitors
         online_visitors_room = ONLINE_VISITORS_PREFIX
         onl_visitors = await cache.get(online_visitors_room, {})
         onl_visitors.pop(user["id"], None)
-        # for index, visitor in enumerate(onl_visitors):
-        #     if visitor["id"] == user["id"]:
-        #         del onl_visitors[index]
-        #         break
         await cache.set(online_visitors_room, onl_visitors)
 
     else:  # Staff
         org_room = session["org_room"]
         monitor_room = session["monitor_room"]
-        rooms = sio.rooms(sid)
+        # rooms = sio.rooms(sid)
+        staff_info = await cache.get("user_{}".format(sid))
+        if not staff_info:
+            return False, "The user does not exist"
+        rooms = staff_info["rooms"]
 
         # Disconnect and close all chat rooms if a staff disconnects
         for room in rooms:
             # if room == sid:
             #     await sio.close_room(sid)
             if room not in [org_room, sid]:
-                await handle_staff_leave(sid, session, {"room": room})
+                await handle_staff_leave(sid, session, {"visitor": room})
 
         # Broadcast to org_room to let other staffs know this staff is offline
         # Update online user for other staffs
         await sio.emit(
             "staff_goes_offline",
-            data={"user": session["user"]},
+            data={"staff": session["user"]},
             room=org_room,
             skip_sid=sid,
         )
@@ -728,12 +946,10 @@ async def disconnect(sid):
         # Update the current online staffs
         user = session["user"]
         online_users_room = ONLINE_USERS_PREFIX + user["organisation_id"]
-        onl_users = await cache.get(online_users_room, [])
-        for index, _user in enumerate(onl_users):
-            if _user["id"] == user["id"]:
-                del onl_users[index]
-                break
-        await cache.set(online_users_room, onl_users)
+        onl_users = await cache.get(online_users_room, {})
+        if user["id"] in onl_users:
+            onl_users.pop(user["id"], None)
+            await cache.set(online_users_room, onl_users)
 
     await cache.delete("user_{}".format(sid), {})
     return True, None

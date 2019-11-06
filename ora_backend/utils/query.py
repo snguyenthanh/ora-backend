@@ -87,8 +87,11 @@ async def get_many(
     limit=15,
     in_column=None,
     in_values=None,
+    not_in_column=None,
+    not_in_values=None,
     order_by="internal_id",
     descrease=False,
+    offset=0,
     **kwargs,
 ):
     # Get the `internal_id` value from the starting row
@@ -116,6 +119,9 @@ async def get_many(
             getattr(model, in_column).in_(in_values)
             if in_column and in_values
             else True,
+            getattr(model, not_in_column).notin_(not_in_values)
+            if not_in_column and not_in_values
+            else True,
         )
     )
 
@@ -124,6 +130,7 @@ async def get_many(
             desc(getattr(model, order_by)) if descrease else getattr(model, order_by)
         )
         .limit(limit)
+        .offset(offset)
         .gino.all()
     )
 
@@ -181,8 +188,8 @@ async def get_flagged_chats_of_online_visitors(
             visitor[key] = row[index]
             index += 1
 
-        result.append({"room": room, "user": visitor})
-
+        # result.append({"room": room, "user": visitor})
+        result.append({**room, **visitor})
     return result
 
 

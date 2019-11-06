@@ -41,7 +41,7 @@ async def test_get_flagged_chats_of_online_visitors(supervisor1_client):
     assert len(flagged_chats) == 15
     for expected, flag_chat in zip(reversed(visitors[11:26]), flagged_chats):
         room = flag_chat["room"]
-        visitor = flag_chat["user"]
+        visitor = flag_chat["visitor"]
 
         # Compare
         chat = await Chat.get(visitor_id=visitor["id"])

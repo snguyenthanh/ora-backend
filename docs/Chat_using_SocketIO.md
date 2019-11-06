@@ -72,7 +72,7 @@ Args:
 
 ```
 data={
-	"room": <str>,	# The room's id
+	"visitor": <str>,	# The visitor's id
 }
 ```
 
@@ -122,7 +122,7 @@ Args:
 
 ```
 data={
-	"room": <room_id>,
+	"visitor": <str>,  # The visitor's id
 	"content": <content>,	# dict
 }
 ```
@@ -137,7 +137,7 @@ Args:
 
 ```
 data={
-	"room": <room_id>
+	"visitor": <str> # The visitor id
 }
 ```
 
@@ -174,8 +174,7 @@ Args:
 ```
 data={
   "severity_level": <int>, # Default: 0
-	"room": <room_id> # The room of the chat
-
+	"visitor": <str> # The visitor id
 }
 ```
 
@@ -222,38 +221,29 @@ data={
   ],
   "unclaimed_chats": [
     {
-        "user": { # The visitor
-            "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-            "name": "Visitor 1",
-            "email": "visitor1"
-        },
-        "room": { # A Chat object. Refers to models.Chat
-            "id": "qwkelqwkleqwlken123123b12312l3kn",
-            "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
-            "tags": [],
-            "severity_level": 0,
+        "visitor": { # The visitor
+          "id": "cfd7f4553c9a45b1a81a2384bfcb13a5", # Visitor ID
+          "name": "Visitor 1",
+          "email": "visitor1",
+          "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
+          "tags": [],
+          "severity_level": 0,
         },
         "contents": [content] # A list of `ChatMessage.content`, format decided by front-end
     }
   ],
   "flagged_chats": [ # Top-15 recently flagged chats
   {
-    'room': {
-      'created_at': 1572777087702,
-      'id': '8dfffcfb3d7444cda5ae9cb7f447f767',
-      'severity_level': 1,
-      'tags': [],
-      'updated_at': 1572777088030,
-      'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
-    'user': {
-      'created_at': 1572777087693,
-      'disabled': False,
-      'email': 'duaneferguson@hotmail.com',
-      'id': 'ac2d4a7d56af4a1eb3718327ade0be68',
-      'is_anonymous': False,
-      'name': 'Sarah Wood',
-      'updated_at': None
-    }
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
   },
   ...
   ],
@@ -270,16 +260,25 @@ Args:
 
 ```
 data={
-  "user": { # The visitor
-    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-    "name": "Visitor 1",
-    "email": "visitor1"
+  "staff": { # The staff who claims the chat
+    "full_name": "Admin 1",
+    "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
+    "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
+    "email": "admin1",
+    "display_name": null,
+    "role_id": 3
   },
-  "room": { # A Chat object. Refers to models.Chat
-      "id": "qwkelqwkleqwlken123123b12312l3kn",
-      "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
-      "tags": [],
-      "severity_level": 0,
+  "visitor": { # Chat + Visitor
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
   },
 }
 ```
@@ -294,7 +293,7 @@ Args:
 
 ```
 {
-  "user": {  # The staff's info - models.User
+  "staff": {  # The staff's info - models.User
     "full_name": "Admin 1",
     "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
     "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
@@ -315,16 +314,17 @@ Args:
 
 ```
 data={
-  "user": { # The visitor
-    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-    "name": "Visitor 1",
-    "email": "visitor1"
-  },
-  "room": { # A Chat object. Refers to models.Chat
-      "id": "qwkelqwkleqwlken123123b12312l3kn",
-      "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
-      "tags": [],
-      "severity_level": 0,
+  "visitor": { # The visitor
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
   },
   "contents": [<content>],  # `content` is a Dict
 }
@@ -341,9 +341,16 @@ Args:
 ```
 data={
   "user": { # The visitor
-    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-    "name": "Visitor 1",
-    "email": "visitor1"
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
   }
 }
 ```
@@ -360,10 +367,17 @@ Args:
 
 ```
 data={
-  "user": { # The visitor
-    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-    "name": "Visitor 1",
-    "email": "visitor1"
+  "visitor": { # The visitor
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
   },
   "content": <content>  # dict
 }
@@ -379,10 +393,17 @@ Args:
 
 ```
 data={
-  "user": { # The visitor
-    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-    "name": "Visitor 1",
-    "email": "visitor1"
+  "visitor": { # The visitor
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
   },
   "content": content
 }
@@ -390,21 +411,9 @@ data={
 
 ##### visitor_leave
 
-For staff to be notified which visitor has left the chat.
+> This event is no longer sent  
+as `visitor_leave_queue` is emitted to all staffs.
 
-Args:
-
-`data` (dict)
-
-```
-data={
-  "user": { # The visitor who left
-    "id": "cfd7f4553c9a45b1a81a2384bfcb13a5"
-    "name": "Visitor 1",
-    "email": "visitor1"
-  },
-}
-```
 
 
 ##### staff_goes_online
@@ -417,7 +426,7 @@ Args:
 
 ```
 data={
-  "user": {
+  "staff": {
     email: "agent1@gmail.com",
     created_at: 1572522995,
     full_name: "Agent 1",
@@ -441,7 +450,7 @@ Args:
 
 ```
 data={
-  "user": {
+  "staff": {
     email: "agent1@gmail.com",
     created_at: 1572522995,
     full_name: "Agent 1",
@@ -465,7 +474,7 @@ Args:
 
 ```
 data={
-  "user": {   # The supervisor / admin that takes over the chat
+  "staff": {   # The supervisor / admin that takes over the chat
     email: "agent1@gmail.com",
     created_at: 1572522995,
     full_name: "Agent 1",
@@ -476,11 +485,17 @@ data={
     disabled: false,
     role_id: 3,
   },
-  "room": { # The chat room
-    "id": "qwkelqwkleqwlken123123b12312l3kn",
-    "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
-    "tags": [],
-    "severity_level": 1,
+  "visitor": { # The chat room
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
   }
 }
 ```
@@ -500,7 +515,7 @@ Args:
 
 ```
 data={
-  "user": {   # The supervisor / admin that takes over the chat
+  "staff": {   # The supervisor / admin that takes over the chat
     email: "agent1@gmail.com",
     created_at: 1572522995,
     full_name: "Agent 1",
@@ -511,7 +526,18 @@ data={
     disabled: false,
     role_id: 3,
   },
-  "room": <room_id>
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
+  }
 }
 ```
 
@@ -525,7 +551,7 @@ Args:
 
 ```
 data={
-  "user": {
+  "staff": {
     email: "agent1@gmail.com",
     created_at: 1572522995,
     full_name: "Agent 1",
@@ -537,13 +563,16 @@ data={
     role_id: 3,
   },
   "visitor": {
-    email: "visitor2@gmail.com",
-    is_anonymous: false,
-    created_at: 1572522995,
-    updated_at: null,
-    name: "Visitor 2",
-    id: "b25162f797fb4182b69d8b2141274525",
-    disabled: false,
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
   },
   "contents": [
     {
@@ -573,7 +602,7 @@ Args:
 
 ```
 data={
-  "user": {
+  "staff": {
     email: "agent1@gmail.com",
     created_at: 1572522995,
     full_name: "Agent 1",
@@ -588,7 +617,18 @@ data={
     content: "Yes ?",
     timestamp: 1572526840074,
   },
-  "room": <room_id>,  # The chat room between the staff and visitor
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
+  }
 }
 ```
 
@@ -602,14 +642,17 @@ Args:
 
 ```
 data={
-  "user": {
-    email: "visitor2@gmail.com",
-    is_anonymous: false,
-    created_at: 1572522995,
-    updated_at: null,
-    name: "Visitor 2",
-    id: "b25162f797fb4182b69d8b2141274525",
-    disabled: false,
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
   },
   "content": {
     content: "Good",
@@ -628,7 +671,7 @@ Args:
 
 ```
 data={
-  "user": {
+  "staff": {
     email: "agent1@gmail.com",
     created_at: 1572522995,
     full_name: "Agent 1",
@@ -638,6 +681,18 @@ data={
     organisation_id: "bd9c4046763440769e3af30197a2482e",
     disabled: false,
     role_id: 3,
+  },
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
   }
 }
 ```
@@ -652,14 +707,17 @@ Args:
 
 ```
 data={
-  "user": {
-    email: "visitor2@gmail.com",
-    is_anonymous: false,
-    created_at: 1572522995,
-    updated_at: null,
-    name: "Visitor 2",
-    id: "b25162f797fb4182b69d8b2141274525",
-    disabled: false,
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
   }
 }
 ```
@@ -674,7 +732,7 @@ Args:
 
 ```
 data={
-  "user": {
+  "staff": {
     email: "agent1@gmail.com",
     created_at: 1572522995,
     full_name: "Agent 1",
@@ -685,11 +743,17 @@ data={
     disabled: false,
     role_id: 3,
   },
-  "room": { # The chat whose priority has been changed
-      "id": "qwkelqwkleqwlken123123b12312l3kn",
-      "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
-      "tags": [],
-      "severity_level": 1,
+  "visitor": { # The visitor whose priority has been changed
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
   },
 }
 ```
@@ -707,7 +771,7 @@ Args:
 
 ```
 data={
-  "user": {  # The staff's info - models.User
+  "staff": {  # The staff's info - models.User
     "full_name": "Admin 1",
     "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
     "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
@@ -729,7 +793,7 @@ Args:
 
 ```
 data={
-  "user": {  # The staff who left
+  "staff": {  # The staff who left
     "full_name": "Admin 1",
     "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
     "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
@@ -750,11 +814,17 @@ Args:
 
 ```
 data={
-  "room": {
-    "id": "qwkelqwkleqwlken123123b12312l3kn",
-    "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
-    "tags": [],
-    "severity_level": 1,
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
     "staff": {  # The chatting staff. This will be `0` if no staffs have claimed the chat
       "full_name": "Admin 1",
       "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",

@@ -50,9 +50,12 @@ class BaseModel(db.Model):
         many=False,
         after_id=None,
         limit=15,
+        offset=0,
         fields=None,
         in_column=None,
         in_values=None,
+        not_in_column=None,
+        not_in_values=None,
         allow_readonly=False,
         order_by="internal_id",
         **kwargs,
@@ -73,8 +76,11 @@ class BaseModel(db.Model):
                 cls,
                 after_id=after_id,
                 limit=limit,
+                offset=offset,
                 in_column=in_column,
                 in_values=in_values,
+                not_in_column=not_in_column,
+                not_in_values=not_in_values,
                 order_by=order_by,
                 **kwargs,
             )
@@ -369,6 +375,22 @@ class Chat(BaseModel):
             return serialize_to_dict(data)
 
         return serialize_to_dict(created_attempt)
+
+
+class ChatUnclaimed(BaseModel):
+    __tablename__ = "chat_unclaimed"
+
+    id = db.Column(
+        db.String(length=32), nullable=False, unique=True, default=generate_uuid
+    )
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    visitor_id = db.Column(db.String(length=32), nullable=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_chat_unclaimed_id = db.Index("idx_chat_unclaimed_id", "id")
+    _idx_chat_unclaimed_visitor = db.Index("idx_chat_unclaimed_visitor", "visitor_id")
 
 
 class ChatMessageSeen(BaseModel):
