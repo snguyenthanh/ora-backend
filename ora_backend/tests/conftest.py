@@ -1,3 +1,6 @@
+from os import environ
+import ssl
+
 import asyncio
 import pytest
 import uvloop
@@ -24,8 +27,15 @@ def pytest_configure(config):
     # Create a new event loop
     # as the pytest's loop is not created
     loop = uvloop.new_event_loop()
+    ssl_ctx = None
+    DB_CERT = environ.get("DB_CERT")
+    if DB_CERT:
+        ssl_ctx = ssl.create_default_context(cafile=DB_CERT)
 
-    loop.run_until_complete(db.set_bind(get_db_url()))
+    if ssl_ctx:
+        loop.run_until_complete(db.set_bind(get_db_url(), ssl=ssl_ctx))
+    else:
+        loop.run_until_complete(db.set_bind(get_db_url()))
     loop.run_until_complete(db.gino.create_all())
 
 

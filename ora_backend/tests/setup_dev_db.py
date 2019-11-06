@@ -1,6 +1,8 @@
 import sys
 from os.path import abspath, dirname
 from copy import deepcopy
+from os import environ
+import ssl
 
 root_dir = dirname(dirname(dirname(abspath(__file__))))
 sys.path.append(root_dir)
@@ -44,8 +46,16 @@ if __name__ == "__main__":
 
     from ora_backend.config.db import get_db_url
 
+    ssl_ctx = None
+    DB_CERT = environ.get("DB_CERT")
+    if DB_CERT:
+        ssl_ctx = ssl.create_default_context(cafile=DB_CERT)
+
     loop = uvloop.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.run_until_complete(db.set_bind(get_db_url()))
+    if ssl_ctx:
+        loop.run_until_complete(db.set_bind(get_db_url(), ssl=ssl_ctx))
+    else:
+        loop.run_until_complete(db.set_bind(get_db_url()))
     loop.run_until_complete(db.gino.create_all())
     loop.run_until_complete(setup_db())

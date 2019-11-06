@@ -1,4 +1,6 @@
 from os import environ
+import ssl
+
 from sanic.websocket import WebSocketProtocol
 
 from ora_backend.config.db import DB_CONFIG
@@ -21,6 +23,12 @@ if DB_URL:
     SANIC_CONFIG = {"DB_DSN": DB_URL, "KEEP_ALIVE_TIMEOUT": 10}
 else:
     SANIC_CONFIG = {**DB_CONFIG, "KEEP_ALIVE_TIMEOUT": 10}
+
+# Add CA cert to config
+DB_CERT = environ.get("DB_CERT")
+if DB_CERT:
+    ssl_ctx = ssl.create_default_context(cafile=DB_CERT)
+    SANIC_CONFIG["DB_SSL"] = ssl_ctx
 
 SANIC_RUN_CONFIG = {
     "host": "0.0.0.0",
