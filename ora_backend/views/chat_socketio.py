@@ -154,10 +154,14 @@ async def connect(sid, environ: dict):
             )
 
             # Inject the serving staff to the visitors
-            current_chat_room_ids = [visitor["room"] for visitor in online_visitors.values()]
+            current_chat_room_ids = [
+                visitor["room"] for visitor in online_visitors.values()
+            ]
             current_chat_rooms = await cache.multi_get(current_chat_room_ids)
             for visitor_id, chat_room in zip(online_visitors, current_chat_rooms):
-                online_visitors[visitor_id]["staff"] = chat_room.get("staff", 0) if chat_room else 0
+                online_visitors[visitor_id]["staff"] = (
+                    chat_room.get("staff", 0) if chat_room else 0
+                )
 
         await sio.emit(
             "staff_init",
@@ -194,16 +198,6 @@ async def connect(sid, environ: dict):
         await cache.set(
             chat_room["id"], {**chat_room, "staff": 0, "sequence_num": sequence_num + 1}
         )
-        # Mark the visitor as online
-        onl_visitors = await cache.get(online_visitors_room, {})
-        if user["id"] not in onl_visitors:
-            onl_visitors[user["id"]] = {**user, "room": chat_room["id"]}
-        # for visitor in onl_visitors:
-        #     if visitor["id"] == user["id"]:
-        #         break
-        # else:
-        #     onl_visitors.append({**user, "room": chat_room["id"]})
-        await cache.set(online_visitors_room, onl_visitors)
 
     return True, None
 
@@ -390,6 +384,13 @@ async def visitor_first_msg(sid, content):
     else:
         unclaimed_chats.append(data)
     await cache.set(org_room, unclaimed_chats)
+
+    # Mark the visitor as online
+    online_visitors_room = ONLINE_VISITORS_PREFIX
+    onl_visitors = await cache.get(online_visitors_room, {})
+    if user["id"] not in onl_visitors:
+        onl_visitors[user["id"]] = {**user, "room": chat_room["id"]}
+    await cache.set(online_visitors_room, onl_visitors)
 
     # Add the chat to unclaimed chats
     await sio.emit("append_unclaimed_chats", data, room=org_room)
