@@ -23,20 +23,25 @@ async def login(request, identity):
     access_token = await create_access_token(identity=identity, app=request.app)
     refresh_token = await create_refresh_token(identity=identity, app=request.app)
 
+    # Get a random SOCKETIO worker
+    worker = choice(SERVER_IDS)
+
     # Sign the tokens to avoid modifications
     signed_access_token = sign_str(access_token)
     signed_refresh_token = sign_str(refresh_token)
 
     # Attach the tokens in a cookie
-    response = json({"user": identity, "access_token": signed_access_token})
+    response = json(
+        {"user": identity, "access_token": signed_access_token, "worker": worker}
+    )
     response.cookies["access_token"] = signed_access_token
     response.cookies["refresh_token"] = signed_refresh_token
-    response.cookies["worker"] = choice(SERVER_IDS)
+    # response.cookies["worker"] = choice(SERVER_IDS)
 
     # HTTP-ONLY
     response.cookies["access_token"]["httponly"] = True
     response.cookies["refresh_token"]["httponly"] = True
-    response.cookies["worker"]["httponly"] = True
+    # response.cookies["worker"]["httponly"] = True
 
     return response
 
@@ -87,9 +92,9 @@ async def create_new_access_token(request):
     response = json({"access_token": signed_access_token})
     response.cookies["access_token"] = signed_access_token
     response.cookies["refresh_token"] = request.cookies["refresh_token"]
-    response.cookies["worker"] = request.cookies["server_id"]
+    # response.cookies["worker"] = request.cookies["server_id"]
     response.cookies["access_token"]["httponly"] = True
     response.cookies["refresh_token"]["httponly"] = True
-    response.cookies["worker"]["httponly"] = True
+    # response.cookies["worker"]["httponly"] = True
 
     return response
