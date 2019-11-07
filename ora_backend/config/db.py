@@ -10,8 +10,8 @@ if mode == "production":
         "DB_PASSWORD": environ.get("DB_PASSWORD"),
         "DB_DATABASE": environ.get("DB_NAME", "postgres"),
         "DB_KWARGS": {"command_timeout": 60 * 2},
-        "DB_POOL_MIN_SIZE": 10,
-        "DB_POOL_MAX_SIZE": 20,
+        "DB_POOL_MIN_SIZE": 5,
+        "DB_POOL_MAX_SIZE": 10,
     }
 elif mode == "development":
     DB_CONFIG = {
