@@ -230,22 +230,33 @@ data={
           "severity_level": 0,
         },
         "contents": [content] # A list of `ChatMessage.content`, format decided by front-end
+    },
+    ...
+  ],
+  "offline_unclaimed_chats": [
+    { # The visitor info
+      "id": "cfd7f4553c9a45b1a81a2384bfcb13a5", # Visitor ID
+      "name": "Visitor 1",
+      "email": "visitor1",
+      "visitor_id": "cfd7f4553c9a45b1a81a2384bfcb13a5",
+      "tags": [],
+      "severity_level": 0,
     }
   ],
   "flagged_chats": [ # Top-15 recently flagged chats
-  {
-    'severity_level': 1,
-    'tags': [],
-    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
-    'created_at': 1572777087693,
-    'disabled': False,
-    'email': 'duaneferguson@hotmail.com',
-    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
-    'is_anonymous': False,
-    'name': 'Sarah Wood',
-    'updated_at': None
-  },
-  ...
+    {
+      'severity_level': 1,
+      'tags': [],
+      'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+      'created_at': 1572777087693,
+      'disabled': False,
+      'email': 'duaneferguson@hotmail.com',
+      'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+      'is_anonymous': False,
+      'name': 'Sarah Wood',
+      'updated_at': None
+    },
+    ...
   ],
 }
 ```

@@ -226,7 +226,7 @@ async def connect(sid, environ: dict):
             "staff_init",
             data={
                 "unclaimed_chats": list(unclaimed_chats.values()),
-                # "offline_unclaimed_chats": offline_unclaimed_chats,
+                "offline_unclaimed_chats": offline_unclaimed_chats,
                 "flagged_chats": flagged_chats,
                 "online_users": onl_users,
                 "online_visitors": list(online_visitors.values()),
