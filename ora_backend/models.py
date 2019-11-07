@@ -118,13 +118,13 @@ class BaseModel(db.Model):
 
     @classmethod
     async def remove(cls, **kwargs):
-        model_id = kwargs.get("id")
-        if not model_id:
-            raise InvalidUsage("Missing field 'id' in query parameter")
+        # model_id = kwargs.get("id")
+        # if not model_id:
+        #     raise InvalidUsage("Missing field 'id' in query parameter")
 
-        model = await get_one(cls, id=model_id)
+        model = await get_one(cls, **kwargs)
         if not model:
-            raise_not_found_exception(cls, id=model_id)
+            raise_not_found_exception(cls, **kwargs)
 
         await model.delete()
 
@@ -352,7 +352,7 @@ class Chat(BaseModel):
         db.String(length=32), nullable=False, unique=True, default=generate_uuid
     )
     internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    visitor_id = db.Column(db.String(length=32), nullable=False)
+    visitor_id = db.Column(db.String(length=32), nullable=False, unique=True)
     tags = db.Column(ARRAY(JSON()), nullable=False, server_default="{}")
     severity_level = db.Column(
         db.SmallInteger, nullable=False, default=DEFAULT_SEVERITY_LEVEL_OF_CHAT
@@ -384,7 +384,7 @@ class ChatUnclaimed(BaseModel):
         db.String(length=32), nullable=False, unique=True, default=generate_uuid
     )
     internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    visitor_id = db.Column(db.String(length=32), nullable=False)
+    visitor_id = db.Column(db.String(length=32), nullable=False, unique=True)
     created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
     updated_at = db.Column(db.BigInteger, onupdate=unix_time)
 

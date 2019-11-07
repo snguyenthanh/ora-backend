@@ -254,6 +254,11 @@ data={
 
 Broadcast to queue room, to remove the unclaimed chat from others' clients.
 
+> **Notes**  
+Key `next_offline_unclaimed_visitor` will be None if:  
+- There are no more offline unclaimed visitors.  
+- The claimed chat belongs to an *ONLINE* visitor.
+
 Args:
 
 `data` (Dict)
@@ -280,6 +285,18 @@ data={
     'name': 'Sarah Wood',
     'updated_at': None
   },
+  "next_offline_unclaimed_visitor": { # Or None
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
+  }
 }
 ```
 

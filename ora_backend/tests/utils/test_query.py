@@ -39,14 +39,15 @@ async def test_get_flagged_chats_of_online_visitors(supervisor1_client):
         Visitor, Chat, in_values=online_visitors
     )
     assert len(flagged_chats) == 15
-    for expected, flag_chat in zip(reversed(visitors[11:26]), flagged_chats):
-        room = flag_chat["room"]
-        visitor = flag_chat["visitor"]
+    for expected, visitor in zip(reversed(visitors[11:26]), flagged_chats):
+        # room = flag_chat["room"]
+        # visitor = flag_chat["visitor"]
 
         # Compare
         chat = await Chat.get(visitor_id=visitor["id"])
-        assert profile_created_from_origin(room, chat)
-        assert profile_created_from_origin(expected, visitor)
+        # assert profile_created_from_origin(room, chat)
+        # assert profile_created_from_origin(expected, visitor)
+        assert profile_created_from_origin({**chat, **expected}, visitor)
 
     # Unflag some chats
     for chat in chats[11:25]:
@@ -59,13 +60,14 @@ async def test_get_flagged_chats_of_online_visitors(supervisor1_client):
         Visitor, Chat, in_values=online_visitors
     )
     assert len(flagged_chats) == 5
-    for expected, flag_chat in zip(
+    for expected, visitor in zip(
         reversed(visitors[7:11] + visitors[25:26]), flagged_chats
     ):
-        room = flag_chat["room"]
-        visitor = flag_chat["user"]
+        # room = flag_chat["room"]
+        # visitor = flag_chat["user"]
 
         # Compare
         chat = await Chat.get(visitor_id=visitor["id"])
-        assert profile_created_from_origin(room, chat)
-        assert profile_created_from_origin(expected, visitor)
+        # assert profile_created_from_origin(room, chat)
+        # assert profile_created_from_origin(expected, visitor)
+        assert profile_created_from_origin({**chat, **expected}, visitor)
