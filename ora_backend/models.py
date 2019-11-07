@@ -136,6 +136,12 @@ class BaseModel(db.Model):
 
         await model.delete()
 
+    @classmethod
+    async def remove_if_exists(cls, **kwargs):
+        model = await get_one(cls, **kwargs)
+        if model:
+            await model.delete()
+
 
 class Organisation(BaseModel):
     __tablename__ = "organisation"

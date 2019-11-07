@@ -380,7 +380,7 @@ async def staff_join(sid, data):
             )
 
         # Remove the chat from DB
-        await ChatUnclaimed.remove(visitor_id=visitor_id)
+        await ChatUnclaimed.remove_if_exists(visitor_id=visitor_id)
 
     # Broadcast a message to remove the chat from the queue for other staffs
     await sio.emit(
@@ -596,7 +596,7 @@ async def handle_visitor_msg(sid, content):
         if user["id"] not in unclaimed_chats:
             # If the visitor already has an offline unclaimed chat
             # Delete it in DB and move it to online unclaimed chat
-            await ChatUnclaimed.remove(visitor_id=user["id"])
+            await ChatUnclaimed.remove_if_exists(visitor_id=user["id"])
 
             data = {
                 "visitor": {**visitor_info["room"], **visitor_info["user"]},
