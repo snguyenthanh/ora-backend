@@ -405,7 +405,7 @@ data={
 
 ##### visitor_leave_queue
 
-Emitted to all staffs in queue room to inform them to remove a chat from the queue, because the visitor has disconnected.
+Emitted to all staffs to inform that the visitor has manually left the chat.
 
 Args:
 

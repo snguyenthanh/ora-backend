@@ -358,9 +358,7 @@ async def staff_join(sid, data):
     next_unclaimed_visitor = None
     chat_of_unclaimed_visitor = None
     if is_offline_chat:
-        next_unclaimed_visitor_data = await get_many(
-            ChatUnclaimed, offset=15, limit=1
-        )
+        next_unclaimed_visitor_data = await get_many(ChatUnclaimed, offset=15, limit=1)
         # Only if there is an offline unclaimed chat
         if next_unclaimed_visitor_data:
             next_unclaimed_visitor_id = next_unclaimed_visitor_data[0].visitor_id
@@ -968,13 +966,6 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
     if not visitor_info:
         return False, "The chat room is either closed or doesn't exist."
 
-    # Annouce to all staffs that the visitor has left
-    await sio.emit(
-        "visitor_leave_queue",
-        {"visitor": {**visitor_info["room"], **visitor_info["user"]}},
-        room=org_room,
-    )
-
     # Broadcast to high-level staffs to stop monitoring the chat
     staff = visitor_info["room"]["staff"]
     if staff:
@@ -998,6 +989,13 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
         # If the visitor leaves the chat himself, kick everyone out
         await sio.close_room(room["id"])
         await sio.enter_room(sid, room["id"])
+
+        # Annouce to all staffs that the visitor has left
+        await sio.emit(
+            "visitor_leave_queue",
+            {"visitor": {**visitor_info["room"], **visitor_info["user"]}},
+            room=org_room,
+        )
 
     # The user is still online
     if staff and not is_disconnected:
