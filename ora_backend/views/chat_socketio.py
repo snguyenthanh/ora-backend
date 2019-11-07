@@ -950,7 +950,7 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
         unclaimed_chats.pop(user["id"], None)
 
         # Mark the chat as unclaimed in DB
-        await ChatUnclaimed.add(visitor_id=user["id"])
+        await ChatUnclaimed.add_if_not_exists(visitor_id=user["id"])
 
     # for index, _chat in enumerate(unclaimed_chats):
     #     if _chat["room"]["id"] == room["id"]:

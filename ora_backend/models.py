@@ -6,7 +6,7 @@ from gino.dialects.asyncpg import ARRAY, JSON
 
 from ora_backend import db
 from ora_backend.constants import ROLES as _ROLES, DEFAULT_SEVERITY_LEVEL_OF_CHAT
-from ora_backend.exceptions import LoginFailureError
+from ora_backend.exceptions import LoginFailureError, UniqueViolationError
 from ora_backend.utils.query import (
     get_one,
     get_one_latest,
@@ -101,6 +101,14 @@ class BaseModel(db.Model):
     @classmethod
     async def add(cls, **kwargs):
         data = await create_one(cls, **kwargs)
+        return serialize_to_dict(data)
+
+    @classmethod
+    async def add_if_not_exists(cls, **kwargs):
+        try:
+            data = await create_one(cls, **kwargs)
+        except UniqueViolationError:
+            return None
         return serialize_to_dict(data)
 
     @classmethod
