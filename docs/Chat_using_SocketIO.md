@@ -833,6 +833,30 @@ data={
 
 #### 3.2.3. Visitor
 
+##### visitor_init
+
+For the visitor on startup knows who the staff he is chatting with, in case a staff is chatting and the visitor goes online.
+
+If no staffs is chatting, `staff` is `None`.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "staff": {  # or None
+    "full_name": "Admin 1",
+    "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
+    "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
+    "email": "admin1",
+    "display_name": null,
+    "role_id": 3
+  },
+  "content": <content>,  # dict
+}
+```
+
 
 ##### staff_send
 

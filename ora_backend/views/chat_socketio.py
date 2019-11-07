@@ -275,6 +275,11 @@ async def connect(sid, environ: dict):
             skip_sid=sid,
         )
 
+        staff = visitor_info["room"]["staff"]
+        await sio.emit(
+            "visitor_init", data={"staff": staff if staff else None}, room=sid
+        )
+
         # Update the sequence number of the chat
         # If the room is not created
         # if not existing_visitor_info:
@@ -408,7 +413,7 @@ async def staff_join(sid, data):
     # Get the sequence number, and store in memory DB
     sequence_num = chat_room_info.get("sequence_num", 0)
     visitor_info["room"]["sequence_num"] = sequence_num + 1
-    visitor_info["staff"] = {**user, "sid": sid}
+    visitor_info["room"]["staff"] = {**user, "sid": sid}
     await cache.set(visitor_id, visitor_info, namespace="visitor_info")
 
     # Emit the msg before storing it in DB
