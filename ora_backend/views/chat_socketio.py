@@ -201,7 +201,7 @@ async def connect(sid, environ: dict):
             ]
             current_chat_rooms = await cache.multi_get(current_chat_room_ids)
             for visitor_id, chat_room in zip(onl_visitor_ids, current_chat_rooms):
-                online_visitors[visitor_id]["staff"] = chat_room["room"].get("staff", 0)
+                online_visitors[visitor_id]["staff"] = chat_room["room"].get("staff", 0) if chat_room else 0
 
         # Get the offline unclaimed chats as well
         offline_unclaimed_chats_db = await get_many(ChatUnclaimed)
