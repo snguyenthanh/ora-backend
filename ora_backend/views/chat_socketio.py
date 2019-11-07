@@ -881,7 +881,7 @@ async def handle_staff_leave(sid, session, data):
         type_id=0,
         sender=user["id"],
         content={"content": "leave room"},
-        chat_id=room,
+        chat_id=room["id"],
     )
 
     # Remove assigned `staff` to room
@@ -985,11 +985,11 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
     # )
 
     if is_disconnected:
-        await sio.leave_room(sid, room["id"])
+        sio.leave_room(sid, room["id"])
     else:
         # If the visitor leaves the chat himself, kick everyone out
         await sio.close_room(room["id"])
-        await sio.enter_room(sid, room["id"])
+        sio.enter_room(sid, room["id"])
 
         # Annouce to all staffs that the visitor has left
         await sio.emit(
