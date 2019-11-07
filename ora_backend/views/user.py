@@ -77,7 +77,7 @@ async def user_delete(req, *, req_args, req_body, requester, **kwargs):
 
 @blueprint.route("/", methods=["GET", "POST"])
 @unpack_request
-@validate_permission(model=User)
+@validate_permission
 async def user_route(
     request, *, req_args=None, req_body=None, query_params=None, requester=None
 ):
