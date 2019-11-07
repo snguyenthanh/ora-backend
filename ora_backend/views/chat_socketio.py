@@ -206,7 +206,7 @@ async def connect(sid, environ: dict):
                 )
 
         # Get the offline unclaimed chats as well
-        offline_unclaimed_chats_db = await get_many(ChatUnclaimed, many=True)
+        offline_unclaimed_chats_db = await get_many(ChatUnclaimed)
         off_unclaimed_visitor_ids = [
             item.visitor_id for item in offline_unclaimed_chats_db
         ]
@@ -359,7 +359,7 @@ async def staff_join(sid, data):
     chat_of_unclaimed_visitor = None
     if is_offline_chat:
         next_unclaimed_visitor_data = await get_many(
-            ChatUnclaimed, many=True, offset=15, limit=1
+            ChatUnclaimed, offset=15, limit=1
         )
         # Only if there is an offline unclaimed chat
         if next_unclaimed_visitor_data:
