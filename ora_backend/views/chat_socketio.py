@@ -199,7 +199,9 @@ async def connect(sid, environ: dict):
             # current_chat_room_ids = [
             #     visitor["room"] for visitor in online_visitors.values()
             # ]
-            current_chat_rooms = await cache.multi_get(onl_visitor_ids, namespace="visitor_info")
+            current_chat_rooms = await cache.multi_get(
+                onl_visitor_ids, namespace="visitor_info"
+            )
             for visitor_id, chat_room in zip(onl_visitor_ids, current_chat_rooms):
                 online_visitors[visitor_id]["staff"] = (
                     chat_room["room"].get("staff", 0) if chat_room else 0
@@ -496,7 +498,7 @@ async def take_over_chat(sid, data):
     monitor_room = session["monitor_room"]
 
     # Get current serving staff
-    cur_staff = room["staff"]
+    cur_staff = visitor_info["room"]["staff"]
 
     if not cur_staff:
         return False, "Cannot take over an unclaimed chat."
@@ -978,6 +980,10 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
     org = (await Organisation.query.gino.all())[0]
     org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
 
+    visitor_info = await cache.get(user["id"], namespace="visitor_info")
+    if not visitor_info:
+        return False, "The chat room is either closed or doesn't exist."
+
     # Remove the visitor from unclaimed chat
     unclaimed_chats = await cache.get(org_room, {})
     if user["id"] in unclaimed_chats:
@@ -986,6 +992,13 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
 
         # Mark the chat as unclaimed in DB
         await ChatUnclaimed.add_if_not_exists(visitor_id=user["id"])
+
+        # Let the staffs know a chat has changed from online to offline
+        await sio.emit(
+            "unclaimed_chat_to_offline",
+            {"visitor": {**visitor_info["room"], **visitor_info["user"]}},
+            room=org_room,
+        )
 
     # for index, _chat in enumerate(unclaimed_chats):
     #     if _chat["room"]["id"] == room["id"]:
@@ -997,9 +1010,6 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
     #         break
 
     # room = await cache.get(room["id"])
-    visitor_info = await cache.get(user["id"], namespace="visitor_info")
-    if not visitor_info:
-        return False, "The chat room is either closed or doesn't exist."
 
     # Broadcast to high-level staffs to stop monitoring the chat
     staff = visitor_info["room"]["staff"]

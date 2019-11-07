@@ -330,6 +330,29 @@ data={
 }
 ```
 
+##### unclaimed_chat_to_offline
+
+Emitted when a visitor having an unclaimed chat goes offline.
+
+This is to notify the front-end to put the chat in offline unclaimed chats.
+
+Args:
+
+`data` (Dict)
+
+```
+data={
+  "visitor": { # Visitor
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
+  }
+}
+```
 
 ##### staff_claim_chat
 
