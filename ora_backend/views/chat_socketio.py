@@ -579,7 +579,7 @@ async def handle_visitor_msg(sid, content):
             "visitor": {**visitor_info["room"], **visitor_info["user"]},
             "content": chat_msg,
         },
-        room=chat_room["id"],
+        room=visitor_info["room"]["id"],
         skip_sid=sid,
     )
 
@@ -619,6 +619,15 @@ async def handle_visitor_msg(sid, content):
         elif not visitor_info["room"]["staff"]:
             unclaimed_chats[user["id"]]["contents"].append(chat_msg)
             await cache.set(org_room, unclaimed_chats)
+            # Emit to add the message to listening clients
+            await sio.emit(
+                "visitor_unclaimed_msg",
+                {
+                    "visitor": {**visitor_info["room"], **visitor_info["user"]},
+                    "content": chat_msg,
+                },
+                room=org_room,
+            )
 
     # Broadcast the message to all high-level staffs
     else:
