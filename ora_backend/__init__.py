@@ -21,8 +21,7 @@ app = Sanic(__name__)
 
 app.config.update(SANIC_CONFIG)
 app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
-# app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=1)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
 app.config["JWT_TOKEN_LOCATION"] = "cookies"
 app.config["JWT_ERROR_MESSAGE_KEY"] = "error"
 app.config["CORS_AUTOMATIC_OPTIONS"] = True
