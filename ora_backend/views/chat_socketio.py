@@ -255,6 +255,7 @@ async def connect(sid, environ: dict):
         visitor_info = await get_or_create_visitor_session(
             user["id"], chat_room=chat_room
         )
+        sio.enter_room(sid, chat_room["id"])
 
         await sio.save_session(sid, {"user": user, "room": chat_room})
         # This cache is used on visitor disconnection to remove caches and clean up rooms
