@@ -101,21 +101,20 @@ async def get_sequence_num_for_visitor(user_id: str):
 
 
 async def get_or_create_visitor_session(
-    visitor_id: str, visitor: dict = None, chat_id: str = None
+    visitor_id: str, visitor: dict = None, chat_room: dict = None
 ):
     visitor_info = await cache.get(visitor_id, namespace="visitor_info")
     if visitor_info:
         return visitor_info
 
-    if not chat_id:
+    if not chat_room:
         chat_room = await Chat.get_or_create(visitor_id=visitor_id)
-        chat_id = chat_room["id"]
 
     if not visitor:
         visitor = await Visitor.get(id=visitor_id)
 
     latest_chat_msg = await get_one_latest(
-        ChatMessage, chat_id=chat_id, order_by="sequence_num"
+        ChatMessage, chat_id=chat_room["id"], order_by="sequence_num"
     )
     sequence_num = 0
     if latest_chat_msg:
@@ -253,12 +252,26 @@ async def connect(sid, environ: dict):
         #     )
         #     return False, "The chat room already exists."
 
-        await get_or_create_visitor_session(user["id"], chat_id=chat_room["id"])
+        visitor_info = await get_or_create_visitor_session(
+            user["id"], chat_room=chat_room
+        )
 
         await sio.save_session(sid, {"user": user, "room": chat_room})
         # This cache is used on visitor disconnection to remove caches and clean up rooms
         await cache.set(
             "user_{}".format(sid), {"user": user, "type": user_type, "room": chat_room}
+        )
+
+        # Update the visitor's status as online
+        # For now, there are no logic of choosing which orgs
+        # And as there is only 1 org, choose it
+        org = (await Organisation.query.gino.all())[0]
+        org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
+        await sio.emit(
+            "visitor_goes_online",
+            data={"visitor": {**visitor_info["room"], **visitor_info["user"]}},
+            room=org_room,
+            skip_sid=sid,
         )
 
         # Update the sequence number of the chat
@@ -541,9 +554,7 @@ async def handle_visitor_msg(sid, content):
     # )
     # if error_msg:
     #     return False, error_msg
-    visitor_info = await get_or_create_visitor_session(
-        user["id"], chat_id=chat_room["id"]
-    )
+    visitor_info = await get_or_create_visitor_session(user["id"], chat_room=chat_room)
     sequence_num = visitor_info["room"]["sequence_num"]
     visitor_info["room"]["sequence_num"] = sequence_num + 1
     await cache.set(user["id"], visitor_info, namespace="visitor_info")
@@ -630,9 +641,7 @@ async def visitor_first_msg(sid, content):
     user = session["user"]
 
     # Store the first msg the visitor sends
-    visitor_info = await get_or_create_visitor_session(
-        user["id"], chat_id=chat_room["id"]
-    )
+    visitor_info = await get_or_create_visitor_session(user["id"], chat_room=chat_room)
     sequence_num = visitor_info["room"]["sequence_num"]
     visitor_info["room"]["sequence_num"] = sequence_num + 1
     await cache.set(user["id"], visitor_info, namespace="visitor_info")
@@ -691,9 +700,7 @@ async def visitor_msg_unclaimed(sid, content):
     # visitor_info = await cache.get(user["id"], namespace="visitor_info")
     # if not visitor_info:
     #     return False, "The chat room is either closed or doesn't exist."
-    visitor_info = await get_or_create_visitor_session(
-        user["id"], chat_id=chat_room["id"]
-    )
+    visitor_info = await get_or_create_visitor_session(user["id"], chat_room=chat_room)
     sequence_num = visitor_info["room"]["sequence_num"]
     visitor_info["room"]["sequence_num"] = sequence_num + 1
     await cache.set(user["id"], visitor_info, namespace="visitor_info")
@@ -1033,6 +1040,14 @@ async def disconnect(sid):
         user = session["user"]
         # await cache.delete(room["id"])
 
+        # Let the staff know the the visitor has gone offline
+        # For now, there are no logic of choosing which orgs
+        # And as there is only 1 org, choose it
+        org = (await Organisation.query.gino.all())[0]
+        org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
+        await sio.emit(
+            "visitor_goes_offline", data={"visitor": user}, room=org_room, skip_sid=sid
+        )
         # Remove the visitor from online visitors
         online_visitors_room = ONLINE_VISITORS_PREFIX
         onl_visitors = await cache.get(online_visitors_room, {})

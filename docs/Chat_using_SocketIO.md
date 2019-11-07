@@ -261,6 +261,51 @@ data={
 }
 ```
 
+##### visitor_goes_online
+
+Emitted to all staffs, whenever a visitor is connected.
+
+Args:
+
+`data` (Dict)
+
+```
+data={
+  "visitor": { # The visitor who goes online
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
+  },
+```
+
+##### visitor_goes_offline
+
+Emitted to all staffs, whenever a visitor is disconnected.
+
+Args:
+
+`data` (Dict)
+
+```
+data={
+  "visitor": { # The visitor who goes online
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
+  },
+```
+
 ##### staff_claim_chat
 
 Broadcast to queue room, to remove the unclaimed chat from others' clients.
