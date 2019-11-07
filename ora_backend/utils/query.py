@@ -413,6 +413,11 @@ async def get_top_unread_visitors(visitor_model, chat_model, staff_id, *, limit=
                 		WHERE most_recent_messages.chat_id = chat_message_seen.chat_id
                 	)
                     AND chat_message_seen.staff_id = :staff_id
+                    AND EXISTS (
+                        SELECT 1
+                        FROM chat_message
+                        WHERE chat_message.chat_id = chat.id
+                    )
                 ORDER BY chat.updated_at DESC, chat.created_at DESC
                 LIMIT :limit
                 """.format(
