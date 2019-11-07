@@ -210,14 +210,23 @@ async def connect(sid, environ: dict):
         off_unclaimed_visitor_ids = [
             item.visitor_id for item in offline_unclaimed_chats_db
         ]
-        offline_unclaimed_chats = await Visitor.get(
+        offline_unclaimed_chats_info = await Chat.get(
+            many=True, in_column="visitor_id", in_values=off_unclaimed_visitor_ids
+        )
+        offline_unclaimed_chats_info_as_dict = {
+            chat["visitor_id"]: chat for chat in offline_unclaimed_chats_info
+        }
+        offline_unclaimed_chats_visitor = await Visitor.get(
             many=True, in_column="id", in_values=off_unclaimed_visitor_ids
         )
         offline_unclaimed_chats_as_dict = {
-            visitor["id"]: visitor for visitor in offline_unclaimed_chats
+            visitor["id"]: visitor for visitor in offline_unclaimed_chats_visitor
         }
         offline_unclaimed_chats = [
-            offline_unclaimed_chats_as_dict[visitor_id]
+            {
+                **offline_unclaimed_chats_info_as_dict[visitor_id],
+                **offline_unclaimed_chats_as_dict[visitor_id],
+            }
             for visitor_id in off_unclaimed_visitor_ids
         ]
 
