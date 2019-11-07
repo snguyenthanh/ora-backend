@@ -263,6 +263,12 @@ async def connect(sid, environ: dict):
             "user_{}".format(sid), {"user": user, "type": user_type, "room": chat_room}
         )
 
+        # Mark the visitor as online
+        onl_visitors = await cache.get(online_visitors_room, {})
+        if user["id"] not in onl_visitors:
+            onl_visitors[user["id"]] = {**user, "room": chat_room["id"]}
+            await cache.set(online_visitors_room, onl_visitors)
+
         # Update the visitor's status as online
         # For now, there are no logic of choosing which orgs
         # And as there is only 1 org, choose it
@@ -627,13 +633,6 @@ async def handle_visitor_msg(sid, content):
             room=monitor_room,
             skip_sid=sid,
         )
-
-    # Mark the visitor as online
-    online_visitors_room = ONLINE_VISITORS_PREFIX
-    onl_visitors = await cache.get(online_visitors_room, {})
-    if user["id"] not in onl_visitors:
-        onl_visitors[user["id"]] = {**user, "room": chat_room["id"]}
-        await cache.set(online_visitors_room, onl_visitors)
 
     return True, None
 
