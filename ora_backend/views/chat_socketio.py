@@ -595,6 +595,17 @@ async def handle_visitor_msg(sid, content):
             unclaimed_chats[user["id"]] = data
             await cache.set(org_room, unclaimed_chats)
 
+            # If the visitor already has an offline unclaimed chat
+            # Delete it in DB and move it to online unclaimed chat
+            await ChatUnclaimed.remove(visitor_id=user["id"])
+
+            # Let the staffs know about the conversion
+            await sio.emit(
+                "remove_visitor_offline_chat",
+                data={"visitor": visitor_info["user"]},
+                room=org_room,
+            )
+
             # Add the chat to unclaimed chats
             await sio.emit("append_unclaimed_chats", data, room=org_room)
 

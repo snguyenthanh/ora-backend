@@ -306,6 +306,31 @@ data={
   },
 ```
 
+##### remove_visitor_offline_chat
+
+Emitted only when a visitor sends new messages, while his last chat is in offline unclaimed chats.
+
+This is to avoid a chat existing on both offline and online unclaimed chats.
+
+Args:
+
+`data` (Dict)
+
+```
+data={
+  "visitor": { # Visitor
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
+  }
+}
+```
+
+
 ##### staff_claim_chat
 
 Broadcast to queue room, to remove the unclaimed chat from others' clients.
