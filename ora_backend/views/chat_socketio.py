@@ -199,7 +199,7 @@ async def connect(sid, environ: dict):
             # current_chat_room_ids = [
             #     visitor["room"] for visitor in online_visitors.values()
             # ]
-            current_chat_rooms = await cache.multi_get(onl_visitor_ids)
+            current_chat_rooms = await cache.multi_get(onl_visitor_ids, namespace="visitor_info")
             for visitor_id, chat_room in zip(onl_visitor_ids, current_chat_rooms):
                 online_visitors[visitor_id]["staff"] = (
                     chat_room["room"].get("staff", 0) if chat_room else 0
