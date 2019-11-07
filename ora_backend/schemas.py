@@ -90,7 +90,7 @@ VISITOR_WRITE_SCHEMA = {
     "email": is_required_string,
     "password": {**is_required_string, "minlength": 8, "maxlength": 128},
     "is_anonymous": is_boolean,
-    "disabled": {"readonly": True},
+    "disabled": is_boolean,
     "created_at": {"readonly": True},
     "updated_at": {"readonly": True},
 }
@@ -116,7 +116,7 @@ USER_WRITE_SCHEMA = {
     "password": {**is_required_string, "minlength": 8, "maxlength": 128},
     "role_id": is_integer,
     "organisation_id": {"readonly": True},
-    "disabled": {"readonly": True},
+    "disabled": is_boolean,
     "created_at": {"readonly": True},
     "updated_at": {"readonly": True},
 }
