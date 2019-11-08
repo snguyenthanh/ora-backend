@@ -23,7 +23,7 @@ def sanic_error_handler(request, exception):
         {"error": exc_message},
         status=status_code,
         headers={
-            "Access-Control-Allow-Origin": CORS_ORIGINS,
+            "Access-Control-Allow-Origin": "https://chatwithora.com",
             "Access-Control-Allow-Credentials": "true",
         },
     )
