@@ -9,7 +9,7 @@ from sanic.exceptions import SanicException
 from sanic_jwt_extended import JWTManager
 from sanic_cors import CORS
 from sentry_sdk import init as sentry_init
-from sentry_sdk.integrations.sanic import SanicIntegration
+from sentry_sdk.integrations.sanic import SanicIntegration, SqlalchemyIntegration
 
 from ora_backend.config import JWT_SECRET_KEY, SANIC_CONFIG, CORS_ORIGINS, SENTRY_DSN
 from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
@@ -39,7 +39,12 @@ JWTManager(app)
 CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
 
 if SENTRY_DSN:
-    sentry_init(dsn=SENTRY_DSN, integrations=[SanicIntegration()])
+    sentry_init(
+        dsn=SENTRY_DSN,
+        integrations=[SanicIntegration(), SqlalchemyIntegration()],
+        request_bodies="always",
+        send_default_pii=True,
+    )
 
 # logging.getLogger("sanic_cors").level = logging.DEBUG
 
