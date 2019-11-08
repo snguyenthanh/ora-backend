@@ -1125,6 +1125,14 @@ async def disconnect(sid):
 
     # Visitor
     if session["type"] == Visitor.__tablename__:
+        # Remove the visitor from online visitors first
+        # to avoid user re-connects before finishing processing
+        online_visitors_room = ONLINE_VISITORS_PREFIX
+        onl_visitors = await cache.get(online_visitors_room, {})
+        onl_visitors.pop(user["id"], None)
+        await cache.set(online_visitors_room, onl_visitors)
+
+        # Process the post-disconnection
         await handle_visitor_leave(sid, session, is_disconnected=True)
         room = session["room"]
         user = session["user"]
@@ -1138,13 +1146,16 @@ async def disconnect(sid):
         await sio.emit(
             "visitor_goes_offline", data={"visitor": user}, room=org_room, skip_sid=sid
         )
-        # Remove the visitor from online visitors
-        online_visitors_room = ONLINE_VISITORS_PREFIX
-        onl_visitors = await cache.get(online_visitors_room, {})
-        onl_visitors.pop(user["id"], None)
-        await cache.set(online_visitors_room, onl_visitors)
 
     else:  # Staff
+        # Update the current online staffs
+        user = session["user"]
+        online_users_room = ONLINE_USERS_PREFIX + user["organisation_id"]
+        onl_users = await cache.get(online_users_room, {})
+        if user["id"] in onl_users:
+            onl_users.pop(user["id"], None)
+            await cache.set(online_users_room, onl_users)
+
         org_room = session["org_room"]
         monitor_room = session["monitor_room"]
         # rooms = sio.rooms(sid)
@@ -1173,14 +1184,6 @@ async def disconnect(sid):
         # org_room_id = org_room.replace(UNCLAIMED_CHATS_PREFIX, "")
         sio.leave_room(sid, org_room)
         sio.leave_room(sid, monitor_room)
-
-        # Update the current online staffs
-        user = session["user"]
-        online_users_room = ONLINE_USERS_PREFIX + user["organisation_id"]
-        onl_users = await cache.get(online_users_room, {})
-        if user["id"] in onl_users:
-            onl_users.pop(user["id"], None)
-            await cache.set(online_users_room, onl_users)
 
     await cache.delete("user_{}".format(sid), {})
     return True, None
