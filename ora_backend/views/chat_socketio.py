@@ -1125,6 +1125,9 @@ async def disconnect(sid):
 
     # Visitor
     if session["type"] == Visitor.__tablename__:
+        room = session["room"]
+        user = session["user"]
+
         # Remove the visitor from online visitors first
         # to avoid user re-connects before finishing processing
         online_visitors_room = ONLINE_VISITORS_PREFIX
@@ -1134,8 +1137,6 @@ async def disconnect(sid):
 
         # Process the post-disconnection
         await handle_visitor_leave(sid, session, is_disconnected=True)
-        room = session["room"]
-        user = session["user"]
         # await cache.delete(room["id"])
 
         # Let the staff know the the visitor has gone offline
