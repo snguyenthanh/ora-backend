@@ -15,6 +15,15 @@ from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 from ora_backend.config import JWT_SECRET_KEY, SANIC_CONFIG, CORS_ORIGINS, SENTRY_DSN
 from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
 
+# Init Sentry before app creation
+if SENTRY_DSN:
+    sentry_init(
+        dsn=SENTRY_DSN,
+        integrations=[SanicIntegration(), SqlalchemyIntegration()],
+        request_bodies="always",
+        send_default_pii=True,
+    )
+
 # Note: Gino doesn't auto-generate any new changes in the schema
 # Use alembic to apply new changes to the db
 # (Refer to scripts/migration.sh)
@@ -38,14 +47,6 @@ cache = Cache(serializer=JsonSerializer())
 db.init_app(app)
 JWTManager(app)
 CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
-
-if SENTRY_DSN:
-    sentry_init(
-        dsn=SENTRY_DSN,
-        integrations=[SanicIntegration(), SqlalchemyIntegration()],
-        request_bodies="always",
-        send_default_pii=True,
-    )
 
 # logging.getLogger("sanic_cors").level = logging.DEBUG
 
