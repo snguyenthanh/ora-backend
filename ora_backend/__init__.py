@@ -9,7 +9,8 @@ from sanic.exceptions import SanicException
 from sanic_jwt_extended import JWTManager
 from sanic_cors import CORS
 from sentry_sdk import init as sentry_init
-from sentry_sdk.integrations.sanic import SanicIntegration, SqlalchemyIntegration
+from sentry_sdk.integrations.sanic import SanicIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
 from ora_backend.config import JWT_SECRET_KEY, SANIC_CONFIG, CORS_ORIGINS, SENTRY_DSN
 from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
