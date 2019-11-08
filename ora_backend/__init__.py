@@ -40,7 +40,7 @@ CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
 
 if SENTRY_DSN:
     sentry_init(
-        dsn=SENTRY_DSN, integrations=[SanicIntegration()], attachStacktrace=True
+        dsn=SENTRY_DSN, integrations=[SanicIntegration()], attach_stacktrace=True
     )
 
 # logging.getLogger("sanic_cors").level = logging.DEBUG
