@@ -342,14 +342,14 @@ async def staff_join(sid, data):
     # Remove the chat from unclaimed chats
     unclaimed_chats = await cache.get(org_room, {})
     visitor_contents = []
-    is_offline_chat = False
+    is_offline_chat = True
     if visitor_id in unclaimed_chats:
         removed_unclaimed_chat = unclaimed_chats.pop(visitor_id, {})
         visitor_contents = removed_unclaimed_chat.get("contents", [])
         await cache.set(org_room, unclaimed_chats)
 
         # `unclaimed_chats` only contains chats of ONLINE visitors
-        is_offline_chat = True
+        is_offline_chat = False
 
     # visitor_info = await cache.get(visitor_id, {}, namespace="visitor_info")
     visitor_info = await get_or_create_visitor_session(visitor_id)
