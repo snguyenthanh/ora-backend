@@ -56,6 +56,13 @@ class UniqueViolationError(SanicException):
         DETAIL:  Key (id)=(1) already exists.
     """
 
-    def __init__(self, error: dict, status_code=400):
-        message = "The {} with {}.".format(error["table_name"], error["detail"])
+    def __init__(self, error=None, status_code=400):
+        if error and isinstance(error, dict):
+            message = "The {} with {}.".format(error["table_name"], error["detail"])
+        else:
+            message = "The resource has already existed"
         super().__init__(message, status_code)
+
+
+def unique_violation_error_handler(request, exception):
+    raise UniqueViolationError()

@@ -3,6 +3,7 @@ import logging
 
 from aiocache import Cache
 from aiocache.serializers import JsonSerializer
+from asyncpg.exceptions import UniqueViolationError
 from gino.ext.sanic import Gino
 from sanic import Blueprint, Sanic
 from sanic.exceptions import SanicException
@@ -57,9 +58,10 @@ from ora_backend.views.urls import blueprints
 app.blueprint(blueprints)
 
 # Register error handlers
-from ora_backend.exceptions import sanic_error_handler
+from ora_backend.exceptions import sanic_error_handler, unique_violation_error_handler
 
 app.error_handler.add(SanicException, sanic_error_handler)
+app.error_handler.add(UniqueViolationError, unique_violation_error_handler)
 
 # Register SocketIO
 # from ora_backend.views.chat_socketio import app
