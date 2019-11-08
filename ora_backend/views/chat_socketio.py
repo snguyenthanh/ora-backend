@@ -331,6 +331,48 @@ async def connect(sid, environ: dict):
 
 
 @sio.event
+async def user_typing_send(sid, data):
+    if "visitor" not in data or not isinstance(data["visitor"], str):
+        return False, "Missing/Invalid field: visitor"
+
+    visitor_id = data["visitor"]
+    visitor_info = await cache.get(visitor_id, {}, namespace="visitor_info")
+    if not visitor_info:
+        return False, "The visitor has gone offline"
+
+    chat_room_id = visitor_info["room"]["id"]
+    await sio.emit(
+        "user_typing_receive",
+        {"visitor": visitor_info["user"]},
+        room=chat_room_id,
+        skip_sid=sid,
+    )
+
+    return True, None
+
+
+@sio.event
+async def user_stop_typing_send(sid, data):
+    if "visitor" not in data or not isinstance(data["visitor"], str):
+        return False, "Missing/Invalid field: visitor"
+
+    visitor_id = data["visitor"]
+    visitor_info = await cache.get(visitor_id, {}, namespace="visitor_info")
+    if not visitor_info:
+        return False, "The visitor has gone offline"
+
+    chat_room_id = visitor_info["room"]["id"]
+    await sio.emit(
+        "user_stop_typing_receive",
+        {"visitor": visitor_info["user"]},
+        room=chat_room_id,
+        skip_sid=sid,
+    )
+
+    return True, None
+
+
+@sio.event
 async def staff_join(sid, data):
     # Validation
     # if "room" not in data or not isinstance(data["room"], str):

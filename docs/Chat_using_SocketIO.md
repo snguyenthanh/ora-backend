@@ -962,7 +962,7 @@ data={
   "visitor": {
     'severity_level': 1,
     'tags': [],
-    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68',
     'created_at': 1572777087693,
     'disabled': False,
     'email': 'duaneferguson@hotmail.com',
@@ -979,5 +979,80 @@ data={
       "role_id": 3
     },
   },
+}
+```
+
+
+### 4. Typing
+
+#### user_typing_send
+
+An user emits this event to back-end to inform the other person in the chat room that he is typing.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "visitor": <str>  # The visitor's ID
+}
+```
+
+#### user_typing_receive
+
+The person in the chat room will receive this event when the other person is typing.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "visitor": {  # The visitor of the chat room
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None,
+  }
+}
+```
+
+#### user_stop_typing_send
+
+An user emits this event to back-end to inform the other person in the chat room that he has stopped typing.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "visitor": <str>  # The visitor's ID
+}
+```
+
+#### user_stop_typing_receive
+
+The person in the chat room will receive this event when the other person has stopped typing.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "visitor": {  # The visitor of the chat room
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None,
+  }
 }
 ```
