@@ -279,6 +279,13 @@ async def connect(sid, environ: dict):
         if user["id"] not in onl_visitors:
             onl_visitors[user["id"]] = {**user, "room": chat_room["id"]}
             await cache.set(online_visitors_room, onl_visitors)
+        else:
+            # If there are multiple tabs of the visitor
+            await sio.emit(
+                "visitor_room_exists",
+                data={"visitor": {**visitor_info["room"], **visitor_info["user"]}},
+            )
+            return False, "The chat room already exists."
 
         # Update the visitor's status as online
         # For now, there are no logic of choosing which orgs
