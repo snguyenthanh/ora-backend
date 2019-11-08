@@ -8,8 +8,10 @@ from sanic import Blueprint, Sanic
 from sanic.exceptions import SanicException
 from sanic_jwt_extended import JWTManager
 from sanic_cors import CORS
+from sentry_sdk import init as sentry_init
+from sentry_sdk.integrations.sanic import SanicIntegration
 
-from ora_backend.config import JWT_SECRET_KEY, SANIC_CONFIG, CORS_ORIGINS
+from ora_backend.config import JWT_SECRET_KEY, SANIC_CONFIG, CORS_ORIGINS, SENTRY_DSN
 from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
 
 # Note: Gino doesn't auto-generate any new changes in the schema
@@ -35,6 +37,9 @@ cache = Cache(serializer=JsonSerializer())
 db.init_app(app)
 JWTManager(app)
 CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
+
+if SENTRY_DSN:
+    sentry_init(dsn=SENTRY_DSN, integrations=[SanicIntegration()])
 
 # logging.getLogger("sanic_cors").level = logging.DEBUG
 
