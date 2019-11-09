@@ -633,61 +633,61 @@ async def handle_visitor_msg(sid, content):
 async def visitor_first_msg(sid, content):
     return await handle_visitor_msg(sid, content)
 
-    # Validation
-    if not content or not isinstance(content, dict):
-        return False, "Missing/Invalid data"
-
-    session = await sio.get_session(sid)
-    if "room" not in session:
-        return False, "The chat room is either closed or doesn't exist."
-    chat_room = session["room"]
-
-    # Only enter the chat room on first message
-    sio.enter_room(sid, chat_room["id"])
-    user = session["user"]
-
-    # Store the first msg the visitor sends
-    visitor_info = await get_or_create_visitor_session(user["id"], chat_room=chat_room)
-    sequence_num = visitor_info["room"]["sequence_num"]
-    visitor_info["room"]["sequence_num"] = sequence_num + 1
-    await cache.set(user["id"], visitor_info, namespace="visitor_info")
-
-    # sequence_num, visitor_info, error_msg = await get_sequence_num_for_visitor(
-    #     user["id"]
+    # # Validation
+    # if not content or not isinstance(content, dict):
+    #     return False, "Missing/Invalid data"
+    #
+    # session = await sio.get_session(sid)
+    # if "room" not in session:
+    #     return False, "The chat room is either closed or doesn't exist."
+    # chat_room = session["room"]
+    #
+    # # Only enter the chat room on first message
+    # sio.enter_room(sid, chat_room["id"])
+    # user = session["user"]
+    #
+    # # Store the first msg the visitor sends
+    # visitor_info = await get_or_create_visitor_session(user["id"], chat_room=chat_room)
+    # sequence_num = visitor_info["room"]["sequence_num"]
+    # visitor_info["room"]["sequence_num"] = sequence_num + 1
+    # await cache.set(user["id"], visitor_info, namespace="visitor_info")
+    #
+    # # sequence_num, visitor_info, error_msg = await get_sequence_num_for_visitor(
+    # #     user["id"]
+    # # )
+    # # if error_msg:
+    # #     return False, error_msg
+    #
+    # chat_msg = await ChatMessage.add(
+    #     sequence_num=sequence_num, content=content, chat_id=chat_room["id"]
     # )
-    # if error_msg:
-    #     return False, error_msg
-
-    chat_msg = await ChatMessage.add(
-        sequence_num=sequence_num, content=content, chat_id=chat_room["id"]
-    )
-    data = {
-        "visitor": {**visitor_info["room"], **visitor_info["user"]},
-        "contents": [chat_msg],
-    }
-
-    # For now, there are no logic of choosing which orgs
-    # And as there is only 1 org, choose it
-    org = (await Organisation.query.gino.all())[0]
-    org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
-
-    # Append the user to the in-memory unclaimed chats
-    unclaimed_chats = await cache.get(org_room, {})
-    if user["id"] not in unclaimed_chats:
-        unclaimed_chats[user["id"]] = data
-        await cache.set(org_room, unclaimed_chats)
-
-        # Add the chat to unclaimed chats
-        await sio.emit("append_unclaimed_chats", data, room=org_room)
-
-    # Mark the visitor as online
-    online_visitors_room = ONLINE_VISITORS_PREFIX
-    onl_visitors = await cache.get(online_visitors_room, {})
-    if user["id"] not in onl_visitors:
-        onl_visitors[user["id"]] = {**user, "room": chat_room["id"]}
-        await cache.set(online_visitors_room, onl_visitors)
-
-    return True, None
+    # data = {
+    #     "visitor": {**visitor_info["room"], **visitor_info["user"]},
+    #     "contents": [chat_msg],
+    # }
+    #
+    # # For now, there are no logic of choosing which orgs
+    # # And as there is only 1 org, choose it
+    # org = (await Organisation.query.gino.all())[0]
+    # org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
+    #
+    # # Append the user to the in-memory unclaimed chats
+    # unclaimed_chats = await cache.get(org_room, {})
+    # if user["id"] not in unclaimed_chats:
+    #     unclaimed_chats[user["id"]] = data
+    #     await cache.set(org_room, unclaimed_chats)
+    #
+    #     # Add the chat to unclaimed chats
+    #     await sio.emit("append_unclaimed_chats", data, room=org_room)
+    #
+    # # Mark the visitor as online
+    # online_visitors_room = ONLINE_VISITORS_PREFIX
+    # onl_visitors = await cache.get(online_visitors_room, {})
+    # if user["id"] not in onl_visitors:
+    #     onl_visitors[user["id"]] = {**user, "room": chat_room["id"]}
+    #     await cache.set(online_visitors_room, onl_visitors)
+    #
+    # return True, None
 
 
 @sio.event
@@ -695,53 +695,53 @@ async def visitor_msg_unclaimed(sid, content):
     """Client emits to send another message, while the chat is still unclaimed."""
     return await handle_visitor_msg(sid, content)
 
-    # Validation
-    if not content or not isinstance(content, dict):
-        return False, "Missing/Invalid data"
-
-    session = await sio.get_session(sid)
-    chat_room = session["room"]
-    user = session["user"]
-
-    # visitor_info = await cache.get(user["id"], namespace="visitor_info")
-    # if not visitor_info:
-    #     return False, "The chat room is either closed or doesn't exist."
-    visitor_info = await get_or_create_visitor_session(user["id"], chat_room=chat_room)
-    sequence_num = visitor_info["room"]["sequence_num"]
-    visitor_info["room"]["sequence_num"] = sequence_num + 1
-    await cache.set(user["id"], visitor_info, namespace="visitor_info")
-
-    # For now, there are no logic of choosing which orgs
-    # And as there is only 1 org, choose it
-    org = (await Organisation.query.gino.all())[0]
-    org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
-
-    # Store the msg the visitor sends
-    chat_msg = await ChatMessage.add(
-        sequence_num=sequence_num, content=content, chat_id=chat_room["id"]
-    )
-
-    # Update the unclaimed chats
-    unclaimed_chats = await cache.get(org_room, {})
-    if user["id"] in unclaimed_chats:
-        unclaimed_chats[user["id"]]["contents"].append(chat_msg)
-        await cache.set(org_room, unclaimed_chats)
-    # for _, _chat in enumerate(unclaimed_chats):
-    #     if _chat["room"]["id"] == chat_room["id"]:
-    #         _chat["contents"].append(chat_msg)
-    #         break
-
-    # Emit to add the message to listening clients
-    await sio.emit(
-        "visitor_unclaimed_msg",
-        {
-            "visitor": {**visitor_info["room"], **visitor_info["user"]},
-            "content": chat_msg,
-        },
-        room=org_room,
-    )
-
-    return True, None
+    # # Validation
+    # if not content or not isinstance(content, dict):
+    #     return False, "Missing/Invalid data"
+    #
+    # session = await sio.get_session(sid)
+    # chat_room = session["room"]
+    # user = session["user"]
+    #
+    # # visitor_info = await cache.get(user["id"], namespace="visitor_info")
+    # # if not visitor_info:
+    # #     return False, "The chat room is either closed or doesn't exist."
+    # visitor_info = await get_or_create_visitor_session(user["id"], chat_room=chat_room)
+    # sequence_num = visitor_info["room"]["sequence_num"]
+    # visitor_info["room"]["sequence_num"] = sequence_num + 1
+    # await cache.set(user["id"], visitor_info, namespace="visitor_info")
+    #
+    # # For now, there are no logic of choosing which orgs
+    # # And as there is only 1 org, choose it
+    # org = (await Organisation.query.gino.all())[0]
+    # org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
+    #
+    # # Store the msg the visitor sends
+    # chat_msg = await ChatMessage.add(
+    #     sequence_num=sequence_num, content=content, chat_id=chat_room["id"]
+    # )
+    #
+    # # Update the unclaimed chats
+    # unclaimed_chats = await cache.get(org_room, {})
+    # if user["id"] in unclaimed_chats:
+    #     unclaimed_chats[user["id"]]["contents"].append(chat_msg)
+    #     await cache.set(org_room, unclaimed_chats)
+    # # for _, _chat in enumerate(unclaimed_chats):
+    # #     if _chat["room"]["id"] == chat_room["id"]:
+    # #         _chat["contents"].append(chat_msg)
+    # #         break
+    #
+    # # Emit to add the message to listening clients
+    # await sio.emit(
+    #     "visitor_unclaimed_msg",
+    #     {
+    #         "visitor": {**visitor_info["room"], **visitor_info["user"]},
+    #         "content": chat_msg,
+    #     },
+    #     room=org_room,
+    # )
+    #
+    # return True, None
 
 
 @sio.event
@@ -957,17 +957,6 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
             room=org_room,
         )
 
-    # for index, _chat in enumerate(unclaimed_chats):
-    #     if _chat["room"]["id"] == room["id"]:
-    #         del unclaimed_chats[index]
-    #         await cache.set(org_room, unclaimed_chats)
-    #
-    #         # Annouce to the staffs that the room has been removed
-    #         await sio.emit("visitor_leave_queue", {"user": user}, room=org_room)
-    #         break
-
-    # room = await cache.get(room["id"])
-
     # Broadcast to high-level staffs to stop monitoring the chat
     staff = visitor_info["room"]["staff"]
     if staff:
@@ -979,11 +968,6 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
             room=monitor_room,
             skip_sid=sid,
         )
-
-    # Emit the msg before closing the room
-    # await sio.emit(
-    #     "visitor_leave", {"user": session["user"]}, room=room["id"], skip_sid=sid
-    # )
 
     if is_disconnected:
         sio.leave_room(sid, room["id"])
@@ -1002,15 +986,11 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
     # The user is still online
     if staff and not is_disconnected:
         # Remove assigned `staff` in cache
-        # chat_room_info = await cache.get(room["id"])
-        # staff = chat_room_info["staff"]
-        # chat_room_info["staff"] = 0
         visitor_info["room"]["staff"] = 0
         await cache.set(user["id"], visitor_info, namespace="visitor_info")
 
     # If neither the visitor or staff is using the room
     if not staff and is_disconnected:
-        # await cache.delete(room["id"])
         await cache.delete(user["id"], namespace="visitor_info")
 
 
