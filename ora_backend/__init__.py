@@ -7,6 +7,7 @@ from asyncpg.exceptions import UniqueViolationError
 from gino.ext.sanic import Gino
 from sanic import Blueprint, Sanic
 from sanic.exceptions import SanicException
+from sanic.response import text
 from sanic_jwt_extended import JWTManager
 from sanic_cors import CORS
 from sentry_sdk import init as sentry_init
@@ -63,9 +64,6 @@ from ora_backend.exceptions import sanic_error_handler, unique_violation_error_h
 app.error_handler.add(SanicException, sanic_error_handler)
 app.error_handler.add(UniqueViolationError, unique_violation_error_handler)
 
-# Register SocketIO
-# from ora_backend.views.chat_socketio import app
-
 
 async def init_plugins(app, loop):
     await db.gino.create_all()
@@ -74,3 +72,30 @@ async def init_plugins(app, loop):
 
 # Register the listeners
 app.register_listener(init_plugins, "after_server_start")
+
+# Register Prometheus
+try:
+    import prometheus_client as prometheus
+except Exception:
+    pass
+else:
+    # Initialize the metrics
+    counter = prometheus.Counter(
+        "sanic_requests_total",
+        "Track the total number of requests",
+        ["method", "endpoint"],
+    )
+
+    # Track the total number of requests
+    @app.middleware("request")
+    async def track_requests(request):
+        # Increase the value for each request
+        # pylint: disable=E1101
+        counter.labels(method=request.method, endpoint=request.path).inc()
+
+    # Expose the metrics for prometheus
+    @app.get("/metrics")
+    async def metrics(request):
+        output = prometheus.exposition.generate_latest().decode("utf-8")
+        content_type = prometheus.exposition.CONTENT_TYPE_LATEST
+        return text(body=output, content_type=content_type)
