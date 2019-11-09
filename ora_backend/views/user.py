@@ -3,7 +3,10 @@ from sanic.response import json
 from ora_backend.constants import ROLES
 from ora_backend.views.urls import user_blueprint as blueprint
 from ora_backend.models import User
-from ora_backend.utils.exceptions import raise_role_authorization_exception
+from ora_backend.utils.exceptions import (
+    raise_role_authorization_exception,
+    raise_permission_exception,
+)
 from ora_backend.utils.links import generate_pagination_links
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import validate_request, validate_permission
@@ -14,6 +17,8 @@ async def user_retrieve(
     req, *, req_args, req_body, requester=None, many=True, query_params, **kwargs
 ):
     # The requester can only get the users from his org
+    if "organisation_id" not in requester:
+        raise_permission_exception()
     req_args["organisation_id"] = requester["organisation_id"]
 
     data = await User.get(**req_args, many=many, **query_params)

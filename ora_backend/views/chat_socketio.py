@@ -865,7 +865,6 @@ async def handle_staff_leave(sid, session, data):
 
     sequence_num = visitor_info["room"]["sequence_num"]
     visitor_info["room"]["sequence_num"] = sequence_num + 1
-    room = visitor_info["room"]
 
     # Remove assigned `staff` to room
     staff = visitor_info["room"]["staff"]
@@ -891,6 +890,7 @@ async def handle_staff_leave(sid, session, data):
             break
 
     # Emit the msg before storing it in DB
+    room = visitor_info["room"]
     await sio.emit(
         "staff_leave", {"staff": session["user"]}, room=room["id"], skip_sid=sid
     )
