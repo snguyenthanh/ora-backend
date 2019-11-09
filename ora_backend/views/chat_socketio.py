@@ -460,9 +460,6 @@ async def take_over_chat(sid, data):
 
     chat_room_info = visitor_info["room"]
     room = chat_room_info["id"]
-    # room = data["room"]
-    # db_chat_room_info = await Chat.get(visitor_id=data["visitor"])
-    # room = db_chat_room_info["id"]
     requester = session["user"]
     monitor_room = session["monitor_room"]
 
@@ -499,9 +496,17 @@ async def take_over_chat(sid, data):
     # Update "staff" in cache for room
     sequence_num = chat_room_info.get("sequence_num", 0)
     visitor_info["room"]["sequence_num"] = sequence_num + 1
-    # chat_room_info["staff"] = {**requester, "sid": sid}
     visitor_info["room"]["staff"] = {**requester, "sid": sid}
     await cache.set(visitor_id, visitor_info, namespace="visitor_info")
+
+    # Update the rooms the staff is in
+    user_info = await cache.get("user_{}".format(staff_sid))
+    if user_info:
+        for index, room in enumerate(user_info["rooms"]):
+            if room == visitor_id:
+                del user_info["rooms"][index]
+                await cache.set("user_{}".format(sid), user_info)
+                break
 
     # Save the chat message of staff being taken over
     await ChatMessage.add(
@@ -855,7 +860,6 @@ async def handle_staff_leave(sid, session, data):
     if "visitor" not in data or not isinstance(data["visitor"], str):
         return False, "Missing/Invalid field: visitor"
 
-    # room = data["room"]
     visitor_id = data["visitor"]
     user = session["user"]
 
@@ -894,13 +898,6 @@ async def handle_staff_leave(sid, session, data):
     await sio.emit(
         "staff_leave", {"staff": session["user"]}, room=room["id"], skip_sid=sid
     )
-    await ChatMessage.add(
-        sequence_num=sequence_num,
-        type_id=0,
-        sender=user["id"],
-        content={"content": "leave room"},
-        chat_id=room["id"],
-    )
 
     # Broadcast the leaving msg to all high-level staffs
     if staff:
@@ -914,6 +911,14 @@ async def handle_staff_leave(sid, session, data):
             },
             room=monitor_room,
         )
+
+    await ChatMessage.add(
+        sequence_num=sequence_num,
+        type_id=0,
+        sender=user["id"],
+        content={"content": "leave room"},
+        chat_id=room["id"],
+    )
 
     return True, None
 
@@ -1071,8 +1076,6 @@ async def disconnect(sid):
 
         # Disconnect and close all chat rooms if a staff disconnects
         for room in rooms:
-            # if room == sid:
-            #     await sio.close_room(sid)
             if room not in [org_room, sid]:
                 await handle_staff_leave(sid, session, {"visitor": room})
 

@@ -247,7 +247,11 @@ async def get_messages(
         )
 
     if after_id:
-        data = await query.order_by(model.sequence_num).limit(limit).gino.all()
+        data = (
+            await query.order_by(model.sequence_num, model.created_at)
+            .limit(limit)
+            .gino.all()
+        )
     else:
         data = (await query.order_by(desc(model.sequence_num)).limit(limit).gino.all())[
             ::-1
