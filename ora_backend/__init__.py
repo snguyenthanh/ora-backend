@@ -75,28 +75,32 @@ app.register_listener(init_plugins, "after_server_start")
 
 # Register Prometheus
 try:
-    import prometheus_client as prometheus
+    # import prometheus_client as prometheus
+    from sanic_prometheus import monitor
 except Exception:
     pass
 else:
-    # Initialize the metrics
-    counter = prometheus.Counter(
-        "sanic_requests_total",
-        "Track the total number of requests",
-        ["method", "endpoint"],
-    )
+    # Adds /metrics endpoint to the Sanic server
+    monitor(app).expose_endpoint()
 
-    # Track the total number of requests
-    @app.middleware("request")
-    async def track_requests(request):
-        # Increase the value for each request
-        # pylint: disable=E1101
-        if request.path != "/metrics":
-            counter.labels(method=request.method, endpoint=request.path).inc()
-
-    # Expose the metrics for prometheus
-    @app.get("/metrics")
-    async def metrics(request):
-        output = prometheus.exposition.generate_latest().decode("utf-8")
-        content_type = prometheus.exposition.CONTENT_TYPE_LATEST
-        return text(body=output, content_type=content_type)
+    # # Initialize the metrics
+    # counter = prometheus.Counter(
+    #     "sanic_requests_total",
+    #     "Track the total number of requests",
+    #     ["method", "endpoint"],
+    # )
+    #
+    # # Track the total number of requests
+    # @app.middleware("request")
+    # async def track_requests(request):
+    #     # Increase the value for each request
+    #     # pylint: disable=E1101
+    #     if request.path != "/metrics":
+    #         counter.labels(method=request.method, endpoint=request.path).inc()
+    #
+    # # Expose the metrics for prometheus
+    # @app.get("/metrics")
+    # async def metrics(request):
+    #     output = prometheus.exposition.generate_latest().decode("utf-8")
+    #     content_type = prometheus.exposition.CONTENT_TYPE_LATEST
+    #     return text(body=output, content_type=content_type)
