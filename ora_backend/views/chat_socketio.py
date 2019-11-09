@@ -143,6 +143,16 @@ async def connect(sid, environ: dict):
         org_id = UNCLAIMED_CHATS_PREFIX + user["organisation_id"]
         online_users_room = ONLINE_USERS_PREFIX + user["organisation_id"]
         monitor_room = MONITOR_ROOM_PREFIX + user["organisation_id"]
+
+        # Store the current online users
+        onl_users = await cache.get(online_users_room, {})
+        if user["id"] not in onl_users:
+            onl_users[user["id"]] = {**user, "sid": sid}
+            await cache.set(online_users_room, onl_users)
+        else:
+            await sio.emit("staff_already_online", data={"staff": user}, room=sid)
+            return False, "The staff is already logged in."
+
         sio.enter_room(sid, org_id)
 
         # Update online user for other staffs
@@ -167,12 +177,6 @@ async def connect(sid, environ: dict):
                 "rooms": [],
             },
         )
-
-        # Store the current online users
-        onl_users = await cache.get(online_users_room, {})
-        if user["id"] not in onl_users:
-            onl_users[user["id"]] = {**user, "sid": sid}
-            await cache.set(online_users_room, onl_users)
 
         # If user is supervisor or admin, he could:
         # - Enter monitor room - whenever there is a new chat, the staff will be informed
@@ -284,6 +288,7 @@ async def connect(sid, environ: dict):
             await sio.emit(
                 "visitor_room_exists",
                 data={"visitor": {**visitor_info["room"], **visitor_info["user"]}},
+                room=sid,
             )
             return False, "The chat room already exists."
 

@@ -182,6 +182,26 @@ data={
 
 #### 3.2.1. All staffs
 
+##### staff_already_online
+
+The back-end will emit this event on staff opening a session when he has another opened session.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "staff": {
+    "full_name": "Admin 1",
+    "id": "cf6e9a7bdf434d71a0c12ae91ce95c3d",
+    "organisation_id": "6e759fb3eaf6462e8c42cd8ae294d414",
+    "email": "admin1",
+    "display_name": null,
+    "role_id": 3
+  }
+```
+
 ##### staff_init
 
 The staff will receive a list of all unclaimed chats
