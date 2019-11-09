@@ -91,7 +91,8 @@ else:
     async def track_requests(request):
         # Increase the value for each request
         # pylint: disable=E1101
-        counter.labels(method=request.method, endpoint=request.path).inc()
+        if request.path != "/metrics":
+            counter.labels(method=request.method, endpoint=request.path).inc()
 
     # Expose the metrics for prometheus
     @app.get("/metrics")
