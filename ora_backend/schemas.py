@@ -5,6 +5,7 @@ and serializing results to return to users.
 
 # Conversion
 to_boolean = lambda v: v.lower() in {"true", "1"} if isinstance(v, str) else bool(v)
+to_lowercase = lambda text: text.lower()
 
 # Common rules
 is_integer = {"type": "integer", "coerce": int, "nullable": False, "empty": False}
@@ -20,8 +21,10 @@ is_boolean = {
     "empty": False,
 }
 is_string = {"type": "string", "empty": False, "nullable": False}
+is_string_lowercase = {**is_string, "coerce": to_lowercase}
 is_optional_string = {"type": "string"}
 is_required_string = {**is_string, "required": True}
+is_required_string_lowercase = {**is_required_string, "coerce": to_lowercase}
 is_string_list = {"type": "list", "schema": is_string}
 is_required_string_list = {
     "type": "list",
@@ -87,7 +90,7 @@ VISITOR_READ_SCHEMA = {
 VISITOR_WRITE_SCHEMA = {
     "id": {"readonly": True},
     "name": is_required_string,
-    "email": is_required_string,
+    "email": is_required_string_lowercase,
     "password": {**is_required_string, "minlength": 8, "maxlength": 128},
     "is_anonymous": is_boolean,
     "disabled": is_boolean,
@@ -112,7 +115,7 @@ USER_WRITE_SCHEMA = {
     "id": {"readonly": True},
     "full_name": is_required_string,
     "display_name": {"type": "string"},
-    "email": is_required_string,
+    "email": is_required_string_lowercase,
     "password": {**is_required_string, "minlength": 8, "maxlength": 128},
     "role_id": is_integer,
     "organisation_id": {"readonly": True},
