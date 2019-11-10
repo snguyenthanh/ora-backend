@@ -83,7 +83,8 @@ else:
     # Adds /metrics endpoint to the Sanic server
     monitor(
         app,
-        latency_buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1, 10, 30, 60, 120]
+        endpoint_type="url",
+        latency_buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1, 10, 30, 60, 120],
     ).expose_endpoint()
 
     # # Initialize the metrics
