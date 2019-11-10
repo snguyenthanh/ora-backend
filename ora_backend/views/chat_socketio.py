@@ -38,13 +38,23 @@ if mode == "production":
         "redis://:{}@127.0.0.1:6379/0".format(_environ.get("DB_PASSWORD"))
     )
     sio = socketio.AsyncServer(
-        async_mode="sanic", cors_allowed_origins=[], client_manager=mgr
+        async_mode="sanic",
+        cors_allowed_origins=[],
+        client_manager=mgr,
+        cors_credentials=True,
+        ping_timeout=60 * 60,  # in seconds
     )
 elif mode == "testing":
-    sio = socketio.AsyncServer(async_mode="sanic", cors_allowed_origins=[])
+    sio = socketio.AsyncServer(
+        async_mode="sanic", cors_allowed_origins=[], cors_credentials=True
+    )
 else:
     sio = socketio.AsyncServer(
-        async_mode="sanic", cors_allowed_origins=[], logger=True, engineio_logger=True
+        async_mode="sanic",
+        cors_allowed_origins=[],
+        cors_credentials=True,
+        logger=True,
+        engineio_logger=True,
     )
 sio.attach(app)
 
