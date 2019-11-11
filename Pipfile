@@ -26,6 +26,7 @@ aioredis = "*"
 sanic-prometheus = "*"
 celery = "*"
 redis = "*"
+sentry-sdk = "*"
 
 [requires]
 python_version = "3.7"
