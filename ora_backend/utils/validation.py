@@ -126,7 +126,9 @@ def validate_permission(func=None, model=None, token_type="access"):
 
         # Invalidate the staff if he is disabled
         if "role_id" in requester and requester["disabled"]:
-            raise Unauthorized("Your account have been disabled. Please contact your supervisor.")
+            raise Unauthorized(
+                "Your account have been disabled. Please contact your supervisor."
+            )
 
         if not model:
             return await func(

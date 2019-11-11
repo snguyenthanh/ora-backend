@@ -376,68 +376,89 @@ async def get_many_with_count_and_group_by(
 
 async def get_top_unread_visitors(visitor_model, chat_model, staff_id, *, limit=15):
     # Add the visitor's table name as a suffix of the fields
-    _visitor_fields = (
-        "{}.{}".format(visitor_model.__tablename__, field) for field in visitor_fields
+    _visitor_fields_without_id = (
+        "{}.{} AS {}_{}".format(
+            visitor_model.__tablename__, field, visitor_model.__tablename__, field
+        )
+        for field in visitor_fields
+        if field.lower() != "id"
+    )
+    _visitor_fields_without_id_alias = (
+        "{}_{}".format(visitor_model.__tablename__, field)
+        for field in visitor_fields
+        if field.lower() != "id"
     )
     _chat_fields = (
-        "{}.{}".format(chat_model.__tablename__, field) for field in chat_fields
-    )
-    data = (
-        await db.status(
-            db.text(
-                """
-                WITH seen_chats AS (
-                	SELECT
-                		distinct chat_message_seen.chat_id
-                	FROM chat_message_seen
-                	WHERE
-                		chat_message_seen.staff_id = :staff_id
-                ), most_recent_messages AS (
-                	SELECT DISTINCT t.chat_id, chat_message.id as chat_msg_id
-                	FROM (
-                		SELECT
-                				chat.id as chat_id,
-                				MAX(chat_message.sequence_num) as max_sequence_num
-                			FROM chat
-                			JOIN chat_message on chat.id = chat_message.chat_id
-                			GROUP BY chat.id
-                	) t
-                	JOIN chat_message ON chat_message.chat_id = t.chat_id
-                	WHERE t.max_sequence_num = chat_message.sequence_num
-                )
-                SELECT {}
-                FROM visitor
-                JOIN chat ON chat.visitor_id = visitor.id
-                LEFT OUTER JOIN chat_message_seen ON chat_message_seen.chat_id = chat.id
-                WHERE
-                	chat.id NOT IN (SELECT * FROM seen_chats)
-                	OR chat_message_seen.last_seen_msg_id NOT IN (
-                		SELECT most_recent_messages.chat_msg_id
-                		FROM most_recent_messages
-                		WHERE most_recent_messages.chat_id = chat_message_seen.chat_id
-                	)
-                    AND chat_message_seen.staff_id = :staff_id
-                    AND EXISTS (
-                        SELECT 1
-                        FROM chat_message
-                        WHERE chat_message.chat_id = chat.id
-                    )
-                ORDER BY chat.updated_at DESC, chat.created_at DESC
-                LIMIT :limit
-                """.format(
-                    ", ".join(chain(_visitor_fields, _chat_fields))
-                )
-            ),
-            {"staff_id": staff_id, "limit": limit},
+        "{}.{} AS {}_{}".format(
+            chat_model.__tablename__, field, chat_model.__tablename__, field
         )
+        for field in chat_fields
+    )
+    _chat_fields_alias = (
+        "{}_{}".format(chat_model.__tablename__, field) for field in chat_fields
+    )
+
+    returned_fields = ", ".join(chain(_visitor_fields_without_id, _chat_fields))
+    returned_alias_fields = ", ".join(
+        chain(_visitor_fields_without_id_alias, _chat_fields_alias)
+    )
+    sql_query = """
+        WITH seen_chats AS (
+            SELECT
+                distinct chat_message_seen.chat_id
+            FROM chat_message_seen
+            WHERE
+                chat_message_seen.staff_id = :staff_id
+        ), most_recent_messages AS (
+            SELECT DISTINCT t.chat_id, chat_message.id as chat_msg_id
+            FROM (
+                SELECT
+                        chat.id as chat_id,
+                        MAX(chat_message.sequence_num) as max_sequence_num
+                    FROM chat
+                    JOIN chat_message on chat.id = chat_message.chat_id
+                    GROUP BY chat.id
+            ) t
+            JOIN chat_message ON chat_message.chat_id = t.chat_id
+            WHERE t.max_sequence_num = chat_message.sequence_num
+        )
+        SELECT temp.visitor_visitor_id, {}
+        FROM (
+            SELECT DISTINCT ON (visitor.id) visitor.id as visitor_visitor_id, {}
+            FROM visitor
+            JOIN chat ON chat.visitor_id = visitor.id
+            LEFT OUTER JOIN chat_message_seen ON chat_message_seen.chat_id = chat.id
+            WHERE
+                chat.id NOT IN (SELECT * FROM seen_chats)
+                OR chat_message_seen.last_seen_msg_id NOT IN (
+                    SELECT most_recent_messages.chat_msg_id
+                    FROM most_recent_messages
+                    WHERE most_recent_messages.chat_id = chat_message_seen.chat_id
+                )
+                AND chat_message_seen.staff_id = :staff_id
+                AND EXISTS (
+                    SELECT 1
+                    FROM chat_message
+                    WHERE chat_message.chat_id = chat.id
+                )
+        ) temp
+        ORDER BY temp.chat_updated_at DESC, temp.chat_created_at DESC
+        LIMIT :limit
+        """.format(
+        returned_alias_fields, returned_fields
+    )
+
+    data = (
+        await db.status(db.text(sql_query), {"staff_id": staff_id, "limit": limit})
     )[1]
 
     result = []
     # Parse the visitors and chats
+    _visitor_fields_without_id = [field for field in visitor_fields if field != "id"]
     for row in data:
-        visitor = {}
-        index = 0
-        for key in visitor_fields:
+        visitor = {"id": row[0]}
+        index = 1
+        for key in _visitor_fields_without_id:
             visitor[key] = row[index]
             index += 1
 
