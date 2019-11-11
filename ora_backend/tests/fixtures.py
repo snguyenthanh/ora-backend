@@ -39,12 +39,14 @@ users += [
         "full_name": "Agent 1",
         "email": "agent1@gmail.com",
         "password": "cs3216final",
+        "disabled": False,
     },
     {
         "id": generate_uuid(),
         "full_name": "Agent 2",
         "email": "agent2@gmail.com",
         "password": "cs3216final",
+        "disabled": False,
     },
     {
         "id": generate_uuid(),
@@ -52,6 +54,7 @@ users += [
         "email": "supervisor1@gmail.com",
         "password": "cs3216final",
         "role_id": 2,
+        "disabled": False,
     },
     {
         "id": generate_uuid(),
@@ -59,6 +62,7 @@ users += [
         "email": "supervisor2@gmail.com",
         "password": "cs3216final",
         "role_id": 2,
+        "disabled": False,
     },
     {
         "id": generate_uuid(),
@@ -66,6 +70,7 @@ users += [
         "email": "admin1@gmail.com",
         "password": "cs3216final",
         "role_id": 1,
+        "disabled": False,
     },
     {
         "id": generate_uuid(),
@@ -73,5 +78,6 @@ users += [
         "email": "admin2@gmail.com",
         "password": "cs3216final",
         "role_id": 1,
+        "disabled": False,
     },
 ]

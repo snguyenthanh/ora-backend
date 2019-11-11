@@ -1,6 +1,6 @@
 from functools import partial, wraps
 from cerberus import Validator
-from sanic.exceptions import Forbidden
+from sanic.exceptions import Forbidden, Unauthorized
 from sanic_jwt_extended.decorators import (
     get_jwt_data_in_request_header,
     verify_jwt_data_type,
@@ -123,6 +123,11 @@ def validate_permission(func=None, model=None, token_type="access"):
     async def inner(request, *args, req_args=None, **kwargs):
         # Validate the token before checking permission
         requester = await get_token_requester_from_request(request)
+
+        # Invalidate the staff if he is disabled
+        if "role_id" in requester and requester["disabled"]:
+            raise Unauthorized("Your account have been disabled. Please contact your supervisor.")
+
         if not model:
             return await func(
                 request, req_args=req_args, requester=requester, *args, **kwargs

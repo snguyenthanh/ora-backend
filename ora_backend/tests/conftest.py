@@ -351,3 +351,24 @@ def anonymous2_client(loop, app, sanic_client):
         "refresh_token": sign_str(refresh_token),
     }
     return loop.run_until_complete(sanic_client(app, cookies=cookies))
+
+
+@pytest.fixture
+def disabled_agent_client(loop, app, sanic_client):
+    _user = {
+        **_users[2],
+        "disabled": True,
+        "role_id": 2,
+        "organisation_id": _orgs[0]["id"],
+    }
+    access_token = loop.run_until_complete(
+        get_access_token_for_user(_user, app=app)
+    )
+    refresh_token = loop.run_until_complete(
+        get_refresh_token_for_user(_user, app=app)
+    )
+    cookies = {
+        "access_token": sign_str(access_token),
+        "refresh_token": sign_str(refresh_token),
+    }
+    return loop.run_until_complete(sanic_client(app, cookies=cookies))

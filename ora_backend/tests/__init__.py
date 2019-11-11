@@ -29,6 +29,7 @@ def get_fake_user():
         "full_name": profile["name"],
         "email": profile["mail"],
         "password": get_fake_password(),
+        "disabled": False,
     }
 
 

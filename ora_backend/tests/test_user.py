@@ -12,10 +12,13 @@ from ora_backend.utils.crypto import hash_password
 ## GET ##
 
 
-async def get_one_user_without_token(client, users):
+async def test_get_one_user_without_token(client, users):
     res = await client.get("/users/{}".format(users[2]["id"]))
     assert res.status == 401
 
+async def test_disabled_staff_do_things(disabled_agent_client, users):
+    res = await disabled_agent_client.get("/users/{}".format(users[2]["id"]))
+    assert res.status == 401
 
 async def test_get_one_user(agent1_client, users):
     res = await agent1_client.get("/users/{}".format(users[0]["id"]))

@@ -14,7 +14,7 @@ from sentry_sdk import init as sentry_init
 from sentry_sdk.integrations.sanic import SanicIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
-from ora_backend.config import JWT_SECRET_KEY, SANIC_CONFIG, CORS_ORIGINS, SENTRY_DSN
+from ora_backend.config import JWT_SECRET_KEY, SANIC_CONFIG, CORS_ORIGINS, SENTRY_DSN, MODE
 from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
 
 # Init Sentry before app creation
@@ -80,12 +80,13 @@ try:
 except Exception:
     pass
 else:
-    # Adds /metrics endpoint to the Sanic server
-    monitor(
-        app,
-        endpoint_type="url",
-        latency_buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1, 10, 30, 60, 120],
-    ).expose_endpoint()
+    if MODE == "production":
+        # Adds /metrics endpoint to the Sanic server
+        monitor(
+            app,
+            endpoint_type="url",
+            latency_buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1, 10, 30, 60, 120],
+        ).expose_endpoint()
 
     # # Initialize the metrics
     # counter = prometheus.Counter(
