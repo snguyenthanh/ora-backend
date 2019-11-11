@@ -16,13 +16,14 @@ psycopg2-binary = "*"
 cerberus = "*"
 # Wait until Sanic upgrades its Websocket's dependency to install uvicorn (for deployment)
 # uvicorn = "*"
-sanic-jwt-extended = "*"
+sanic-jwt-extended = "==0.4.2"	# Later versions (<1.0 under dev) require sanic<=0.8.0
 sanic-cors = "*"
 bidict = "*"
 itsdangerous = "*"
 aiocache = "*"
 python-socketio = "*"
 aioredis = "*"
+sanic-prometheus = "*"
 
 [requires]
 python_version = "3.7"
