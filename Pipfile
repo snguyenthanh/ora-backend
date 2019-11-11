@@ -25,6 +25,7 @@ python-socketio = "*"
 aioredis = "*"
 sanic-prometheus = "*"
 celery = "*"
+redis = "*"
 
 [requires]
 python_version = "3.7"
