@@ -27,6 +27,7 @@ sanic-prometheus = "*"
 celery = "*"
 redis = "*"
 sentry-sdk = "*"
+sendgrid = "*"
 
 [requires]
 python_version = "3.7"

@@ -81,7 +81,6 @@ app.register_listener(init_plugins, "after_server_start")
 
 # Register Prometheus
 try:
-    # import prometheus_client as prometheus
     from sanic_prometheus import monitor
 except Exception:
     pass
