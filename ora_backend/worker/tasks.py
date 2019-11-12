@@ -64,7 +64,7 @@ def send_email(receivers: list, visitor: dict, visitor_msg):
     print(mail_content)
     status_code = _send_email(
         receivers=receivers,
-        subject="A visitor sent a message while no staffs are online",
+        subject="Visitor {} sent a message while no staffs are online".format(visitor["name"]),
         content=mail_content.strip(),
     )
     return status_code
