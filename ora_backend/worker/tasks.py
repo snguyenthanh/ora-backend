@@ -48,13 +48,13 @@ def send_email(receivers: list, visitor: dict, visitor_msg):
 
         mail_content = """
         While no staffs are online, visitor <strong>{}</strong> has sent a message: <br/>
-        <code class="codeblock">{}</code>
+        <blockquote>{}</blockquote>
         """.format(
             visitor["name"], visitor_msg
         )
     else:
         mail_content = """
-            Visitor <strong>{}</strong> has sent a message while no staffs are online
+            Visitor <strong>{}</strong> has sent a message while no staffs are online.
         """.format(
             visitor["name"]
         )

@@ -22,6 +22,9 @@ def send_email(*, receivers: list, subject: str, content: str):
         content [Str]:
             The HTML content of the mail
     """
+    print("NOPE")
+    print(repr(receivers))
+    print(repr(subject))
     message = Mail(
         from_email=("nus.chatwithora@gmail.com", "Ora"),
         to_emails="thanhson16198@gmail.com",
