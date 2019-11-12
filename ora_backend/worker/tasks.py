@@ -7,8 +7,8 @@ celery_app = Celery(
     "tasks",
     # backend="redis://{}:6379/0".format(CELERY_BROKER_IP),
     # broker=CELERY_BROKER_URL,
-    backend="redis//localhost",
-    broker="redis//localhost",
+    backend="redis://localhost",
+    broker="redis://localhost",
 )
 # celery_app = Celery("tasks", backend="amqp", broker="amqp://localhost")
 
