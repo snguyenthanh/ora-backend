@@ -68,6 +68,8 @@ CORS_ORIGINS = [
 # Celery
 WORKER_TYPE = environ.get("WORKER_TYPE", "ora_backend")
 if WORKER_TYPE == "celery":
+    CELERY_BROKER_URL = "redis://localhost"
+else:
     CELERY_BROKER_IP = environ["CELERY_BROKER_IP"]
     CELERY_USER = environ["CELERY_USER"]
     CELERY_USER_PASSWORD = environ["CELERY_USER_PASSWORD"]
@@ -76,5 +78,3 @@ if WORKER_TYPE == "celery":
     #     CELERY_USER, CELERY_USER_PASSWORD, CELERY_BROKER_IP
     # )
     CELERY_BROKER_URL = "redis://{}:6379/0".format(CELERY_BROKER_IP)
-else:
-    CELERY_BROKER_URL = "redis://localhost"
