@@ -39,6 +39,9 @@ celery_app = Celery(
 @celery_app.task
 def send_email(receivers: list, visitor: dict, visitor_msg):
     """Send an email to all supervisors about the new message, when no one is online."""
+    if not receivers:
+        return None
+
     if visitor_msg:
         if isinstance(visitor_msg, dict):
             visitor_msg = visitor_msg.get("content")
@@ -59,8 +62,9 @@ def send_email(receivers: list, visitor: dict, visitor_msg):
     print("CELERY_SEND")
     print(receivers)
     print(mail_content)
-    _send_email(
+    response = _send_email(
         receivers=receivers,
         subject="A visitor sent a message while no staffs are online",
         content=mail_content.strip(),
     )
+    return response
