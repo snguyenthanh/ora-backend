@@ -1,7 +1,7 @@
 from time import time
 
 from uuid import uuid4
-from sanic.exceptions import InvalidUsage, NotFound
+from sanic.exceptions import InvalidUsage, NotFound, Unauthorized
 from gino.dialects.asyncpg import ARRAY, JSON
 
 from ora_backend import db
@@ -206,6 +206,12 @@ class BaseUser(BaseModel):
 
             if not user:
                 raise LoginFailureError()
+
+            # Invalidate the staff if he is disabled
+            if "role_id" in user and user["disabled"]:
+                raise Unauthorized(
+                    "Your account have been disabled. Please contact your supervisor."
+                )
         else:  # Anonymous login
             kwargs["is_anonymous"] = True
             user = await cls.add(**kwargs)
