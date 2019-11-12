@@ -22,9 +22,6 @@ def send_email(*, receivers: list, subject: str, content: str):
         content [Str]:
             The HTML content of the mail
     """
-    print("NOPE")
-    print(repr(receivers))
-    print(repr(subject))
     message = Mail(
         from_email=("nus.chatwithora@gmail.com", "Ora"),
         to_emails="thanhson16198@gmail.com",
@@ -50,11 +47,6 @@ def send_email(*, receivers: list, subject: str, content: str):
     #     "headers": response.headers,
     # }
     return response.status_code
-
-# print(response)
-# print(response.status_code)
-# print(response.body)
-# print(response.headers)
 
 # send_email(
 #     receivers=["thanhson16198@gmail.com", "e0072396@u.nus.edu"],

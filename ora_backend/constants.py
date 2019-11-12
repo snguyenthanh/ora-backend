@@ -12,3 +12,5 @@ UNCLAIMED_CHATS_PREFIX = "cache_unclaimed_chats_"
 ONLINE_USERS_PREFIX = "cache_online_users_"
 ONLINE_VISITORS_PREFIX = "cache_online_visitors_"
 MONITOR_ROOM_PREFIX = "cache_monitor_room_"
+
+LAST_SENT_EMAIL_TIMESTAMP_CACHE = "last_sent_email_timestamp"

@@ -28,7 +28,6 @@ celery = "*"
 redis = "*"
 sentry-sdk = "*"
 sendgrid = "*"
-flower = "*"
 
 [requires]
 python_version = "3.7"

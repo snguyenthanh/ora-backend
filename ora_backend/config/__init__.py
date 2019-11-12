@@ -71,9 +71,9 @@ if WORKER_TYPE == "celery":
     CELERY_BROKER_URL = "redis://localhost"
 else:
     CELERY_BROKER_IP = environ["CELERY_BROKER_IP"]
-    CELERY_USER = environ["CELERY_USER"]
-    CELERY_USER_PASSWORD = environ["CELERY_USER_PASSWORD"]
-    CELERY_VHOST = environ["CELERY_VHOST"]
+    # CELERY_USER = environ["CELERY_USER"]
+    # CELERY_USER_PASSWORD = environ["CELERY_USER_PASSWORD"]
+    # CELERY_VHOST = environ["CELERY_VHOST"]
     # CELERY_BROKER_URL = "amqp://{}:{}@{}:5672".format(
     #     CELERY_USER, CELERY_USER_PASSWORD, CELERY_BROKER_IP
     # )

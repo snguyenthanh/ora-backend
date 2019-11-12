@@ -14,6 +14,7 @@ from ora_backend.constants import (
     ROLES,
     MONITOR_ROOM_PREFIX,
     ONLINE_VISITORS_PREFIX,
+    LAST_SENT_EMAIL_TIMESTAMP_CACHE,
 )
 from ora_backend.models import (
     Chat,
@@ -971,17 +972,25 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
 
         # Send a task to Celery to send emails
         # to supervisors informing about this visitor
-        supervisor_emails = await get_supervisor_emails_to_send_emails(User)
-        if visitor_unclaimed_info:
-            content = "<br/>".join(visitor_unclaimed_info["contents"])
-        else:
-            content = None
+        # Only send the emails after a min of 30minutes
+        has_sent_email = await cache.get(LAST_SENT_EMAIL_TIMESTAMP_CACHE, namespace="email")
+        if not has_sent_email:
+            supervisor_emails = await get_supervisor_emails_to_send_emails(User)
+            if visitor_unclaimed_info:
+                contents = [
+                    item["content"]["content"]
+                    for item in visitor_unclaimed_info["contents"]
+                ]
+                content = "<br/>".join(contents)
+            else:
+                content = None
 
-        send_email.apply_async(
-            (supervisor_emails, visitor_info["user"], content),
-            expires=60 * 15,
-            retry_policy={"interval_start": 10},
-        )  # Expires in 15 minutes
+            send_email.apply_async(
+                (supervisor_emails, visitor_info["user"], content),
+                expires=60 * 15,
+                retry_policy={"interval_start": 10},
+            )  # Expires in 15 minutes
+            await cache.set(LAST_SENT_EMAIL_TIMESTAMP_CACHE, 1, namespace="email", ttl=60)
 
     # Broadcast to high-level staffs to stop monitoring the chat
     staff = visitor_info["room"]["staff"]
