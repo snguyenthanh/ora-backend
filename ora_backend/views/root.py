@@ -8,14 +8,15 @@ from ora_backend.utils.auth import get_token_data_from_request
 from ora_backend.utils.crypto import sign_str
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import validate_request
-from ora_backend.worker.tasks import add
+
+# from ora_backend.worker.tasks import add
 
 
 @blueprint.route("/")
 async def root(request):
-    add.apply_async(
-        (1, 2), expires=60 * 15, retry_policy={"interval_start": 10}
-    )  # Expires in 15 minutes
+    # add.apply_async(
+    #     (1, 2), expires=60 * 15, retry_policy={"interval_start": 10}
+    # )  # Expires in 15 minutes
     return json({"hello": "world"})
 
 

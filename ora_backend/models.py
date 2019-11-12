@@ -282,6 +282,23 @@ class User(BaseUser):
     _idx_user_organisation_id = db.Index("_idx_user_organisation_id", "organisation_id")
 
 
+class UserNotification(BaseModel):
+    __tablename__ = "user_notification"
+
+    id = db.Column(db.String(length=32), primary_key=True, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.String(length=32), nullable=False)
+    email_on_no_staffs = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_user_notification_id = db.Index("idx_user_notification_id", "id")
+    _idx_user_notification_email_on_no_staffs = db.Index(
+        "idx_user_notification_email_on_no_staffs", "email_on_no_staffs"
+    )
+
+
 class BookmarkVisitor(BaseModel):
     __tablename__ = "bookmark_visitor"
 

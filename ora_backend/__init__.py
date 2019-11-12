@@ -21,7 +21,6 @@ from ora_backend.config import (
     CORS_ORIGINS,
     SENTRY_DSN,
     MODE,
-    CELERY_BROKER_URL,
 )
 from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
 
@@ -80,9 +79,6 @@ async def init_plugins(app, loop):
 
 # Register the listeners
 app.register_listener(init_plugins, "after_server_start")
-
-# Register Celery
-# celery_sender = Celery('tasks', backend="amqp", broker=CELERY_BROKER_URL)
 
 # Register Prometheus
 try:

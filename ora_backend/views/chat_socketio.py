@@ -28,7 +28,9 @@ from ora_backend.utils.query import (
     get_one_latest,
     get_flagged_chats_of_online_visitors,
     get_many,
+    get_supervisor_emails_to_send_emails,
 )
+from ora_backend.worker.tasks import send_email
 
 
 mode = _environ.get("MODE", "development").lower()
@@ -954,7 +956,7 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
     # Remove the visitor from unclaimed chat
     unclaimed_chats = await cache.get(org_room, {})
     if user["id"] in unclaimed_chats:
-        unclaimed_chats.pop(user["id"], None)
+        visitor_unclaimed_info = unclaimed_chats.pop(user["id"], None)
         await cache.set(org_room, unclaimed_chats)
 
         # Mark the chat as unclaimed in DB
@@ -966,6 +968,20 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
             {"visitor": {**visitor_info["room"], **visitor_info["user"]}},
             room=org_room,
         )
+
+        # Send a task to Celery to send emails
+        # to supervisors informing about this visitor
+        supervisor_emails = await get_supervisor_emails_to_send_emails(User)
+        if visitor_unclaimed_info:
+            content = "<br/>".join(visitor_unclaimed_info["contents"])
+        else:
+            content = None
+
+        send_email.apply_async(
+            (supervisor_emails, visitor_info["user"], content),
+            expires=60 * 15,
+            retry_policy={"interval_start": 10},
+        )  # Expires in 15 minutes
 
     # Broadcast to high-level staffs to stop monitoring the chat
     staff = visitor_info["room"]["staff"]

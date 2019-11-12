@@ -374,6 +374,34 @@ async def get_many_with_count_and_group_by(
     )
 
 
+async def get_supervisor_emails_to_send_emails(user_model):
+    data = (
+        await db.status(
+            db.text(
+                """
+                SELECT DISTINCT temp.email
+                FROM (
+                	SELECT
+                	"user".email as email,
+                	CASE WHEN user_notification.email_on_no_staffs IS NULL
+                        THEN FALSE
+                        ELSE user_notification.email_on_no_staffs
+                    END AS email_on_no_staffs
+                FROM
+                	"user"
+                LEFT OUTER JOIN user_notification ON user_notification.user_id = "user".id
+                WHERE
+                	"user".role_id = 2
+                ) temp
+                WHERE temp.email_on_no_staffs = TRUE;
+                """
+            )
+        )
+    )[1]
+
+    return [row[0] for row in data]
+
+
 async def get_top_unread_visitors(visitor_model, chat_model, staff_id, *, limit=15):
     # Add the visitor's table name as a suffix of the fields
     _visitor_fields = (
