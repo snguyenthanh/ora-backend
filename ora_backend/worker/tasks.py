@@ -62,9 +62,9 @@ def send_email(receivers: list, visitor: dict, visitor_msg):
     print("CELERY_SEND")
     print(receivers)
     print(mail_content)
-    response = _send_email(
+    status_code = _send_email(
         receivers=receivers,
         subject="A visitor sent a message while no staffs are online",
         content=mail_content.strip(),
     )
-    return response
+    return status_code

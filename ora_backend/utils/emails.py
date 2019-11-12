@@ -44,12 +44,12 @@ def send_email(*, receivers: list, subject: str, content: str):
     message.add_personalization(to_list)
 
     response = sg.send(message)
-    return {
-        "status_code": response.status_code,
-        "body": response.body,
-        "headers": response.headers,
-    }
-
+    # return {
+    #     "status_code": response.status_code,
+    #     "body": response.body,
+    #     "headers": response.headers,
+    # }
+    return response.status_code
 
 # print(response)
 # print(response.status_code)
