@@ -1,7 +1,13 @@
 from time import sleep
 from celery import Celery
 
-celery_app = Celery("tasks", backend="redis://localhost", broker="amqp://localhost")
+from ora_backend.config import CELERY_BROKER_URL, CELERY_BROKER_IP
+
+celery_app = Celery(
+    "tasks",
+    backend="redis://{}:6379/0".format(CELERY_BROKER_IP),
+    broker=CELERY_BROKER_URL,
+)
 # celery_app = Celery("tasks", backend="amqp", broker="amqp://localhost")
 
 

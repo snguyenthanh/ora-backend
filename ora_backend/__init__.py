@@ -82,40 +82,40 @@ async def init_plugins(app, loop):
 app.register_listener(init_plugins, "after_server_start")
 
 # Register Celery
-celery_sender = Celery('tasks', backend="amqp", broker=CELERY_BROKER_URL)
+# celery_sender = Celery('tasks', backend="amqp", broker=CELERY_BROKER_URL)
 
 # Register Prometheus
 try:
     from sanic_prometheus import monitor
 except Exception:
     pass
-else:
-    if MODE == "production":
-        # Adds /metrics endpoint to the Sanic server
-        monitor(
-            app,
-            endpoint_type="url",
-            latency_buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1, 10, 30, 60, 120],
-        ).expose_endpoint()
+# else:
+#     if MODE == "production":
+#         # Adds /metrics endpoint to the Sanic server
+#         monitor(
+#             app,
+#             endpoint_type="url",
+#             latency_buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1, 10, 30, 60, 120],
+#         ).expose_endpoint()
 
-    # # Initialize the metrics
-    # counter = prometheus.Counter(
-    #     "sanic_requests_total",
-    #     "Track the total number of requests",
-    #     ["method", "endpoint"],
-    # )
-    #
-    # # Track the total number of requests
-    # @app.middleware("request")
-    # async def track_requests(request):
-    #     # Increase the value for each request
-    #     # pylint: disable=E1101
-    #     if request.path != "/metrics":
-    #         counter.labels(method=request.method, endpoint=request.path).inc()
-    #
-    # # Expose the metrics for prometheus
-    # @app.get("/metrics")
-    # async def metrics(request):
-    #     output = prometheus.exposition.generate_latest().decode("utf-8")
-    #     content_type = prometheus.exposition.CONTENT_TYPE_LATEST
-    #     return text(body=output, content_type=content_type)
+# # Initialize the metrics
+# counter = prometheus.Counter(
+#     "sanic_requests_total",
+#     "Track the total number of requests",
+#     ["method", "endpoint"],
+# )
+#
+# # Track the total number of requests
+# @app.middleware("request")
+# async def track_requests(request):
+#     # Increase the value for each request
+#     # pylint: disable=E1101
+#     if request.path != "/metrics":
+#         counter.labels(method=request.method, endpoint=request.path).inc()
+#
+# # Expose the metrics for prometheus
+# @app.get("/metrics")
+# async def metrics(request):
+#     output = prometheus.exposition.generate_latest().decode("utf-8")
+#     content_type = prometheus.exposition.CONTENT_TYPE_LATEST
+#     return text(body=output, content_type=content_type)

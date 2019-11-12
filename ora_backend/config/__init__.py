@@ -42,7 +42,8 @@ if DB_CERT:
 SANIC_RUN_CONFIG = {
     "host": "0.0.0.0",
     "port": 8000,
-    "debug": MODE != "production",
+    # "debug": MODE != "production",
+    "debug": True,
     "access_log": MODE != "production",
     "workers": 3,
 }
@@ -70,6 +71,5 @@ CELERY_USER = environ["CELERY_USER"]
 CELERY_USER_PASSWORD = environ["CELERY_USER_PASSWORD"]
 CELERY_VHOST = environ["CELERY_VHOST"]
 CELERY_BROKER_URL = "amqp://{}:{}@{}/{}".format(
-    CELERY_USER, CELERY_USER_PASSWORD,
-    CELERY_BROKER_IP, CELERY_VHOST
+    CELERY_USER, CELERY_USER_PASSWORD, CELERY_BROKER_IP, CELERY_VHOST
 )
