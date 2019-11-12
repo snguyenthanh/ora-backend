@@ -56,6 +56,9 @@ def send_email(receivers: list, visitor: dict, visitor_msg):
             visitor["name"]
         )
 
+    print("CELERY_SEND")
+    print(receivers)
+    print(mail_content)
     _send_email(
         receivers=receivers,
         subject="A visitor sent a message while no staffs are online",
