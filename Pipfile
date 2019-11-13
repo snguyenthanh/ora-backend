@@ -24,7 +24,7 @@ aiocache = "*"
 python-socketio = "*"
 aioredis = "*"
 sanic-prometheus = "*"
-hypercorn = "*"
+gunicorn = "*"
 
 [requires]
 python_version = "3.7"
