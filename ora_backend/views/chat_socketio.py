@@ -42,7 +42,7 @@ if mode == "production":
         cors_allowed_origins=[],
         client_manager=mgr,
         cors_credentials=True,
-        ping_timeout=60,  # in seconds
+        ping_timeout=30,  # in seconds
         ping_interval=15,
     )
 elif mode == "testing":
