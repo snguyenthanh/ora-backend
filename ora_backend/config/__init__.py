@@ -61,5 +61,5 @@ CORS_ORIGINS = [
     "http://127.0.0.1:3000",
     "https://ora-frontend.firebaseapp.com",
     "https://chatwithora.com",
-    "https://wwww.chatwithora.com",
+    "https://www.chatwithora.com",
 ]
