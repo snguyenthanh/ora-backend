@@ -100,6 +100,7 @@ VISITOR_WRITE_SCHEMA = {
 
 USER_READ_SCHEMA = {
     "id": is_string,
+    "internal_id": is_integer,
     "full_name": is_string,
     "display_name": is_string,
     "email": {"type": "string"},

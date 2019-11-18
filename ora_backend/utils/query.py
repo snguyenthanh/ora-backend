@@ -3,7 +3,7 @@ from itertools import chain
 
 from asyncpg.exceptions import UniqueViolationError
 from sqlalchemy import and_, desc, func
-
+from collections.abc import Iterable
 from ora_backend import db
 from ora_backend.constants import DEFAULT_SEVERITY_LEVEL_OF_CHAT
 from ora_backend.exceptions import UniqueViolationError as DuplicatedError
@@ -117,10 +117,10 @@ async def get_many(
             if descrease and last_internal_id
             else model.internal_id > last_internal_id,
             getattr(model, in_column).in_(in_values)
-            if in_column and in_values
+            if in_column and isinstance(in_values, Iterable)
             else True,
             getattr(model, not_in_column).notin_(not_in_values)
-            if not_in_column and not_in_values
+            if not_in_column and isinstance(not_in_values, Iterable)
             else True,
         )
     )

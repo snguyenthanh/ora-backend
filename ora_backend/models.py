@@ -337,6 +337,52 @@ class BookmarkVisitor(BaseModel):
         return serialize_to_dict(data)
 
 
+class ChatStaff(BaseModel):
+    __tablename__ = "chat_staff"
+
+    id = db.Column(db.String(length=32), primary_key=True, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    chat_id = db.Column(db.String(length=32), nullable=False)
+    staff_id = db.Column(db.String(length=32), nullable=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_bookmark_visitor_id = db.Index("idx_chat_staff_id", "id")
+    _idx_bookmark_visitor_staff_id = db.Index("idx_chat_staff_staff_id", "staff_id")
+    _idx_bookmark_visitor_staff_visitor = db.Index(
+        "idx_chat_staff_staff_chat", "staff_id", "chat_id"
+    )
+
+    @classmethod
+    async def get_or_create(cls, **kwargs):
+        payload = await get_one(cls, **kwargs)
+        if payload:
+            return serialize_to_dict(payload)
+
+        # Create
+        data = await create_one(
+            cls, staff_id=kwargs["staff_id"], chat_id=kwargs["chat_id"]
+        )
+        return serialize_to_dict(data)
+
+    @classmethod
+    async def update_or_create(cls, get_kwargs, update_kwargs):
+        payload = await get_one(cls, **get_kwargs)
+
+        if not payload:
+            data = await create_one(
+                cls,
+                **update_kwargs,
+                staff_id=get_kwargs["staff_id"],
+                chat_id=get_kwargs["chat_id"],
+            )
+            return serialize_to_dict(data)
+        # Update the existing one
+        data = await update_one(payload, **update_kwargs)
+        return serialize_to_dict(data)
+
+
 class ChatMessage(BaseModel):
     __tablename__ = "chat_message"
 
@@ -395,6 +441,26 @@ class Chat(BaseModel):
             return serialize_to_dict(data)
 
         return serialize_to_dict(created_attempt)
+
+
+class ChatUnhandled(BaseModel):
+    __tablename__ = "chat_unhandled"
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(
+        db.BigInteger, autoincrement=True, primary_key=True, nullable=False
+    )
+    chat_id = db.Column(db.ForeignKey("chat.id"), unique=True)
+    timestamp = db.Column(db.BigInteger, nullable=False)
+
+
+class ChatFlagged(BaseModel):
+    __tablename__ = "chat_flagged"
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(
+        db.BigInteger, autoincrement=True, primary_key=True, nullable=False
+    )
+    chat_id = db.Column(db.ForeignKey("chat.id"), unique=True)
+    timestamp = db.Column(db.BigInteger, nullable=False)
 
 
 class ChatUnclaimed(BaseModel):
@@ -459,3 +525,32 @@ class ChatMessageSeen(BaseModel):
         # Update the existing one
         data = await update_one(payload, **update_kwargs)
         return serialize_to_dict(data)
+
+
+class Settings(BaseModel):
+    __tablename__ = "settings"
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    key = db.Column(db.String(length=255), nullable=False, unique=True)
+    value = db.Column(db.String(length=255), nullable=False)
+
+class UserRole(BaseModel):
+    __tablename__ = "user_role"
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.String(length=32), db.ForeignKey("user.id"), nullable=False)
+    role_id = db.Column(db.String(length=32), db.ForeignKey("role.id"), nullable=False)
+
+
+class Role(BaseModel):
+    __tablename__ = "role"
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(length=32), nullable=False)
+
+class RolePermission(BaseModel):
+    __tablename__ = "role_permission"
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    permission = db.Column(db.String(length=32), nullable=False)
+    role_id = db.Column(db.String(length=32), db.ForeignKey("role.id"), nullable=False)

@@ -2,7 +2,7 @@ from uuid import uuid4
 from sanic.response import json
 from sanic_jwt_extended import create_access_token, create_refresh_token
 
-from ora_backend.models import User, Visitor
+from ora_backend.models import User, Visitor, Settings
 from ora_backend.views.urls import root_blueprint as blueprint
 from ora_backend.utils.auth import get_token_data_from_request
 from ora_backend.utils.crypto import sign_str
@@ -84,3 +84,9 @@ async def create_new_access_token(request):
     response.cookies["refresh_token"]["httponly"] = True
 
     return response
+
+@blueprint.route("/settings", methods=["GET"])
+async def get_settings():
+    settings = await Settings.get(many=True, limit=99)
+    # Todo: Patch settings
+    return {"data": settings}

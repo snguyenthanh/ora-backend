@@ -25,6 +25,7 @@ python-socketio = "*"
 aioredis = "*"
 sanic-prometheus = "*"
 gunicorn = "*"
+sentry-sdk = "*"
 
 [requires]
 python_version = "3.7"
