@@ -453,6 +453,18 @@ Response:
 }
 ```
 
+#### 2.10. Abnormal visitors
+
+Migrated from `staff_init` event in SocketIO into separate API endpoints:
+
+```
+GET /visitors/<visitor_id>/subscribed_staffs
+GET /visitors/unhandled
+GET /visitors/flagged
+```
+
+Returns the visitors for each category.
+
 ### 3. Users (or called `Staffs`)
 
 User roles (Staff) are

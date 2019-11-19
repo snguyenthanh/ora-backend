@@ -2,7 +2,7 @@ from sanic.response import json
 
 from ora_backend.constants import ROLES
 from ora_backend.views.urls import user_blueprint as blueprint
-from ora_backend.models import User
+from ora_backend.models import User, NotificationStaff
 from ora_backend.utils.exceptions import (
     raise_role_authorization_exception,
     raise_permission_exception,
@@ -120,5 +120,38 @@ async def user_route_single(
         many=False,
         query_params=query_params,
         requester=requester,
+    )
+    return json(response)
+
+
+@validate_request(schema="notification_staff_read", skip_body=True)
+async def noti_staff_retrieve(request, *, req_args=None, query_params=None, **kwargs):
+    notifs = await NotificationStaff(
+        **req_args, **query_params, many=True, decrease=True
+    )
+    return {"data": notifs, "links": generate_pagination_links(request.url, notifs)}
+
+
+@blueprint.route("/<staff_id>/notifications", methods=["GET"])
+@unpack_request
+async def notification_staff_route(
+    request, staff_id, *, req_args=None, req_body=None, query_params=None, **kwargs
+):
+    staff_id = staff_id.strip()
+
+    call_funcs = {
+        "GET": noti_staff_retrieve,
+        # "POST": noti_staff_create,
+        # "PUT": visitor_update,
+        # "PATCH": visitor_update,
+        # "DELETE": user_delete,
+    }
+
+    response = await call_funcs[request.method](
+        request,
+        req_args={**req_args, "staff_id": staff_id},
+        req_body=req_body,
+        query_params=query_params,
+        **kwargs
     )
     return json(response)

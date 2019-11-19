@@ -10,6 +10,8 @@ from ora_backend.models import (
     User,
     ChatMessageSeen,
     BookmarkVisitor,
+    ChatUnhandled,
+    ChatFlagged,
 )
 from ora_backend.schemas import to_boolean
 from ora_backend.utils.links import generate_pagination_links, generate_next_page_link
@@ -17,6 +19,8 @@ from ora_backend.utils.query import (
     get_visitors_with_most_recent_chats,
     get_bookmarked_visitors,
     get_top_unread_visitors,
+    get_subscribed_staffs_for_visitor,
+    get_non_normal_visitors,
 )
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import (
@@ -123,6 +127,57 @@ async def visitor_route_single(
         request, req_args={**req_args, "id": visitor_id}, req_body=req_body, **kwargs
     )
     return json(response)
+
+
+@blueprint.route("/<visitor_id>/subscribed_staffs", methods=["GET"])
+@unpack_request
+@validate_permission
+async def get_subscribed_staffs_for_visitor_route(
+    request, visitor_id, *, requester=None, req_args=None, query_params=None, **kwargs
+):
+    visitor_id = visitor_id.strip()
+    subscribed_staffs = await get_subscribed_staffs_for_visitor(visitor_id)
+
+    return json(
+        {
+            "data": subscribed_staffs,
+            "links": generate_pagination_links(request.url, subscribed_staffs),
+        }
+    )
+
+
+@blueprint.route("/unhandled", methods=["GET"])
+@unpack_request
+@validate_permission
+async def get_unhandled_staffs_for_visitor_route(
+    request, *, query_params=None, **kwargs
+):
+    query_params = query_params or {}
+    unhandled_visitors = await get_non_normal_visitors(ChatUnhandled, **query_params)
+    return json(
+        {
+            "data": unhandled_visitors,
+            "links": generate_pagination_links(request.url, unhandled_visitors),
+        }
+    )
+
+
+@blueprint.route("/flagged", methods=["GET"])
+@unpack_request
+@validate_permission
+async def get_subscribed_staffs_for_visitor_route(
+    request, *, query_params=None, **kwargs
+):
+    query_params = query_params or {}
+    flagged_visitors = await get_non_normal_visitors(
+        ChatFlagged, **query_params, extra_fields=["flag_message"]
+    )
+    return json(
+        {
+            "data": flagged_visitors,
+            "links": generate_pagination_links(request.url, flagged_visitors),
+        }
+    )
 
 
 @blueprint.route("/<visitor_id>/messages", methods=["GET"])

@@ -271,7 +271,9 @@ class User(BaseUser):
     internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     full_name = db.Column(db.String, nullable=False)
     display_name = db.Column(db.String)
-    role_id = db.Column(db.SmallInteger, nullable=False, default=3)
+    role_id = db.Column(
+        db.SmallInteger, db.ForeignKey("user_role.id"), nullable=False, default=3
+    )
     email = db.Column(db.String, unique=True, nullable=False)
     password = db.Column(db.String, nullable=False)
     disabled = db.Column(db.Boolean, nullable=False, default=False)
@@ -337,21 +339,23 @@ class BookmarkVisitor(BaseModel):
         return serialize_to_dict(data)
 
 
-class ChatStaff(BaseModel):
-    __tablename__ = "chat_staff"
+class StaffSubscriptionChat(BaseModel):
+    __tablename__ = "staff_subscription_chat"
 
     id = db.Column(db.String(length=32), primary_key=True, default=generate_uuid)
     internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    chat_id = db.Column(db.String(length=32), nullable=False)
+    visitor_id = db.Column(db.String(length=32), nullable=False)
     staff_id = db.Column(db.String(length=32), nullable=False)
     created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
     updated_at = db.Column(db.BigInteger, onupdate=unix_time)
 
     # Index
-    _idx_bookmark_visitor_id = db.Index("idx_chat_staff_id", "id")
-    _idx_bookmark_visitor_staff_id = db.Index("idx_chat_staff_staff_id", "staff_id")
+    _idx_bookmark_visitor_id = db.Index("idx_staff_subscription_chat_id", "id")
+    _idx_bookmark_visitor_staff_id = db.Index(
+        "idx_staff_subscription_chat_staff_id", "staff_id"
+    )
     _idx_bookmark_visitor_staff_visitor = db.Index(
-        "idx_chat_staff_staff_chat", "staff_id", "chat_id"
+        "idx_staff_subscription_visitor_staff_chat", "staff_id", "visitor_id"
     )
 
     @classmethod
@@ -419,6 +423,7 @@ class Chat(BaseModel):
     )
     internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     visitor_id = db.Column(db.String(length=32), nullable=False, unique=True)
+    assigned_staff_id = db.Column(db.String(length=32), nullable=True)
     tags = db.Column(ARRAY(JSON()), nullable=False, server_default="{}")
     severity_level = db.Column(
         db.SmallInteger, nullable=False, default=DEFAULT_SEVERITY_LEVEL_OF_CHAT
@@ -430,6 +435,9 @@ class Chat(BaseModel):
     _idx_chat_id = db.Index("idx_chat_id", "id")
     _idx_chat_visitor = db.Index("idx_chat_visitor", "visitor_id")
     _idx_chat_severity_level = db.Index("idx_chat_severity_level", "severity_level")
+    _idx_chat_assigned_staff_id = db.Index(
+        "idx_chat_assigned_staff_id", "assigned_staff_id"
+    )
 
     @classmethod
     async def get_or_create(cls, **kwargs):
@@ -445,22 +453,37 @@ class Chat(BaseModel):
 
 class ChatUnhandled(BaseModel):
     __tablename__ = "chat_unhandled"
+
     id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
     internal_id = db.Column(
         db.BigInteger, autoincrement=True, primary_key=True, nullable=False
     )
-    chat_id = db.Column(db.ForeignKey("chat.id"), unique=True)
-    timestamp = db.Column(db.BigInteger, nullable=False)
+    visitor_id = db.Column(db.String(length=32), nullable=False, unique=True)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_chat_unhandled_id = db.Index("idx_chat_unhandled_id", "id")
+    _idx_chat_unhandled_vistor_id = db.Index(
+        "idx_chat_unhandled_vistor_id", "visitor_id"
+    )
 
 
 class ChatFlagged(BaseModel):
     __tablename__ = "chat_flagged"
+
     id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
     internal_id = db.Column(
         db.BigInteger, autoincrement=True, primary_key=True, nullable=False
     )
-    chat_id = db.Column(db.ForeignKey("chat.id"), unique=True)
-    timestamp = db.Column(db.BigInteger, nullable=False)
+    flag_message = db.Column(JSON(), nullable=False, server_default="{}")
+    visitor_id = db.Column(db.String(length=32), nullable=False, unique=True)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_chat_flagged_id = db.Index("idx_chat_flagged_id", "id")
+    _idx_chat_flagged_vistor_id = db.Index("idx_chat_flagged_visitor_id", "visitor_id")
 
 
 class ChatUnclaimed(BaseModel):
@@ -527,30 +550,66 @@ class ChatMessageSeen(BaseModel):
         return serialize_to_dict(data)
 
 
-class Settings(BaseModel):
-    __tablename__ = "settings"
+class Setting(BaseModel):
+    """A global settings for the app, such as turning on/off the toggles."""
+
+    __tablename__ = "setting"
+
     id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
     internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    key = db.Column(db.String(length=255), nullable=False, unique=True)
-    value = db.Column(db.String(length=255), nullable=False)
+    key = db.Column(db.String, nullable=False, unique=True)
+    value = db.Column(db.SmallInteger, nullable=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_settings_id = db.Index("idx_settings_id", "id")
+    _idx_settings_key = db.Index("idx_settings_key", "key")
+
 
 class UserRole(BaseModel):
     __tablename__ = "user_role"
-    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
-    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.String(length=32), db.ForeignKey("user.id"), nullable=False)
-    role_id = db.Column(db.String(length=32), db.ForeignKey("role.id"), nullable=False)
 
+    id = db.Column(db.SmallInteger, primary_key=True, autoincrement=False, unique=True)
+    name = db.Column(db.String, nullable=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
 
-class Role(BaseModel):
-    __tablename__ = "role"
-    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
-    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(length=32), nullable=False)
+    # Index
+    _idx_user_role_table_id = db.Index("idx_user_role_table_id", "id")
+
 
 class RolePermission(BaseModel):
     __tablename__ = "role_permission"
+
     id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
     internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    permission = db.Column(db.String(length=32), nullable=False)
-    role_id = db.Column(db.String(length=32), db.ForeignKey("role.id"), nullable=False)
+    name = db.Column(db.String, nullable=False)
+    role_id = db.Column(db.SmallInteger, db.ForeignKey("user_role.id"), nullable=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_role_permission_id = db.Index("idx_role_permission_id", "id")
+    _idx_role_permission_role_id = db.Index("idx_role_permission_role_id", "role_id")
+    _idx_role_permission_name = db.Index("idx_role_permission_key", "name")
+    _idx_role_permission_name_role_id = db.Index(
+        "idx_role_permission_key_role_id", "name", "role_id", unique=True
+    )
+
+
+class NotificationStaff(BaseModel):
+    __tablename__ = "notification_staff"
+
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    staff_id = db.Column(db.String, nullable=False)
+    content = db.Column(JSON(), nullable=False, server_default="{}")
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_notification_staff_id = db.Index("idx_notification_staff_id", "id")
+    _idx_notification_staff_staff_id = db.Index(
+        "idx_notification_staff_staff_id", "staff_id"
+    )

@@ -163,6 +163,36 @@ data={
 }
 ```
 
+#### add_staff_to_chat
+
+For a supervisor / admin to add new staffs to a chat.
+
+Args:
+
+`data` (dict):
+
+```
+data={
+	"visitor": <visitor_id>, # The visitor's ID
+  "staff": <staff_id> # The staff's ID
+}
+```
+
+#### remove_staff_from_chat
+
+For a supervisor / admin to remove a staff from a chat.
+
+Args:
+
+`data` (dict):
+
+```
+data={
+	"visitor": <visitor_id>, # The visitor's ID
+  "staff": <staff_id> # The staff's ID
+}
+```
+
 #### change_chat_priority
 
 For any staffs to change a chat's priority (flag/unflag).
@@ -638,6 +668,54 @@ data={
     'name': 'Sarah Wood',
     'updated_at': None
   }
+}
+```
+
+##### staff_being_added_to_chat
+
+This event is sent to the chat room. So all the staffs and the visitor in the room will receive this event.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "staff": {   # The supervisor / admin that takes over the chat
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
+  },
+}
+```
+
+##### staff_being_removed_from_chat
+
+This event is sent to the chat room. So all the staffs and the visitor in the room will receive this event.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "staff": {   # The supervisor / admin that takes over the chat
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
+  },
 }
 ```
 

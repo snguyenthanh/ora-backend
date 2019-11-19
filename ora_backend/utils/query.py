@@ -36,8 +36,18 @@ user_fields = [
     for key, val in USER_READ_SCHEMA.items()
     if not val.get("readonly", False) and key not in ignore_fields
 ]
+user_fields_with_table_name = [
+    r'"user".{}'.format(key)
+    for key, val in USER_READ_SCHEMA.items()
+    if not val.get("readonly", False) and key not in ignore_fields
+]
 visitor_fields = [
     key
+    for key, val in VISITOR_READ_SCHEMA.items()
+    if not val.get("readonly", False) and key not in ignore_fields
+]
+visitor_fields_with_table_name = [
+    "visitor.{}".format(key)
     for key, val in VISITOR_READ_SCHEMA.items()
     if not val.get("readonly", False) and key not in ignore_fields
 ]
@@ -372,6 +382,90 @@ async def get_many_with_count_and_group_by(
         .group_by(*[getattr(model, column) for column in columns])
         .gino.all()
     )
+
+
+async def get_subscribed_staffs_for_visitor(visitor_id, **kwargs):
+    sql_query = """
+        WITH subscribed_staffs AS (
+            SELECT
+                DISTINCT staff_subscription_chat.staff_id
+            FROM staff_subscription_chat
+            WHERE
+                staff_subscription_chat.visitor_id = :visitor_id
+        )
+        SELECT {}
+        FROM "user"
+        WHERE
+                "user".id IN subscribed_staffs
+        ORDER BY "user".full_name;
+    """.format(
+        ", ".join(user_fields_with_table_name)
+    )
+
+    data = (await db.status(db.text(sql_query), {"visitor_id": visitor_id}))[1]
+
+    result = []
+    # Parse the users
+    for row in data:
+        visitor_data = {key: value for key, value in zip(user_fields, row)}
+        result.append(visitor_data)
+
+    return result
+
+
+async def get_non_normal_visitors(
+    model, *, limit=15, after_id=None, extra_fields=None, **kwargs
+):
+    extra_fields = extra_fields or []
+    extra_fields_with_table_name = [
+        "{}.{}".format(model.__tablename__, field) for field in extra_fields
+    ]
+
+    # Get the `internal_id` value from the starting row
+    # And use it to query the next page of results
+    last_internal_id = 0
+    if after_id:
+        row_of_after_id = await model.query.where(
+            model.visitor_id == after_id
+        ).gino.first()
+        if not row_of_after_id:
+            raise_not_found_exception(model, visitor_id=after_id)
+
+        last_internal_id = row_of_after_id.internal_id
+
+    sql_query = """
+        SELECT {}
+        FROM visitor
+        JOIN :model_table_name
+            ON :model_table_name.visitor_id = visitor.id
+        WHERE
+            :model_table_name.internal_id > :last_internal_id
+        ORDER BY :model_table_name.internal_id
+        LIMIT :limit
+    """.format(
+        ", ".join(extra_fields_with_table_name + visitor_fields_with_table_name)
+    )
+
+    data = (
+        await db.status(
+            db.text(sql_query),
+            {
+                "model_table_name": model.__tablename__,
+                "last_internal_id": last_internal_id,
+                "limit": limit,
+            },
+        )
+    )[1]
+
+    result = []
+    # Parse the users
+    for row in data:
+        visitor_data = {
+            key: value for key, value in zip(extra_fields + visitor_fields, row)
+        }
+        result.append(visitor_data)
+
+    return result
 
 
 async def get_top_unread_visitors(visitor_model, chat_model, staff_id, *, limit=15):
