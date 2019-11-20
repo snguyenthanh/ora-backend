@@ -486,7 +486,7 @@ async def get_handled_chats(model, *, limit=15, after_id=None, **kwargs):
     """Return all the chats excluding the unhandled ones"""
     # Get the `internal_id` value from the starting row
     # And use it to query the next page of results
-    last_internal_id = 0
+    last_internal_id = -1
     if after_id:
         row_of_after_id = await model.query.where(
             model.visitor_id == after_id
@@ -508,11 +508,12 @@ async def get_handled_chats(model, *, limit=15, after_id=None, **kwargs):
                 WHERE
                     chat_unhandled.visitor_id = visitor.id
             )
-            AND visitor.internal_id < :last_internal_id
+            {}
         ORDER BY visitor.internal_id DESC
         LIMIT :limit
     """.format(
-        ", ".join(chat_fields_with_table_name + visitor_fields_with_table_name)
+        ", ".join(chat_fields_with_table_name + visitor_fields_with_table_name),
+        "AND visitor.internal_id < :last_internal_id" if last_internal_id >= 0 else "",
     )
 
     data = (

@@ -1,13 +1,15 @@
 from sanic.response import json
+from sanic.exceptions import Forbidden
 
 from ora_backend.constants import ROLES
 from ora_backend.views.urls import user_blueprint as blueprint
-from ora_backend.models import User, NotificationStaff
+from ora_backend.models import User, NotificationStaff, NotificationStaffRead
 from ora_backend.utils.exceptions import (
     raise_role_authorization_exception,
     raise_permission_exception,
 )
 from ora_backend.utils.links import generate_pagination_links
+from ora_backend.utils.query import get_number_of_unread_notifications_for_staff
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import validate_request, validate_permission
 
@@ -129,15 +131,33 @@ async def noti_staff_retrieve(request, *, req_args=None, query_params=None, **kw
     notifs = await NotificationStaff(
         **req_args, **query_params, many=True, decrease=True
     )
-    return {"data": notifs, "links": generate_pagination_links(request.url, notifs)}
+    staff_id = req_args["staff_id"]
+    number_of_unread_notis = await get_number_of_unread_notifications_for_staff(
+        staff_id, NotificationStaffRead, NotificationStaff
+    )
+    return {
+        "data": notifs,
+        "num_of_unread": number_of_unread_notis,
+        "links": generate_pagination_links(request.url, notifs),
+    }
 
 
-@blueprint.route("/<staff_id>/notifications", methods=["GET"])
+@blueprint.route("/notifications", methods=["GET"])
 @unpack_request
+@validate_permission
 async def notification_staff_route(
-    request, staff_id, *, req_args=None, req_body=None, query_params=None, **kwargs
+    request,
+    staff_id,
+    *,
+    req_args=None,
+    req_body=None,
+    query_params=None,
+    requester=None,
+    **kwargs
 ):
-    staff_id = staff_id.strip()
+    if "role_id" not in requester:
+        raise Forbidden("Only staffs can receive notifications")
+    staff_id = requester["id"]
 
     call_funcs = {
         "GET": noti_staff_retrieve,

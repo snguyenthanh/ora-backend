@@ -165,6 +165,8 @@ async def get_subscribed_staffs_for_visitor_route(
 async def get_subscribed_visitors_for_staff_route(
     request, *, req_args=None, query_params=None, requester=None, **kwargs
 ):
+    req_args = req_args or {}
+
     # Return the staff's unhandled visitors
     staff_id = requester["id"]
     subscribed_visitors = await get_self_subscribed_visitors(

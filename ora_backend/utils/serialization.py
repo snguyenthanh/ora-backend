@@ -15,7 +15,7 @@ def serialize_row(row, fields=None, allow_readonly=False):
         fields = set(_dict.keys())
 
     # Remove internal_id
-    _dict.pop("internal_id", None)
+    # _dict.pop("internal_id", None)
 
     # Hide all properties with readonly=True
     return {

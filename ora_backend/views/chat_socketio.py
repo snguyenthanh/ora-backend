@@ -37,6 +37,7 @@ from ora_backend.utils.query import (
     get_many,
     get_subscribed_staffs_for_visitor,
 )
+from ora_backend.utils.notifications import send_notifications_to_all_high_ups
 from ora_backend.utils.serialization import serialize_to_dict
 from ora_backend.utils.permissions import role_is_authorized
 
@@ -955,6 +956,13 @@ async def change_chat_priority(sid, data):
     if data["severity_level"] > 0:
         await ChatFlagged.add_if_not_exists(
             visitor_id=visitor_info["user"]["id"], flag_message=flag_message
+        )
+        await send_notifications_to_all_high_ups(
+            {
+                "content": "{} has flagged a chat of visitor {}".format(
+                    user["full_name"], visitor_info["user"]["name"]
+                )
+            }
         )
     else:
         await ChatFlagged.remove_if_exists(visitor_id=visitor_info["user"]["id"])

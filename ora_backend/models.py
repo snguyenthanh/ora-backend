@@ -3,6 +3,7 @@ from time import time
 from uuid import uuid4
 from sanic.exceptions import InvalidUsage, NotFound, Unauthorized
 from gino.dialects.asyncpg import ARRAY, JSON
+from sqlalchemy.dialects.postgresql import insert
 
 from ora_backend import db
 from ora_backend.constants import ROLES as _ROLES, DEFAULT_SEVERITY_LEVEL_OF_CHAT
@@ -607,6 +608,29 @@ class RolePermission(BaseModel):
     )
 
 
+class NotificationStaffRead(BaseModel):
+    __tablename__ = "notification_staff_read"
+
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    staff_id = db.Column(db.String, unique=True, nullable=False)
+    last_read_internal_id = db.Column(db.BigInteger, nullable=False, default=-1)
+
+    # Index
+    _idx_notification_staff_read_staff_id = db.Index(
+        "idx_notification_staff_read_staff_id", "staff_id"
+    )
+
+    @classmethod
+    async def get_or_create(cls, serialized=True, **kwargs):
+        payload = await get_one(cls, **kwargs)
+        if payload:
+            return serialize_to_dict(payload) if serialized else payload
+
+        # Create
+        data = await create_one(cls, staff_id=kwargs["staff_id"])
+        return serialize_to_dict(data) if serialized else data
+
+
 class NotificationStaff(BaseModel):
     __tablename__ = "notification_staff"
 
@@ -622,3 +646,9 @@ class NotificationStaff(BaseModel):
     _idx_notification_staff_staff_id = db.Index(
         "idx_notification_staff_staff_id", "staff_id"
     )
+
+    @classmethod
+    async def bulk_upsert(cls, notifications):
+        await insert(cls.__table__).values(
+            notifications
+        ).on_conflict_do_nothing().gino.scalar()

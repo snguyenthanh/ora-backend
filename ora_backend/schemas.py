@@ -208,7 +208,9 @@ SETTING_WRITE_SCHEMA = {
 
 # INJECTED SCHEMAS
 
-GLOBAL_SCHEMA = {"internal_id": {"readonly": True}}
+# GLOBAL_SCHEMA = {"internal_id": {"readonly": True}}
+GLOBAL_READ_SCHEMA = {"internal_id": is_integer}
+GLOBAL_WRITE_SCHEMA = {"internal_id": {"readonly": True}}
 QUERY_PARAM_READ_SCHEMA = {"after_id": is_string, "limit": is_unsigned_integer_with_max}
 QUERY_PARAM_GET_VISITORS = {
     "page": is_unsigned_integer_with_max,
@@ -221,13 +223,14 @@ for var_name in list(variables.keys()):
     inject_dict = {}
 
     if var_name.endswith("_SCHEMA"):
-        inject_dict.update(GLOBAL_SCHEMA)
-        if var_name.endswith("_READ_SCHEMA"):
+        if var_name.endswith("_READ_SCHEMA") and var_name != "QUERY_PARAM_READ_SCHEMA":
+            inject_dict.update(GLOBAL_READ_SCHEMA)
             inject_dict.update(QUERY_PARAM_READ_SCHEMA)
+        elif var_name.endswith("_WRITE_SCHEMA"):
+            inject_dict.update(GLOBAL_WRITE_SCHEMA)
 
         # Update the variable
         variables[var_name].update(inject_dict)
-
 
 """
 The format for keys in `schemas` is
