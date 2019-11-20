@@ -467,6 +467,9 @@ GET /visitors/<visitor_id>/subscribed_staffs
 # A staff gets his own subscribed visitors
 GET /visitors/subscribed
 
+# A staff gets his own subscribed visitors, excluding unhandled ones
+GET /visitors/subscribed?exclude_unhandled=true
+
 # Unhandled and flagged
 GET /visitors/unhandled
 GET /visitors/flagged

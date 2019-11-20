@@ -377,31 +377,71 @@ async def get_self_subscribed_visitors(
 
         last_internal_id = row_of_after_id.internal_id
 
-    query = (
-        db.select(
-            [
-                *(getattr(chat_model, key) for key in chat_fields),
-                *(getattr(visitor_model, key) for key in visitor_fields),
-            ]
-        )
-        .select_from(
-            visitor_model.join(
-                subscription_model, visitor_model.id == subscription_model.visitor_id
-            )
-        )
-        .where(
-            and_(
-                subscription_model.staff_id == staff_id,
-                subscription_model.internal_id < last_internal_id
-                if last_internal_id is not None
-                else True,
-            )
-        )
-        .order_by(desc(subscription_model.internal_id))
-        .limit(limit)
-        .gino.all()
+    sql_query = """
+        SELECT {}
+        FROM visitor
+        JOIN chat
+            ON chat.visitor_id = visitor.id
+        JOIN staff_subscription_chat
+            ON staff_subscription_chat.visitor_id = visitor.id
+        WHERE
+            staff_subscription_chat.staff_id = :staff_id
+            {}
+            {}
+        ORDER BY
+            staff_subscription_chat.internal_id DESC
+        LIMIT :limit
+    """.format(
+        ", ".join(chat_fields_with_table_name + visitor_fields_with_table_name),
+        "AND visitor.internal_id < :last_internal_id"
+        if last_internal_id is not None
+        else "",
+        """AND NOT EXISTS (
+            SELECT 1
+            FROM chat_unhandled
+            WHERE
+                chat_unhandled.visitor_id = visitor.id
+        )"""
+        if exclude_unhandled
+        else "",
     )
-    data = await query
+
+    data = (
+        await db.status(
+            db.text(sql_query),
+            {
+                "staff_id": staff_id,
+                "limit": limit,
+                "last_internal_id": last_internal_id,
+            },
+        )
+    )[1]
+
+    # query = (
+    #     db.select(
+    #         [
+    #             *(getattr(chat_model, key) for key in chat_fields),
+    #             *(getattr(visitor_model, key) for key in visitor_fields),
+    #         ]
+    #     )
+    #     .select_from(
+    #         visitor_model.join(
+    #             subscription_model, visitor_model.id == subscription_model.visitor_id
+    #         )
+    #     )
+    #     .where(
+    #         and_(
+    #             subscription_model.staff_id == staff_id,
+    #             subscription_model.internal_id < last_internal_id
+    #             if last_internal_id is not None
+    #             else True,
+    #         )
+    #     )
+    #     .order_by(desc(subscription_model.internal_id))
+    #     .limit(limit)
+    #     .gino.all()
+    # )
+    # data = await query
 
     result = []
     # Parse the visitor
@@ -489,9 +529,7 @@ async def get_handled_chats(model, *, limit=15, after_id=None, **kwargs):
     # And use it to query the next page of results
     last_internal_id = -1
     if after_id:
-        row_of_after_id = await model.query.where(
-            model.id == after_id
-        ).gino.first()
+        row_of_after_id = await model.query.where(model.id == after_id).gino.first()
         if not row_of_after_id:
             raise_not_found_exception(model, visitor_id=after_id)
 

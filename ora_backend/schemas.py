@@ -234,6 +234,7 @@ for var_name in list(variables.keys()):
 # Some models dont have `internal_id`
 CHAT_MESSAGE_READ_SCHEMA.pop("internal_id", None)
 CHAT_MESSAGE_WRITE_SCHEMA.pop("internal_id", None)
+
 """
 The format for keys in `schemas` is
 <tablename>_read or <tablename>_write

@@ -580,7 +580,8 @@ class Setting(BaseModel):
 class UserRole(BaseModel):
     __tablename__ = "user_role"
 
-    id = db.Column(db.SmallInteger, primary_key=True, autoincrement=False, unique=True)
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=False, unique=True)
+    internal_id = db.Column(db.BigInteger, autoincrement=True, unique=True)
     name = db.Column(db.String, nullable=False)
     created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
     updated_at = db.Column(db.BigInteger, onupdate=unix_time)

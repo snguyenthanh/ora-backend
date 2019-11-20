@@ -166,11 +166,18 @@ async def get_subscribed_visitors_for_staff_route(
     request, *, req_args=None, query_params=None, requester=None, **kwargs
 ):
     req_args = req_args or {}
+    exclude_unhandled = req_args.get("exclude_unhandled", "false")
+    exclude_unhandled = exclude_unhandled.lower() in {"1", "true"}
 
     # Return the staff's unhandled visitors
     staff_id = requester["id"]
     subscribed_visitors = await get_self_subscribed_visitors(
-        Visitor, Chat, StaffSubscriptionChat, staff_id, **query_params
+        Visitor,
+        Chat,
+        StaffSubscriptionChat,
+        staff_id,
+        **query_params,
+        exclude_unhandled=exclude_unhandled,
     )
 
     return json(
