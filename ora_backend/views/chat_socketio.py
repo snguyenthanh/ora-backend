@@ -253,6 +253,7 @@ async def connect(sid, environ: dict):
         _SETTINGS = await Setting.get(many=True, limit=100)
         _SETTINGS_AS_DICT = {setting["key"]: setting["value"] for setting in _SETTINGS}
         await cache.set(CACHE_SETTINGS, _SETTINGS_AS_DICT, namespace="settings")
+        settings = _SETTINGS_AS_DICT
 
     # Staff
     if user_type == User.__tablename__:
@@ -288,7 +289,7 @@ async def connect(sid, environ: dict):
             sio.enter_room(sid, monitor_room)
 
         # Update the current unclaimed chats to the newly connected staff
-        unclaimed_chats = []
+        unclaimed_chats = {}
         if settings.get("allow_claiming_chat", 0):
             unclaimed_chats = await cache.get(org_id, {})
 
