@@ -443,8 +443,8 @@ async def get_staff_unhandled_visitors(
         )
         SELECT {}
         FROM visitor
-        JOIN {}
-            ON {}.visitor_id = visitor.id
+        JOIN chat_unhandled
+            ON chat_unhandled.visitor_id = visitor.id
         WHERE
             EXISTS (
                 SELECT 1
@@ -456,11 +456,7 @@ async def get_staff_unhandled_visitors(
         ORDER BY {}.internal_id
         LIMIT :limit
     """.format(
-        ", ".join(visitor_fields_with_table_name),
-        model_table_name,
-        model_table_name,
-        model_table_name,
-        model_table_name,
+        ", ".join(visitor_fields_with_table_name), model_table_name, model_table_name
     )
 
     data = (
