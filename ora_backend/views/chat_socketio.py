@@ -1115,7 +1115,7 @@ async def handle_staff_leave(sid, session, data):
     # Remove assigned `staff` to room
     # staff = visitor_info["room"]["staff"]
     # visitor_info["room"]["staff"] = 0
-    visitor_info["room"]["staffs"].pop(user["id"], None)
+    staff = visitor_info["room"]["staffs"].pop(user["id"], None)
     visitor = visitor_info["user"]
 
     # visitor_info["room"]["staffs"] = visitor_info["room"]["staffs"].copy()
