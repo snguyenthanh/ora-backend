@@ -433,27 +433,27 @@ async def get_non_normal_visitors(
 
         last_internal_id = row_of_after_id.internal_id
 
+    model_table_name = model.__tablename__
     sql_query = """
         SELECT {}
         FROM visitor
-        JOIN :model_table_name
-            ON :model_table_name.visitor_id = visitor.id
+        JOIN {}
+            ON {}.visitor_id = visitor.id
         WHERE
-            :model_table_name.internal_id > :last_internal_id
-        ORDER BY :model_table_name.internal_id
+            {}.internal_id > :last_internal_id
+        ORDER BY {}.internal_id
         LIMIT :limit
     """.format(
-        ", ".join(extra_fields_with_table_name + visitor_fields_with_table_name)
+        ", ".join(extra_fields_with_table_name + visitor_fields_with_table_name),
+        model_table_name,
+        model_table_name,
+        model_table_name,
+        model_table_name,
     )
 
     data = (
         await db.status(
-            db.text(sql_query),
-            {
-                "model_table_name": model.__tablename__,
-                "last_internal_id": last_internal_id,
-                "limit": limit,
-            },
+            db.text(sql_query), {"last_internal_id": last_internal_id, "limit": limit}
         )
     )[1]
 

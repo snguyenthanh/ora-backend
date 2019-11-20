@@ -423,7 +423,6 @@ class Chat(BaseModel):
     )
     internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     visitor_id = db.Column(db.String(length=32), nullable=False, unique=True)
-    assigned_staff_id = db.Column(db.String(length=32), nullable=True)
     tags = db.Column(ARRAY(JSON()), nullable=False, server_default="{}")
     severity_level = db.Column(
         db.SmallInteger, nullable=False, default=DEFAULT_SEVERITY_LEVEL_OF_CHAT
@@ -435,9 +434,6 @@ class Chat(BaseModel):
     _idx_chat_id = db.Index("idx_chat_id", "id")
     _idx_chat_visitor = db.Index("idx_chat_visitor", "visitor_id")
     _idx_chat_severity_level = db.Index("idx_chat_severity_level", "severity_level")
-    _idx_chat_assigned_staff_id = db.Index(
-        "idx_chat_assigned_staff_id", "assigned_staff_id"
-    )
 
     @classmethod
     async def get_or_create(cls, **kwargs):

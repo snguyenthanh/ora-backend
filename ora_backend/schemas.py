@@ -39,7 +39,6 @@ is_json_list = {"type": "list", "schema": {"type": "dict"}}
 CHAT_READ_SCHEMA = {
     "id": is_string,
     "visitor_id": is_string,
-    "assigned_staff_id": is_string,
     "tags": is_json_list,
     "severity_level": is_unsigned_integer,
     "created_at": is_unsigned_integer,
@@ -49,7 +48,6 @@ CHAT_READ_SCHEMA = {
 CHAT_WRITE_SCHEMA = {
     "id": {"readonly": True},
     "visitor_id": is_required_string,
-    "assigned_staff_id": is_optional_string,
     "tags": is_json_list,
     "severity_level": is_unsigned_integer,
     "created_at": {"readonly": True},

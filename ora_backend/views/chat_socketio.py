@@ -149,8 +149,10 @@ async def auto_assign_staff_to_chat(visitor_id, exclude_staff_id=None):
         )
 
     # Assign the chat to the staff
-    await Chat.modify({"visitor_id": visitor_id}, {"assigned_staff_id": staff["id"]})
-
+    if staff:
+        await StaffSubscriptionChat.add_if_not_exists(
+            staff_id=staff["id"], visitor_id=visitor_id
+        )
     return staff
 
 
@@ -182,10 +184,7 @@ async def get_or_create_visitor_session(
     # staffs = dict(map(lambda staff: (staff["id"], staff), staffs))
     subscribed_staffs = await get_subscribed_staffs_for_visitor(visitor_id)
     staffs = {staff["id"]: staff for staff in subscribed_staffs}
-    if chat_room["assigned_staff_id"]:
-        staff = await User.get(id=chat_room["assigned_staff_id"])
-    else:
-        # Auto assign a staff to him
+    if not staffs:
         staff = await auto_assign_staff_to_chat(visitor_id)
 
     data = {
@@ -194,7 +193,6 @@ async def get_or_create_visitor_session(
         "room": {
             **chat_room,
             # "staffs": [],
-            "staff": staff,
             "staffs": staffs,
             "sequence_num": sequence_num + 1,
         },
@@ -303,9 +301,9 @@ async def connect(sid, environ: dict):
                 onl_visitor_ids, namespace="visitor_info"
             )
             for visitor_id, chat_room in zip(onl_visitor_ids, current_chat_rooms):
-                online_visitors[visitor_id]["staff"] = (
-                    chat_room["room"].get("staff", 0) if chat_room else 0
-                )
+                # online_visitors[visitor_id]["staff"] = (
+                #     chat_room["room"].get("staff", 0) if chat_room else 0
+                # )
                 online_visitors[visitor_id]["staffs"] = (
                     chat_room["room"].get("staffs", {}) if chat_room else {}
                 )
@@ -505,13 +503,15 @@ async def connect(sid, environ: dict):
             skip_sid=sid,
         )
 
-        staff = visitor_info["room"].get("staff")
+        # staff = visitor_info["room"].get("staff")
         staffs = visitor_info["room"].get("staffs")
         await sio.emit(
             "visitor_init",
             data={
-                "staff": staff if staff else None,
-                "staffs": staffs if staffs else None,
+                # "staff": staff if staff else None,
+                "staffs": staffs
+                if staffs
+                else None
             },
             room=sid,
         )
@@ -774,13 +774,13 @@ async def take_over_chat(sid, data):
 
     if allow_claiming_chat:
         # Get current serving staff
-        cur_staff = visitor_info["room"]["staff"]
+        cur_staff = visitor_info["room"]["staffs"]
 
         if not cur_staff:
             return False, "Cannot take over an unclaimed chat."
 
         # Only higher-up staffs can take over a lower one
-        if requester["role_id"] >= cur_staff["role_id"]:
+        if requester["role_id"] >= cur_staff[0]["role_id"]:
             return (
                 False,
                 "A {} cannot take over a chat from a {}.".format(
@@ -806,7 +806,7 @@ async def take_over_chat(sid, data):
         # Update "staff" in cache for room
         sequence_num = chat_room_info.get("sequence_num", 0)
         visitor_info["room"]["sequence_num"] = sequence_num + 1
-        visitor_info["room"]["staff"] = {**requester, "sid": sid}
+        visitor_info["room"]["staffs"][0] = {**requester, "sid": sid}
         await cache.set(visitor_id, visitor_info, namespace="visitor_info")
 
         # Update the rooms the staff is in
@@ -905,13 +905,13 @@ async def handle_visitor_msg(sid, content):
     # And as there is only 1 org, choose it
     org = (await Organisation.query.gino.all())[0]
     org_room = "{}{}".format(UNCLAIMED_CHATS_PREFIX, org.id)
-    staff = visitor_info["room"]["staff"]
+    staffs = visitor_info["room"]["staffs"]
     # staffs = visitor_info["room"]["staffs"]
 
     # Append the user to the in-memory unclaimed chats
     # only if the visitor is online
     unclaimed_chats = await cache.get(org_room, {})
-    if not staff:
+    if not staffs:
         if user["id"] not in unclaimed_chats:
             # If the visitor already has an offline unclaimed chat
             # Delete it in DB and move it to online unclaimed chat
@@ -935,7 +935,7 @@ async def handle_visitor_msg(sid, content):
             await sio.emit("append_unclaimed_chats", data, room=org_room)
 
         # If the visitor has no staff assigned, append the content to unclaimed
-        elif not visitor_info["room"]["staff"]:
+        elif not visitor_info["room"]["staffs"]:
             unclaimed_chats[user["id"]]["contents"].append(chat_msg)
             await cache.set(org_room, unclaimed_chats)
             # Emit to add the message to listening clients
@@ -1113,8 +1113,9 @@ async def handle_staff_leave(sid, session, data):
     visitor_info["room"]["sequence_num"] = sequence_num + 1
 
     # Remove assigned `staff` to room
-    staff = visitor_info["room"]["staff"]
-    visitor_info["room"]["staff"] = 0
+    # staff = visitor_info["room"]["staff"]
+    # visitor_info["room"]["staff"] = 0
+    visitor_info["room"]["staffs"].pop(user["id"], None)
     visitor = visitor_info["user"]
 
     # visitor_info["room"]["staffs"] = visitor_info["room"]["staffs"].copy()
