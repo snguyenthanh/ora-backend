@@ -355,7 +355,14 @@ async def get_bookmarked_visitors(
 
 
 async def get_self_subscribed_visitors(
-    visitor_model, subscription_model, staff_id, *, limit=15, after_id=None, **kwargs
+    visitor_model,
+    chat_model,
+    subscription_model,
+    staff_id,
+    *,
+    limit=15,
+    after_id=None,
+    **kwargs,
 ):
     # Get the `internal_id` value from the starting row
     # And use it to query the next page of results
@@ -370,7 +377,12 @@ async def get_self_subscribed_visitors(
         last_internal_id = row_of_after_id.internal_id
 
     query = (
-        db.select([*(getattr(visitor_model, key) for key in visitor_fields)])
+        db.select(
+            [
+                *(getattr(chat_model, key) for key in chat_fields),
+                *(getattr(visitor_model, key) for key in visitor_fields),
+            ]
+        )
         .select_from(
             visitor_model.join(
                 subscription_model, visitor_model.id == subscription_model.visitor_id
@@ -394,7 +406,7 @@ async def get_self_subscribed_visitors(
     # Parse the visitor
     for row in data:
         visitor_info = {}
-        for key, val in zip(visitor_fields, row):
+        for key, val in zip(chat_fields + visitor_fields, row):
             visitor_info[key] = val
 
         result.append(visitor_info)

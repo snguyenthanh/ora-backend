@@ -168,7 +168,7 @@ async def get_subscribed_visitors_for_staff_route(
     # Return the staff's unhandled visitors
     staff_id = requester["id"]
     subscribed_visitors = await get_self_subscribed_visitors(
-        Visitor, StaffSubscriptionChat, staff_id, **query_params
+        Visitor, Chat, StaffSubscriptionChat, staff_id, **query_params
     )
 
     return json(
