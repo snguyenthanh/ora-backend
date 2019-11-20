@@ -26,7 +26,7 @@ async def change_global_settings(
     return {}
 
 
-@blueprint.route("/settings", methods=["GET", "PUT", "PATCH"])
+@blueprint.route("/", methods=["GET", "PUT", "PATCH"])
 @unpack_request
 async def get_settings(request, *, req_args=None, req_body=None, **kwargs):
     call_funcs = {
