@@ -360,6 +360,7 @@ async def get_self_subscribed_visitors(
     subscription_model,
     staff_id,
     *,
+    exclude_unhandled=False,
     limit=15,
     after_id=None,
     **kwargs,
@@ -489,7 +490,7 @@ async def get_handled_chats(model, *, limit=15, after_id=None, **kwargs):
     last_internal_id = -1
     if after_id:
         row_of_after_id = await model.query.where(
-            model.visitor_id == after_id
+            model.id == after_id
         ).gino.first()
         if not row_of_after_id:
             raise_not_found_exception(model, visitor_id=after_id)
