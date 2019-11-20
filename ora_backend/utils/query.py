@@ -433,6 +433,7 @@ async def get_staff_unhandled_visitors(
         last_internal_id = row_of_after_id.internal_id
 
     model_table_name = model.__tablename__
+    extra_fields = ["chat_unhandled.created_at AS unhandled_timestamp"]
     sql_query = """
         WITH subscribed_visitors AS (
             SELECT
@@ -456,7 +457,7 @@ async def get_staff_unhandled_visitors(
         ORDER BY chat_unhandled.internal_id
         LIMIT :limit
     """.format(
-        ", ".join(visitor_fields_with_table_name), model_table_name, model_table_name
+        ", ".join(visitor_fields_with_table_name + extra_fields), model_table_name, model_table_name
     )
 
     data = (
@@ -471,9 +472,10 @@ async def get_staff_unhandled_visitors(
     )[1]
 
     result = []
+    extra_fields = [item.split('AS')[1].strip() for item in extra_fields]
     # Parse the users
     for row in data:
-        visitor_data = {key: value for key, value in zip(visitor_fields, row)}
+        visitor_data = {key: value for key, value in zip(visitor_fields + extra_fields, row)}
         result.append(visitor_data)
 
     return result
@@ -483,9 +485,9 @@ async def get_non_normal_visitors(
     model, *, limit=15, after_id=None, extra_fields=None, **kwargs
 ):
     extra_fields = extra_fields or []
-    extra_fields_with_table_name = [
-        "{}.{}".format(model.__tablename__, field) for field in extra_fields
-    ]
+    # extra_fields_with_table_name = [
+    #     "{}.{}".format(model.__tablename__, field) for field in extra_fields
+    # ]
 
     # Get the `internal_id` value from the starting row
     # And use it to query the next page of results
@@ -510,7 +512,7 @@ async def get_non_normal_visitors(
         ORDER BY {}.internal_id
         LIMIT :limit
     """.format(
-        ", ".join(extra_fields_with_table_name + visitor_fields_with_table_name),
+        ", ".join(extra_fields + visitor_fields_with_table_name),
         model_table_name,
         model_table_name,
         model_table_name,
@@ -524,6 +526,8 @@ async def get_non_normal_visitors(
     )[1]
 
     result = []
+    extra_fields = [item.split('AS')[1].strip() for item in extra_fields]
+
     # Parse the users
     for row in data:
         visitor_data = {

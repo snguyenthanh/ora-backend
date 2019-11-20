@@ -183,7 +183,11 @@ async def get_subscribed_staffs_for_visitor_route(
 ):
     query_params = query_params or {}
     flagged_visitors = await get_non_normal_visitors(
-        ChatFlagged, **query_params, extra_fields=["flag_message"]
+        ChatFlagged, **query_params,
+        extra_fields=[
+            "chat_flagged.flag_message AS flag_message",
+            "chat_flagged.created_at AS flagged_timestamp"
+        ]
     )
     return json(
         {
