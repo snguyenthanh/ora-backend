@@ -268,9 +268,11 @@ async def get_messages(
             .gino.all()
         )
     else:
-        data = (await query.order_by(desc(model.sequence_num)).limit(limit).gino.all())[
-            ::-1
-        ]
+        data = (
+            await query.order_by(desc(model.sequence_num), desc(model.created_at))
+            .limit(limit)
+            .gino.all()
+        )[::-1]
     """
     result = await db.select([
         ChatMessage.sequence_num,
