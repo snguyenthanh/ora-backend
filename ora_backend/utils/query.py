@@ -533,7 +533,7 @@ async def get_handled_chats(model, *, limit=15, after_id=None, **kwargs):
 
 
 async def get_staff_unhandled_visitors(
-    model, staff_id, *, limit=15, after_id=None, **kwargs
+    model, staff_id=None, *, limit=15, after_id=None, **kwargs
 ):
     # Get the `internal_id` value from the starting row
     # And use it to query the next page of results
@@ -547,39 +547,61 @@ async def get_staff_unhandled_visitors(
 
         last_internal_id = row_of_after_id.internal_id
 
-    model_table_name = model.__tablename__
+    # model_table_name = model.__tablename__
     extra_fields = ["chat_unhandled.created_at AS unhandled_timestamp"]
-    sql_query = """
-        WITH subscribed_visitors AS (
-            SELECT
-                DISTINCT staff_subscription_chat.visitor_id
-            FROM staff_subscription_chat
-            WHERE
-                staff_subscription_chat.staff_id = :staff_id
-        )
-        SELECT {}
-        FROM visitor
-        JOIN chat_unhandled
-            ON chat_unhandled.visitor_id = visitor.id
-        JOIN chat
-            ON chat.visitor_id = visitor.id
-        WHERE
-            EXISTS (
-                SELECT 1
-                FROM subscribed_visitors
+    if staff_id:
+        sql_query = """
+            WITH subscribed_visitors AS (
+                SELECT
+                    DISTINCT staff_subscription_chat.visitor_id
+                FROM staff_subscription_chat
                 WHERE
-                    subscribed_visitors.visitor_id = visitor.id
+                    staff_subscription_chat.staff_id = :staff_id
             )
-            AND chat_unhandled.internal_id > :last_internal_id
-        ORDER BY chat_unhandled.internal_id
-        LIMIT :limit
-    """.format(
-        ", ".join(
-            chat_fields_with_table_name + visitor_fields_with_table_name + extra_fields
-        ),
-        model_table_name,
-        model_table_name,
-    )
+            SELECT {}
+            FROM visitor
+            JOIN chat_unhandled
+                ON chat_unhandled.visitor_id = visitor.id
+            JOIN chat
+                ON chat.visitor_id = visitor.id
+            WHERE
+                EXISTS (
+                    SELECT 1
+                    FROM subscribed_visitors
+                    WHERE
+                        subscribed_visitors.visitor_id = visitor.id
+                )
+                AND chat_unhandled.internal_id > :last_internal_id
+            ORDER BY chat_unhandled.internal_id
+            LIMIT :limit
+        """.format(
+            ", ".join(
+                chat_fields_with_table_name
+                + visitor_fields_with_table_name
+                + extra_fields
+            ),
+            # model_table_name,
+            # model_table_name,
+        )
+    else:
+        sql_query = """
+            SELECT {}
+            FROM visitor
+            JOIN chat_unhandled
+                ON chat_unhandled.visitor_id = visitor.id
+            JOIN chat
+                ON chat.visitor_id = visitor.id
+            WHERE
+                chat_unhandled.internal_id > :last_internal_id
+            ORDER BY chat_unhandled.internal_id
+            LIMIT :limit
+        """.format(
+            ", ".join(
+                chat_fields_with_table_name
+                + visitor_fields_with_table_name
+                + extra_fields
+            )
+        )
 
     data = (
         await db.status(
@@ -816,6 +838,14 @@ async def get_visitors_with_most_recent_chats(
         result.append(visitor_data)
 
     return result
+
+
+async def get_number_of_unread_notifications_for_staff(
+    staff_id, noti_read_model, noti_model
+):
+    noti_read = await noti_read_model.get_or_create(staff_id=staff_id, serialized=False)
+    latest_notification = await get_one_latest(noti_model, staff_id=staff_id)
+    return latest_notification.internal_id - noti_read.last_read_internal_id
 
 
 @in_transaction

@@ -188,8 +188,11 @@ async def get_unhandled_staffs_for_visitor_route(
     req_args = req_args or {}
     query_params = query_params or {}
     if "all" in req_args and req_args["all"].lower() in {"true", "1"}:
-        unhandled_visitors = await get_non_normal_visitors(
-            ChatUnhandled, **query_params
+        # unhandled_visitors = await get_non_normal_visitors(
+        #     ChatUnhandled, **query_params
+        # )
+        unhandled_visitors = await get_staff_unhandled_visitors(
+            StaffSubscriptionChat, None, **query_params
         )
     else:
         # Return the staff's unhandled visitors
