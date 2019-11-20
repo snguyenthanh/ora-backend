@@ -21,11 +21,9 @@ async def change_global_settings(
     if requester["role_id"] != ROLES.inverse["admin"]:
         return Forbidden("Only admins are allowed to change settings")
 
-    for key, value in req_body:
+    for key, value in req_body.items():
         await Setting.modify_if_exists({"key": key}, {"value": value})
-    return {
-        "data": None
-    }
+    return {"data": None}
 
 
 @blueprint.route("/", methods=["GET", "PUT", "PATCH"])

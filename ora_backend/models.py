@@ -576,6 +576,15 @@ class Setting(BaseModel):
     _idx_settings_id = db.Index("idx_settings_id", "id")
     _idx_settings_key = db.Index("idx_settings_key", "key")
 
+    @classmethod
+    async def modify_if_exists(cls, get_kwargs, update_kwargs):
+        payload = await get_one(cls, **get_kwargs)
+        if not payload:
+            return None
+
+        data = await update_one(payload, **update_kwargs)
+        return serialize_to_dict(data)
+
 
 class UserRole(BaseModel):
     __tablename__ = "user_role"
