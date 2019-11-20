@@ -23,7 +23,9 @@ async def change_global_settings(
 
     for key, value in req_body:
         await Setting.modify_if_exists({"key": key}, {"value": value})
-    return {}
+    return {
+        "data": None
+    }
 
 
 @blueprint.route("/", methods=["GET", "PUT", "PATCH"])
