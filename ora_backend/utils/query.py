@@ -396,7 +396,11 @@ async def get_subscribed_staffs_for_visitor(visitor_id, **kwargs):
         SELECT {}
         FROM "user"
         WHERE
-                "user".id IN subscribed_staffs
+            EXISTS (
+                SELECT 1
+                FROM subscribed_staffs
+                WHERE subscribed_staffs.staff_id = "user".id
+            )
         ORDER BY "user".full_name;
     """.format(
         ", ".join(user_fields_with_table_name)
