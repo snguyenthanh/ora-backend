@@ -994,6 +994,37 @@ async def change_chat_priority(sid, data):
 
 
 @sio.event
+async def staff_handled_chat(sid, data):
+    # Validation
+    if "visitor" not in data or not isinstance(data["visitor"], str):
+        return False, "Missing/Invalid field: visitor"
+
+    # Get visitor info from session
+    session = await sio.get_session(sid)
+    # room = data["room"]
+    visitor_id = data["visitor"]
+    user = session["user"]
+
+    # Remove from unhandled queue
+    await ChatUnhandled.remove_if_exists(visitor_id=visitor_id)
+
+    # Broadcast the message to all high-level staffs
+    staff_info = await cache.get("user_{}".format(sid))
+    monitor_room = staff_info["monitor_room"]
+
+    # Get the sequence number, and store in memory DB
+    visitor_info = await get_or_create_visitor_session(visitor_id)
+    await sio.emit(
+        "staff_handled_chat_for_supervisor",
+        {"staff": user, "visitor": {**visitor_info["room"], **visitor_info["user"]}},
+        room=monitor_room,
+        skip_sid=sid,
+    )
+
+    return True, None
+
+
+@sio.event
 async def staff_msg(sid, data):
     # Validation
     if "visitor" not in data or not isinstance(data["visitor"], str):
@@ -1046,7 +1077,7 @@ async def staff_msg(sid, data):
         skip_sid=sid,
     )
 
-    return True, None, chat_msg
+    return True, None
 
 
 async def handle_staff_leave(sid, session, data):

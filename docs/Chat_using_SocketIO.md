@@ -127,6 +127,18 @@ data={
 }
 ```
 
+#### staff_handled_chat
+
+For a staff to mark a chat as handled.
+
+Args:
+
+```
+data={
+	"visitor": <str>,  # The visitor's id
+}
+```
+
 #### staff_leave_room
 
 For a staff to leave a chat room.
@@ -835,6 +847,42 @@ data={
   "content": {
     content: "Yes ?",
     timestamp: 1572526840074,
+  },
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
+  }
+}
+```
+
+##### staff_handled_chat_for_supervisor
+
+Emitted when there is a new message sent by a **staff** in any chats.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "staff": {
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
   },
   "visitor": {
     'severity_level': 1,
