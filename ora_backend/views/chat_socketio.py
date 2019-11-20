@@ -934,10 +934,10 @@ async def change_chat_priority(sid, data):
     monitor_room = staff_info["monitor_room"]
     if data["severity_level"] > 0:
         await ChatFlagged.add_if_not_exists(
-            chat_id=room["id"], flag_message=flag_message
+            visitor_id=visitor_info["user"]["id"], flag_message=flag_message
         )
     else:
-        await ChatFlagged.remove_if_exists(chat_id=room["id"])
+        await ChatFlagged.remove_if_exists(visitor_id=visitor_info["user"]["id"])
 
     # Update cache of the room
     # chat_room_info = await cache.get(room)
@@ -948,7 +948,7 @@ async def change_chat_priority(sid, data):
     await Chat.modify({"id": room["id"]}, {"severity_level": data["severity_level"]})
     await sio.emit(
         "chat_has_changed_priority_for_supervisor",
-        {"visitor": {**visitor_info["room"], **visitor_info["user"]}, "staff": user},
+        {"visitor": {**visitor_info["room"], **visitor_info["user"], "flag_message": flag_message}, "staff": user},
         room=monitor_room,
         skip_sid=sid,
     )
