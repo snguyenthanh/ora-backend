@@ -18,6 +18,7 @@ CACHE_PERMISSIONS = "cache_permissions"
 # Note: 0 is off
 DEFAULT_GLOBAL_SETTINGS = {
     "login_type": 2,  # 0: anonymous, 1: account, 2: both
+    "is_one_to_one": 0,
     "allow_claiming_chat": 0,
     "max_staffs_in_chat": 5,
     "auto_reassign": 1,

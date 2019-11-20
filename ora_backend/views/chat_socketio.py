@@ -28,6 +28,7 @@ from ora_backend.models import (
     ChatUnhandled,
     ChatFlagged,
     Setting,
+    NotificationStaff,
 )
 from ora_backend.utils.auth import get_token_requester
 from ora_backend.utils.query import (
@@ -317,7 +318,6 @@ async def connect(sid, environ: dict):
                 online_visitors[visitor_id]["staffs"] = (
                     chat_room["room"].get("staffs", {}) if chat_room else {}
                 )
-
                 # The staff joined the rooms he subscribed to
                 if visitor_id in subscribed_visitors:
                     sio.enter_room(sid, chat_room["room"]["id"])
@@ -636,6 +636,16 @@ async def add_staff_to_chat(sid, data):
         await cache.set(visitor_id, new_visitor_info, namespace="visitor_info")
         return status, None
 
+    # Send a notification to staff
+    await NotificationStaff.add(
+        staff_id=staff_id,
+        content={
+            "content": "You have been assigned to talk to {}, by {}".format(
+                new_visitor_info["user"]["name"], user["full_name"]
+            )
+        },
+    )
+
     return status, error_msg
 
 
@@ -667,6 +677,16 @@ async def remove_staff_from_chat(sid, data):
         await cache.set(visitor_id, new_visitor_info, namespace="visitor_info")
         return status, None
 
+    # Send a notification to staff
+    await NotificationStaff.add(
+        staff_id=staff_id,
+        content={
+            "content": "You have been removed from the chat with {}, by {}".format(
+                new_visitor_info["user"]["name"], user["full_name"]
+            )
+        },
+    )
+
     return status, error_msg
 
 
@@ -693,9 +713,9 @@ async def take_over_chat(sid, data):
 
     # Get the settings
     settings = await cache.get(CACHE_SETTINGS, namespace="settings")
-    allow_claiming_chat = settings.get("allow_claiming_chat", False)
+    is_one_to_one = settings.get("is_one_to_one", False)
 
-    if allow_claiming_chat:
+    if is_one_to_one:
         # Get current serving staff
         cur_staff = visitor_info["room"]["staffs"]
 
@@ -816,7 +836,7 @@ async def handle_visitor_msg(sid, content):
             "visitor": {**visitor_info["room"], **visitor_info["user"]},
             "content": chat_msg,
         },
-        room=visitor_info["room"]["id"],
+        room=visitor_info["user"]["id"],
         skip_sid=sid,
     )
     # Add to unhandled queue

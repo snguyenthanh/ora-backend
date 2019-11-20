@@ -26,6 +26,11 @@ chat_fields = [
     for key, val in CHAT_READ_SCHEMA.items()
     if not val.get("readonly", False) and key not in ignore_fields
 ]
+chat_fields_with_table_name = [
+    "chat.{}".format(key)
+    for key, val in CHAT_READ_SCHEMA.items()
+    if not val.get("readonly", False) and key not in ignore_fields
+]
 message_fields = [
     key
     for key, val in CHAT_MESSAGE_READ_SCHEMA.items()
@@ -482,6 +487,8 @@ async def get_handled_chats(model, *, limit=15, after_id=None, **kwargs):
     sql_query = """
         SELECT {}
         FROM visitor
+        JOIN chat
+            ON chat.visitor_id = visitor.id
         WHERE
             NOT EXISTS (
                 SELECT 1
@@ -493,7 +500,7 @@ async def get_handled_chats(model, *, limit=15, after_id=None, **kwargs):
         ORDER BY visitor.internal_id DESC
         LIMIT :limit
     """.format(
-        ", ".join(visitor_fields_with_table_name)
+        ", ".join(chat_fields_with_table_name + visitor_fields_with_table_name)
     )
 
     data = (
@@ -505,7 +512,9 @@ async def get_handled_chats(model, *, limit=15, after_id=None, **kwargs):
     result = []
     # Parse the users
     for row in data:
-        visitor_data = {key: value for key, value in zip(visitor_fields, row)}
+        visitor_data = {
+            key: value for key, value in zip(chat_fields + visitor_fields, row)
+        }
         result.append(visitor_data)
 
     return result
@@ -540,6 +549,8 @@ async def get_staff_unhandled_visitors(
         FROM visitor
         JOIN chat_unhandled
             ON chat_unhandled.visitor_id = visitor.id
+        JOIN chat
+            ON chat.visitor_id = visitor.id
         WHERE
             EXISTS (
                 SELECT 1
@@ -551,7 +562,9 @@ async def get_staff_unhandled_visitors(
         ORDER BY chat_unhandled.internal_id
         LIMIT :limit
     """.format(
-        ", ".join(visitor_fields_with_table_name + extra_fields),
+        ", ".join(
+            chat_fields_with_table_name + visitor_fields_with_table_name + extra_fields
+        ),
         model_table_name,
         model_table_name,
     )
@@ -572,7 +585,8 @@ async def get_staff_unhandled_visitors(
     # Parse the users
     for row in data:
         visitor_data = {
-            key: value for key, value in zip(visitor_fields + extra_fields, row)
+            key: value
+            for key, value in zip(chat_fields + visitor_fields + extra_fields, row)
         }
         result.append(visitor_data)
 
@@ -605,12 +619,16 @@ async def get_non_normal_visitors(
         FROM visitor
         JOIN {}
             ON {}.visitor_id = visitor.id
+        JOIN chat
+            ON chat.visitor_id = visitor.id
         WHERE
             {}.internal_id > :last_internal_id
         ORDER BY {}.internal_id
         LIMIT :limit
     """.format(
-        ", ".join(extra_fields + visitor_fields_with_table_name),
+        ", ".join(
+            extra_fields + chat_fields_with_table_name + visitor_fields_with_table_name
+        ),
         model_table_name,
         model_table_name,
         model_table_name,
@@ -629,7 +647,8 @@ async def get_non_normal_visitors(
     # Parse the users
     for row in data:
         visitor_data = {
-            key: value for key, value in zip(extra_fields + visitor_fields, row)
+            key: value
+            for key, value in zip(extra_fields + chat_fields + visitor_fields, row)
         }
         result.append(visitor_data)
 
