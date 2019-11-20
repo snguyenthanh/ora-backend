@@ -416,6 +416,65 @@ async def get_subscribed_staffs_for_visitor(visitor_id, **kwargs):
 
     return result
 
+async def get_staff_unhandled_visitors(model, staff_id, *, limit=15, after_id=None, **kwargs):
+    # Get the `internal_id` value from the starting row
+    # And use it to query the next page of results
+    last_internal_id = 0
+    if after_id:
+        row_of_after_id = await model.query.where(
+            model.visitor_id == after_id
+        ).gino.first()
+        if not row_of_after_id:
+            raise_not_found_exception(model, visitor_id=after_id)
+
+        last_internal_id = row_of_after_id.internal_id
+
+    model_table_name = model.__tablename__
+    sql_query = """
+        WITH subscribed_visitors AS (
+            SELECT
+                DISTINCT staff_subscription_chat.visitor_id
+            FROM staff_subscription_chat
+            WHERE
+                staff_subscription_chat.staff_id = :staff_id
+        )
+        SELECT {}
+        FROM visitor
+        JOIN {}
+            ON {}.visitor_id = visitor.id
+        WHERE
+            EXISTS (
+                SELECT 1
+                FROM subscribed_visitors
+                WHERE
+                    subscribed_visitors.visitor_id = visitor.id
+            )
+            AND {}.internal_id > :last_internal_id
+        ORDER BY {}.internal_id
+        LIMIT :limit
+    """.format(
+        ", ".join(visitor_fields_with_table_name),
+        model_table_name,
+        model_table_name,
+        model_table_name,
+        model_table_name,
+    )
+
+    data = (
+        await db.status(
+            db.text(sql_query), {"last_internal_id": last_internal_id, "staff_id": staff_id, "limit": limit}
+        )
+    )[1]
+
+    result = []
+    # Parse the users
+    for row in data:
+        visitor_data = {
+            key: value for key, value in zip(visitor_fields, row)
+        }
+        result.append(visitor_data)
+
+    return result
 
 async def get_non_normal_visitors(
     model, *, limit=15, after_id=None, extra_fields=None, **kwargs
