@@ -663,3 +663,37 @@ Return the most recent chat messages of the visitor.
   }
 }
 ```
+
+### 5. Notifications
+
+For now, only staffs receive notifications
+
+
+#### 5.1. Retrieve all notifications for a staff
+Request:
+
+```
+GET /users/notifications
+```
+
+Response:
+
+```
+{
+    "data": {
+        "created_at": 1572027886,
+        "staff_id": "829146cc86184dd18b207347a52882d7",
+        "content": {
+          "content": <str>,
+        },
+        "updated_at": null,
+        "id": "4b0efb2471ea43d3bbd78b9b4061a7ab"
+    }
+}
+```
+
+#### 5.2. Reset notifications
+
+```
+PUT /users/notifications
+```

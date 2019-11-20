@@ -885,6 +885,9 @@ async def get_number_of_unread_notifications_for_staff(
 ):
     noti_read = await noti_read_model.get_or_create(staff_id=staff_id, serialized=False)
     latest_notification = await get_one_latest(noti_model, staff_id=staff_id)
+    if not latest_notification:
+        return 0
+
     return latest_notification.internal_id - noti_read.last_read_internal_id
 
 

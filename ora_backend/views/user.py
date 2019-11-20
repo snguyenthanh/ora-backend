@@ -9,7 +9,10 @@ from ora_backend.utils.exceptions import (
     raise_permission_exception,
 )
 from ora_backend.utils.links import generate_pagination_links
-from ora_backend.utils.query import get_number_of_unread_notifications_for_staff
+from ora_backend.utils.query import (
+    get_number_of_unread_notifications_for_staff,
+    get_one_latest,
+)
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import validate_request, validate_permission
 
@@ -142,6 +145,15 @@ async def noti_staff_retrieve(request, *, req_args=None, query_params=None, **kw
     }
 
 
+async def noti_staff_refresh(request, *, req_args=None, query_params=None, **kwargs):
+    staff_id = req_args["staff_id"]
+    latest_read_noti = await get_one_latest(NotificationStaff, staff_id=staff_id)
+    await NotificationStaffRead.modify(
+        {"staff_id": staff_id}, {"last_read_internal_id": latest_read_noti.internal_id}
+    )
+    return {}
+
+
 @blueprint.route("/notifications", methods=["GET"])
 @unpack_request
 @validate_permission
@@ -162,7 +174,7 @@ async def notification_staff_route(
     call_funcs = {
         "GET": noti_staff_retrieve,
         # "POST": noti_staff_create,
-        # "PUT": visitor_update,
+        "PUT": noti_staff_refresh,
         # "PATCH": visitor_update,
         # "DELETE": user_delete,
     }
