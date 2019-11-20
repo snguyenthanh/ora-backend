@@ -12,6 +12,7 @@ from ora_backend.models import (
     BookmarkVisitor,
     ChatUnhandled,
     ChatFlagged,
+    StaffSubscriptionChat,
 )
 from ora_backend.schemas import to_boolean
 from ora_backend.utils.links import generate_pagination_links, generate_next_page_link
@@ -21,6 +22,7 @@ from ora_backend.utils.query import (
     get_top_unread_visitors,
     get_subscribed_staffs_for_visitor,
     get_non_normal_visitors,
+    get_staff_unhandled_visitors,
 )
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import (
@@ -150,10 +152,21 @@ async def get_subscribed_staffs_for_visitor_route(
 @unpack_request
 @validate_permission
 async def get_unhandled_staffs_for_visitor_route(
-    request, *, query_params=None, **kwargs
+    request, *, req_args=None, query_params=None, requester=None, **kwargs
 ):
+    req_args = req_args or {}
     query_params = query_params or {}
-    unhandled_visitors = await get_non_normal_visitors(ChatUnhandled, **query_params)
+    if "all" in req_args and req_args["all"].lower() in {"true", "1"}:
+        unhandled_visitors = await get_non_normal_visitors(
+            ChatUnhandled, **query_params
+        )
+    else:
+        # Return the staff's unhandled visitors
+        staff_id = requester["id"]
+        unhandled_visitors = await get_staff_unhandled_visitors(
+            StaffSubscriptionChat, staff_id, **query_params
+        )
+
     return json(
         {
             "data": unhandled_visitors,
