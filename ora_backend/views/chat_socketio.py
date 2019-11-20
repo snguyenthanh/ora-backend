@@ -288,6 +288,12 @@ async def connect(sid, environ: dict):
         if user["role_id"] < ROLES.inverse["agent"]:
             sio.enter_room(sid, monitor_room)
 
+        # Staff enters all subscribed room
+        subscriptions = await StaffSubscriptionChat.query.where(
+            StaffSubscriptionChat.staff_id == user["id"]
+        ).gino.all()
+        subscribed_visitors = {item.visitor_id for item in subscriptions}
+
         # Update the current unclaimed chats to the newly connected staff
         unclaimed_chats = {}
         if settings.get("allow_claiming_chat", 0):
@@ -311,6 +317,10 @@ async def connect(sid, environ: dict):
                 online_visitors[visitor_id]["staffs"] = (
                     chat_room["room"].get("staffs", {}) if chat_room else {}
                 )
+
+                # The staff joined the rooms he subscribed to
+                if visitor_id in subscribed_visitors:
+                    sio.enter_room(sid, chat_room["room"]["id"])
 
         # Get the offline unclaimed chats as well
         offline_unclaimed_chats = []
@@ -392,6 +402,17 @@ async def connect(sid, environ: dict):
                 room=sid,
             )
             return False, "The chat room already exists."
+
+        # Staff enters all subscribed room
+        subscriptions = await StaffSubscriptionChat.query.where(
+            StaffSubscriptionChat.visitor_id == user["id"]
+        ).gino.all()
+        subscribed_staffs = {item.staff_id for item in subscriptions}
+        onl_users = await cache.get(online_users_room, {})
+        for staff_id in subscribed_staffs:
+            staff = onl_users.get(staff_id)
+            if staff:
+                sio.enter_room(staff["sid"], chat_room["id"])
 
         # Update the visitor's status as online
         # For now, there are no logic of choosing which orgs
