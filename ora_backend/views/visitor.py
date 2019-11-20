@@ -23,6 +23,8 @@ from ora_backend.utils.query import (
     get_subscribed_staffs_for_visitor,
     get_non_normal_visitors,
     get_staff_unhandled_visitors,
+    get_self_subscribed_visitors,
+    get_handled_chats,
 )
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import (
@@ -92,7 +94,16 @@ async def get_unread_visitors(request, *, req_args, req_body, requester, **kwarg
 
 @validate_permission
 async def visitor_get_many(request, *, req_args, query_params, **kwargs):
-    visitors = await Visitor.get(many=True, descrease=True, **req_args, **query_params)
+    query_params = query_params or {}
+    exclude_unhandled = req_args.pop("exclude_unhandled", "false")
+    exclude_unhandled = exclude_unhandled.lower() in {"1", "true"}
+
+    if exclude_unhandled:
+        visitors = await get_handled_chats(Visitor, **query_params)
+    else:
+        visitors = await Visitor.get(
+            many=True, descrease=True, **req_args, **query_params
+        )
     return {"data": visitors, "links": generate_pagination_links(request.url, visitors)}
 
 
@@ -148,6 +159,26 @@ async def get_subscribed_staffs_for_visitor_route(
     )
 
 
+@blueprint.route("/subscribed", methods=["GET"])
+@unpack_request
+@validate_permission
+async def get_subscribed_visitors_for_staff_route(
+    request, *, req_args=None, query_params=None, requester=None, **kwargs
+):
+    # Return the staff's unhandled visitors
+    staff_id = requester["id"]
+    subscribed_visitors = await get_self_subscribed_visitors(
+        Visitor, StaffSubscriptionChat, staff_id, **query_params
+    )
+
+    return json(
+        {
+            "data": subscribed_visitors,
+            "links": generate_pagination_links(request.url, subscribed_visitors),
+        }
+    )
+
+
 @blueprint.route("/unhandled", methods=["GET"])
 @unpack_request
 @validate_permission
@@ -183,11 +214,12 @@ async def get_subscribed_staffs_for_visitor_route(
 ):
     query_params = query_params or {}
     flagged_visitors = await get_non_normal_visitors(
-        ChatFlagged, **query_params,
+        ChatFlagged,
+        **query_params,
         extra_fields=[
             "chat_flagged.flag_message AS flag_message",
-            "chat_flagged.created_at AS flagged_timestamp"
-        ]
+            "chat_flagged.created_at AS flagged_timestamp",
+        ],
     )
     return json(
         {

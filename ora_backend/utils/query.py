@@ -349,6 +349,54 @@ async def get_bookmarked_visitors(
     return result
 
 
+async def get_self_subscribed_visitors(
+    visitor_model, subscription_model, staff_id, *, limit=15, after_id=None, **kwargs
+):
+    # Get the `internal_id` value from the starting row
+    # And use it to query the next page of results
+    last_internal_id = None
+    if after_id:
+        row_of_after_id = await subscription_model.query.where(
+            subscription_model.visitor_id == after_id
+        ).gino.first()
+        if not row_of_after_id:
+            raise_not_found_exception(subscription_model, visitor_id=after_id)
+
+        last_internal_id = row_of_after_id.internal_id
+
+    query = (
+        db.select([*(getattr(visitor_model, key) for key in visitor_fields)])
+        .select_from(
+            visitor_model.join(
+                subscription_model, visitor_model.id == subscription_model.visitor_id
+            )
+        )
+        .where(
+            and_(
+                subscription_model.staff_id == staff_id,
+                subscription_model.internal_id < last_internal_id
+                if last_internal_id is not None
+                else True,
+            )
+        )
+        .order_by(desc(subscription_model.internal_id))
+        .limit(limit)
+        .gino.all()
+    )
+    data = await query
+
+    result = []
+    # Parse the visitor
+    for row in data:
+        visitor_info = {}
+        for key, val in zip(visitor_fields, row):
+            visitor_info[key] = val
+
+        result.append(visitor_info)
+
+    return result
+
+
 async def get_one_latest(model, order_by="internal_id", **kwargs):
     return (
         await model.query.where(and_(*dict_to_filter_args(model, **kwargs)))
@@ -417,6 +465,52 @@ async def get_subscribed_staffs_for_visitor(visitor_id, **kwargs):
     return result
 
 
+async def get_handled_chats(model, *, limit=15, after_id=None, **kwargs):
+    """Return all the chats excluding the unhandled ones"""
+    # Get the `internal_id` value from the starting row
+    # And use it to query the next page of results
+    last_internal_id = 0
+    if after_id:
+        row_of_after_id = await model.query.where(
+            model.visitor_id == after_id
+        ).gino.first()
+        if not row_of_after_id:
+            raise_not_found_exception(model, visitor_id=after_id)
+
+        last_internal_id = row_of_after_id.internal_id
+
+    sql_query = """
+        SELECT {}
+        FROM visitor
+        WHERE
+            NOT EXISTS (
+                SELECT 1
+                FROM chat_unhandled
+                WHERE
+                    chat_unhandled.visitor_id = visitor.id
+            )
+            AND visitor.internal_id < :last_internal_id
+        ORDER BY visitor.internal_id DESC
+        LIMIT :limit
+    """.format(
+        ", ".join(visitor_fields_with_table_name)
+    )
+
+    data = (
+        await db.status(
+            db.text(sql_query), {"last_internal_id": last_internal_id, "limit": limit}
+        )
+    )[1]
+
+    result = []
+    # Parse the users
+    for row in data:
+        visitor_data = {key: value for key, value in zip(visitor_fields, row)}
+        result.append(visitor_data)
+
+    return result
+
+
 async def get_staff_unhandled_visitors(
     model, staff_id, *, limit=15, after_id=None, **kwargs
 ):
@@ -457,7 +551,9 @@ async def get_staff_unhandled_visitors(
         ORDER BY chat_unhandled.internal_id
         LIMIT :limit
     """.format(
-        ", ".join(visitor_fields_with_table_name + extra_fields), model_table_name, model_table_name
+        ", ".join(visitor_fields_with_table_name + extra_fields),
+        model_table_name,
+        model_table_name,
     )
 
     data = (
@@ -472,10 +568,12 @@ async def get_staff_unhandled_visitors(
     )[1]
 
     result = []
-    extra_fields = [item.split('AS')[1].strip() for item in extra_fields]
+    extra_fields = [item.split("AS")[1].strip() for item in extra_fields]
     # Parse the users
     for row in data:
-        visitor_data = {key: value for key, value in zip(visitor_fields + extra_fields, row)}
+        visitor_data = {
+            key: value for key, value in zip(visitor_fields + extra_fields, row)
+        }
         result.append(visitor_data)
 
     return result
@@ -526,7 +624,7 @@ async def get_non_normal_visitors(
     )[1]
 
     result = []
-    extra_fields = [item.split('AS')[1].strip() for item in extra_fields]
+    extra_fields = [item.split("AS")[1].strip() for item in extra_fields]
 
     # Parse the users
     for row in data:

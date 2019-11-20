@@ -453,12 +453,21 @@ Response:
 }
 ```
 
-#### 2.10. Abnormal visitors
+#### 2.10. Visitors with abnormal statuses
 
 Migrated from `staff_init` event in SocketIO into separate API endpoints:
 
 ```
+# Get handled visitors
+GET /visitors?exclude_unhandled=true
+
+# Subscribed
 GET /visitors/<visitor_id>/subscribed_staffs
+
+# A staff gets his own subscribed visitors
+GET /visitors/subscribed
+
+# Unhandled and flagged
 GET /visitors/unhandled
 GET /visitors/flagged
 ```
