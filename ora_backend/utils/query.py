@@ -452,8 +452,8 @@ async def get_staff_unhandled_visitors(
                 WHERE
                     subscribed_visitors.visitor_id = visitor.id
             )
-            AND {}.internal_id > :last_internal_id
-        ORDER BY {}.internal_id
+            AND chat_unhandled.internal_id > :last_internal_id
+        ORDER BY chat_unhandled.internal_id
         LIMIT :limit
     """.format(
         ", ".join(visitor_fields_with_table_name), model_table_name, model_table_name
