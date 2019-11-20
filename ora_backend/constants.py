@@ -13,6 +13,7 @@ ONLINE_USERS_PREFIX = "cache_online_users_"
 ONLINE_VISITORS_PREFIX = "cache_online_visitors_"
 MONITOR_ROOM_PREFIX = "cache_monitor_room_"
 CACHE_SETTINGS = "cache_global_settings"
+CACHE_PERMISSIONS = "cache_permissions"
 
 # Note: 0 is off
 DEFAULT_GLOBAL_SETTINGS = {
@@ -31,5 +32,6 @@ DEFAULT_PERMISSIONS = {
     "reassign_agent": [1, 2],  # For one-to-many chat
     "add_agents_to_chat": [1, 2],  # For one-to-many chat
     "see_all_chats": [1, 2],
+    "join_all_chats": [1, 2],
     "change_max_staffs_in_chat": [1, 2],
 }

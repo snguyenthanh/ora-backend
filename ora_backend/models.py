@@ -125,6 +125,19 @@ class BaseModel(db.Model):
         return serialize_to_dict(data)
 
     @classmethod
+    async def modify_if_exists(cls, get_kwargs, update_kwargs):
+        model_id = get_kwargs.get("id")
+        if not model_id:
+            raise InvalidUsage("Missing field 'id' in query parameter")
+
+        payload = await get_one(cls, id=model_id)
+        if not payload:
+            return None
+
+        data = await update_one(payload, **update_kwargs)
+        return serialize_to_dict(data)
+
+    @classmethod
     async def remove(cls, **kwargs):
         # model_id = kwargs.get("id")
         # if not model_id:

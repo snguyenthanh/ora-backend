@@ -84,10 +84,3 @@ async def create_new_access_token(request):
     response.cookies["refresh_token"]["httponly"] = True
 
     return response
-
-
-@blueprint.route("/settings", methods=["GET", "PUT", "PATCH"])
-async def get_settings(request):
-    settings = await Setting.get(many=True, limit=99)
-    # Todo: Patch settings
-    return {"data": settings}

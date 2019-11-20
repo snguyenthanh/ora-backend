@@ -189,6 +189,22 @@ NOTIFICATION_STAFF_WRITE_SCHEMA = {
     "updated_at": {"readonly": True},
 }
 
+SETTING_READ_SCHEMA = {
+    "id": is_string,
+    "key": is_string,
+    "value": is_integer,
+    "created_at": is_unsigned_integer,
+    "updated_at": is_unsigned_integer,
+}
+
+SETTING_WRITE_SCHEMA = {
+    "id": {"readonly": True},
+    "key": {"readonly": True},
+    "value": is_required_integer,
+    "created_at": {"readonly": True},
+    "updated_at": {"readonly": True},
+}
+
 
 # INJECTED SCHEMAS
 
@@ -242,4 +258,6 @@ schemas = {
     "bookmark_visitor_write": BOOKMARK_VISITOR_WRITE_SCHEMA,
     "notification_staff_read": NOTIFICATION_STAFF_READ_SCHEMA,
     "notification_staff_write": NOTIFICATION_STAFF_WRITE_SCHEMA,
+    "setting_read": SETTING_READ_SCHEMA,
+    "setting_write": SETTING_WRITE_SCHEMA,
 }

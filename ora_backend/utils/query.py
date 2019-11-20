@@ -416,7 +416,10 @@ async def get_subscribed_staffs_for_visitor(visitor_id, **kwargs):
 
     return result
 
-async def get_staff_unhandled_visitors(model, staff_id, *, limit=15, after_id=None, **kwargs):
+
+async def get_staff_unhandled_visitors(
+    model, staff_id, *, limit=15, after_id=None, **kwargs
+):
     # Get the `internal_id` value from the starting row
     # And use it to query the next page of results
     last_internal_id = 0
@@ -462,19 +465,23 @@ async def get_staff_unhandled_visitors(model, staff_id, *, limit=15, after_id=No
 
     data = (
         await db.status(
-            db.text(sql_query), {"last_internal_id": last_internal_id, "staff_id": staff_id, "limit": limit}
+            db.text(sql_query),
+            {
+                "last_internal_id": last_internal_id,
+                "staff_id": staff_id,
+                "limit": limit,
+            },
         )
     )[1]
 
     result = []
     # Parse the users
     for row in data:
-        visitor_data = {
-            key: value for key, value in zip(visitor_fields, row)
-        }
+        visitor_data = {key: value for key, value in zip(visitor_fields, row)}
         result.append(visitor_data)
 
     return result
+
 
 async def get_non_normal_visitors(
     model, *, limit=15, after_id=None, extra_fields=None, **kwargs
