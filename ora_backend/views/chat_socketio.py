@@ -246,6 +246,7 @@ async def remove_staff_from_chat_if_possible(staff_id, visitor_id, visitor_info)
 async def connect(sid, environ: dict):
     user, user_type = await authenticate_user(environ)
     online_visitors_room = ONLINE_VISITORS_PREFIX
+    online_users_room = ONLINE_USERS_PREFIX
 
     # Init app settings
     settings = await cache.get(CACHE_SETTINGS, namespace="settings")
@@ -258,7 +259,6 @@ async def connect(sid, environ: dict):
     # Staff
     if user_type == User.__tablename__:
         org_id = UNCLAIMED_CHATS_PREFIX + user["organisation_id"]
-        online_users_room = ONLINE_USERS_PREFIX
         monitor_room = MONITOR_ROOM_PREFIX  # + user["organisation_id"]
 
         # Store the current online users
