@@ -121,7 +121,7 @@ async def auto_assign_staff_to_chat(visitor_id, exclude_staff_id=None):
         raw_volunteers = await User.query.where(
             User.role_id == ROLES.inverse["agent"]
         ).gino.all()
-        volunteers = [serialize_to_dict(user.to_dict()) for user in raw_volunteers]
+        volunteers = [serialize_to_dict(user) for user in raw_volunteers]
         counter = 0
         staff = volunteers[0]
         while staff["id"] == exclude_staff_id:
