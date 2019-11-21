@@ -443,7 +443,7 @@ class="image"
 """
 
 
-def email_template(title: str, content: str, button: str):
+def email_template(*, title: str, content: str, button: str):
     return (
         starting_html.strip()
         + title.strip()
@@ -454,7 +454,7 @@ def email_template(title: str, content: str, button: str):
         + end_html.strip()
     )
 
-def email_without_button_template(title: str, content: str):
+def email_without_button_template(*, title: str, content: str):
     return (
         starting_html.strip()
         + title.strip()
