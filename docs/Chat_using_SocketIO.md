@@ -755,6 +755,45 @@ data={
 
 These events are for supervisors and admins to monitor the chats of agents.
 
+##### staffs_in_chat_changed
+
+Emitted when the staffs in a chat room are modified.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None,
+    'staffs': [ # The staffs assigned to the chat
+      {
+        email: "agent1@gmail.com",
+        created_at: 1572522995,
+        full_name: "Agent 1",
+        updated_at: null,
+        id: "06274871777d40f387ab430da6b3aa08",
+        display_name: null,
+        organisation_id: "bd9c4046763440769e3af30197a2482e",
+        disabled: false,
+        role_id: 3,
+      },
+      ...
+    ],
+  }
+}
+```
+
 ##### staff_take_over_chat
 
 Emitted to all supervisors/admins that the chat has been taken over.

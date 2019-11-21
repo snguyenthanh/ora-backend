@@ -250,6 +250,12 @@ async def update_staffs_in_chat_if_possible(
     room = visitor_info["room"]["id"]
     current_staffs = visitor_info["room"].get("staffs", {})
 
+    # If the staffs are the same, ignore
+    new_staff_ids = set(new_staff_ids)
+    cur_staff_ids = set(current_staffs.keys())
+    if new_staff_ids == cur_staff_ids:
+        return True, None, visitor_info, False
+
     # Only add if the max staffs in a chat isnt reached
     settings = await get_settings_from_cache()
     max_staffs_in_chat = settings.get("max_staffs_in_chat", 0)
@@ -261,7 +267,6 @@ async def update_staffs_in_chat_if_possible(
         )
 
     # Remove the old staffs
-    new_staff_ids = set(new_staff_ids)
     for cur_staff_id in list(current_staffs.keys()):
         if cur_staff_id not in new_staff_ids:
             await StaffSubscriptionChat.remove_if_exists(
@@ -306,7 +311,7 @@ async def update_staffs_in_chat_if_possible(
                 },
             )
 
-    return True, None, visitor_info
+    return True, None, visitor_info, True
 
 
 # Socket.io events
@@ -773,6 +778,8 @@ async def update_staffs_in_chat(sid, data):
     staff_ids = data["staffs"]
     visitor_id = data["visitor"]
     user = session["user"]
+    monitor_room = session["monitor_room"]
+
     is_allowed = await role_is_authorized(user["role_id"], "add_agents_to_chat")
     if not is_allowed:
         return False, "You are not authorized to remove staffs from a chat."
@@ -781,11 +788,19 @@ async def update_staffs_in_chat(sid, data):
     if not visitor_info:
         return False, "The chat room is either closed or doesn't exist."
 
-    status, error_msg, new_visitor_info = await update_staffs_in_chat_if_possible(
+    status, error_msg, new_visitor_info, changed = await update_staffs_in_chat_if_possible(
         user, staff_ids, visitor_id, visitor_info
     )
-    if status:
+    if status and changed:
         await cache.set(visitor_id, new_visitor_info, namespace="visitor_info")
+
+        # Let the supervisors know about the change
+        sio.emit(
+            "staffs_in_chat_changed",
+            {"visitor": {**visitor_info["room"], **visitor_info["user"]}},
+            room=monitor_room,
+            skip_sid=sid,
+        )
         return status, None
 
     return status, error_msg

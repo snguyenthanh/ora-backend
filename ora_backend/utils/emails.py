@@ -5,7 +5,7 @@ from sendgrid.helpers.mail import Email, Mail, Personalization
 
 
 # if "SENDGRID_API_KEY" not in environ:
-    # raise KeyError("Missing environmental variable SENDGRID_API_KEY")
+# raise KeyError("Missing environmental variable SENDGRID_API_KEY")
 
 SENDGRID_API_KEY = environ.get("SENDGRID_API_KEY")
 
@@ -13,6 +13,7 @@ if SENDGRID_API_KEY:
     sg = SendGridAPIClient(SENDGRID_API_KEY)
 else:
     sg = None
+
 
 def send_email(*, receivers: list, subject: str, content: str):
     """
@@ -54,6 +55,7 @@ def send_email(*, receivers: list, subject: str, content: str):
         "headers": response.headers,
     }
     # return response.status_code
+
 
 # send_email(
 #     receivers=["thanhson16198@gmail.com", "e0072396@u.nus.edu"],
