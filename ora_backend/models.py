@@ -369,7 +369,10 @@ class StaffSubscriptionChat(BaseModel):
         "idx_staff_subscription_chat_staff_id", "staff_id"
     )
     _idx_bookmark_visitor_staff_visitor = db.Index(
-        "idx_staff_subscription_visitor_staff_chat", "staff_id", "visitor_id"
+        "idx_staff_subscription_visitor_staff_chat",
+        "staff_id",
+        "visitor_id",
+        unique=True,
     )
 
     @classmethod
