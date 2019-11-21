@@ -3,7 +3,6 @@ from celery import Celery
 from ora_backend.config import CELERY_BROKER_URL
 from ora_backend.templates.emails import email_template, email_without_button_template
 from ora_backend.utils.emails import send_email as _send_email
-from ora_backend.utils.query import get_supervisor_emails_to_send_emails
 
 celery_app = Celery(
     "tasks",
@@ -66,9 +65,8 @@ def send_email_for_being_removed_from_chat(receivers: list, visitor: dict):
 
 
 @celery_app.task
-def send_email_for_flagged_chat(visitor: dict):
+def send_email_for_flagged_chat(receivers: list, visitor: dict):
     """Send an email to all supervisors about the new message, when no one is online."""
-    receivers = await get_supervisor_emails_to_send_emails()
     if not receivers:
         return None
 
