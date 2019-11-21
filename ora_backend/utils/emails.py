@@ -45,8 +45,8 @@ def send_email(*, receivers: list, subject: str, content: str):
 
     # TODO: Uncomment this after testing
     # for recv in receivers:
-        # to_list.add_to(Email("EMAIL ADDRESS"))
-        # to_list.add_to(Email(recv))
+    # to_list.add_to(Email("EMAIL ADDRESS"))
+    # to_list.add_to(Email(recv))
 
     # Inject the receivers to the email
     message.add_personalization(to_list)
