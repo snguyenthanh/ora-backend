@@ -26,6 +26,7 @@ aioredis = "*"
 sanic-prometheus = "*"
 gunicorn = "*"
 sentry-sdk = "*"
+sendgrid = "*"
 
 [requires]
 python_version = "3.7"
