@@ -30,6 +30,7 @@ sendgrid = "*"
 faker = "*"
 celery = "*"
 redis = "*"
+flower = "*"
 
 [requires]
 python_version = "3.7"
