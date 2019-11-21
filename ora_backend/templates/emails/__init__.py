@@ -454,6 +454,7 @@ def email_template(*, title: str, content: str, button: str):
         + end_html.strip()
     )
 
+
 def email_without_button_template(*, title: str, content: str):
     return (
         starting_html.strip()
@@ -462,6 +463,7 @@ def email_without_button_template(*, title: str, content: str):
         + content.strip()
         + end_without_button_html.strip()
     )
+
 
 # email_without_button_template = """
 # <!DOCTYPE html>

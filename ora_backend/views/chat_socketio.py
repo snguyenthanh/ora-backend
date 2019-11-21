@@ -272,12 +272,18 @@ async def update_staffs_in_chat_if_possible(
             await StaffSubscriptionChat.remove_if_exists(
                 staff_id=cur_staff_id, visitor_id=visitor_id
             )
+
+            # Remove the staff from socketio room
+            removed_staff = (
+                visitor_info["room"].setdefault("staffs", {}).pop(cur_staff_id, None)
+            )
+            sio.leave_room(removed_staff["sid"], room)
+
             await sio.emit(
                 "staff_being_removed_from_chat",
                 {"staff": current_staffs[cur_staff_id]},
                 room=room,
             )
-            visitor_info["room"].setdefault("staffs", {}).pop(cur_staff_id, None)
 
             # Send a notification to the staff
             await NotificationStaff.add(
@@ -288,6 +294,11 @@ async def update_staffs_in_chat_if_possible(
                     )
                 },
             )
+
+    # If the added staff is online, add him to the chat room
+    online_users_room = ONLINE_USERS_PREFIX
+    onl_users = await cache.get(online_users_room, {})
+
     # Subscribe new staffs
     for new_staff_id in new_staff_ids:
         if new_staff_id not in current_staffs:
@@ -297,6 +308,10 @@ async def update_staffs_in_chat_if_possible(
             await StaffSubscriptionChat.add_if_not_exists(
                 staff_id=new_staff_id, visitor_id=visitor_id
             )
+
+            # If the added staff is online, add him to the chat room
+            if new_staff_id in onl_users:
+                sio.enter_room(onl_users[new_staff_id]["sid"], room)
 
             # Let everyone in the chat know a staff has been added
             await sio.emit("staff_being_added_to_chat", {"staff": staff}, room=room)
