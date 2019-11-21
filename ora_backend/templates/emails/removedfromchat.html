@@ -1,4 +1,3 @@
-email_template = """
 <!DOCTYPE html>
 <html>
   <head>
@@ -8,6 +7,7 @@ email_template = """
     <style type="text/css">
       body {
         margin: 0 !important;
+        padding: 15px;
         background-color: #fff;
       }
       .wrapper {
@@ -59,6 +59,7 @@ email_template = """
         margin: 0 auto;
         background-color: #fff;
         border-radius: 6px;
+        margin-top: 25px;
       }
       /*--- Start Two Column Sections --*/
       .two-column {
@@ -369,7 +370,7 @@ email_template = """
             <tr>
               <td class="image" style="background-color:#0EAFA7;">
                 <p class="h1" style="color: white ;">
-                  {title}
+                  You have been removed from a chat
                 </p>
               </td>
             </tr>
@@ -386,12 +387,13 @@ email_template = """
                       <td class="inner-td">
                         <p class="center">
                           <font color="black">
-                            {content}
+                            For more information, please contact your
+                            supervisor<br />
+                            Thank you for volunteering with Ora.
+                            <br />
                           </font>
                         </p>
-                        <p class="button-holder-center">
-                          <a class="btn" href="chatwithora.com">{button}</a>
-                        </p>
+
                         <img
                           src="https://imgur.com/ti4GM0D.png"
                           width="100%"
@@ -410,6 +412,3 @@ email_template = """
     <br />
   </body>
 </html>
-""".strip()
-
-__all__ = ["email_template"]

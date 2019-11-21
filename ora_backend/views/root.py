@@ -8,10 +8,15 @@ from ora_backend.utils.auth import get_token_data_from_request
 from ora_backend.utils.crypto import sign_str
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import validate_request
-
+from ora_backend.worker.tasks import send_email_for_flagged_chat
 
 @blueprint.route("/")
 async def root(request):
+    send_email_for_flagged_chat.apply_async(
+        ({"name": "John"}, ),
+        expires=60 * 15,   # seconds
+        retry_policy={"interval_start": 10},
+    )  # Expires in 15 minutes
     return json({"hello": "world"})
 
 

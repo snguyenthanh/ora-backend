@@ -27,6 +27,9 @@ sanic-prometheus = "*"
 gunicorn = "*"
 sentry-sdk = "*"
 sendgrid = "*"
+faker = "*"
+celery = "*"
+redis = "*"
 
 [requires]
 python_version = "3.7"

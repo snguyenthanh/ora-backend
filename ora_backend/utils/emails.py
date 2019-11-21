@@ -41,20 +41,23 @@ def send_email(*, receivers: list, subject: str, content: str):
 
     # Add the receivers
     to_list = Personalization()
-    for recv in receivers:
+    to_list.add_to(Email("thanhson16198@gmail.com"))
+
+    # TODO: Uncomment this after testing
+    # for recv in receivers:
         # to_list.add_to(Email("EMAIL ADDRESS"))
-        to_list.add_to(Email(recv))
+        # to_list.add_to(Email(recv))
 
     # Inject the receivers to the email
     message.add_personalization(to_list)
 
     response = sg.send(message)
-    return {
-        "status_code": response.status_code,
-        "body": response.body,
-        "headers": response.headers,
-    }
-    # return response.status_code
+    # return {
+    #     "status_code": response.status_code,
+    #     "body": response.body,
+    #     "headers": response.headers,
+    # }
+    return response.status_code
 
 
 # send_email(

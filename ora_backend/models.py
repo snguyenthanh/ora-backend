@@ -665,3 +665,22 @@ class NotificationStaff(BaseModel):
         await insert(cls.__table__).values(
             notifications
         ).on_conflict_do_nothing().gino.scalar()
+
+
+class StaffNotificationSetting(BaseModel):
+    __tablename__ = "staff_notification_setting"
+
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    staff_id = db.Column(db.String, nullable=False)
+    receive_emails = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_staff_notification_setting_id = db.Index(
+        "idx_staff_notification_setting_id", "id"
+    )
+    _idx_staff_notification_setting_staff_id = db.Index(
+        "idx_staff_notification_setting_staff_id", "staff_id"
+    )

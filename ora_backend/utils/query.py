@@ -302,6 +302,33 @@ async def get_messages(
     return result
 
 
+async def get_supervisor_emails_to_send_emails():
+    data = (
+        await db.status(
+            db.text(
+                """
+                SELECT DISTINCT temp.email
+                FROM (
+                	SELECT
+                		"user".email as email,
+                		CASE WHEN staff_notification_setting.receive_emails IS NULL THEN FALSE
+                			ELSE staff_notification_setting.receive_emails
+                		END
+                	FROM "user"
+                	LEFT OUTER JOIN staff_notification_setting
+                		ON staff_notification_setting.staff_id = "user".id
+                	WHERE
+                		"user".role_id = 2
+                ) temp
+                WHERE temp.receive_emails = TRUE;
+                """
+            )
+        )
+    )[1]
+
+    return [row[0] for row in data]
+
+
 async def get_bookmarked_visitors(
     visitor_model, bookmark_model, staff_id, *, limit=15, after_id=None, **kwargs
 ):
