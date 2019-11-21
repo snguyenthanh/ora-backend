@@ -3,12 +3,19 @@
 set -e
 export MODE=development
 
+source .env
+
 # Create a PostgreSQL container
 docker create --name dev_postgres_ora_backend -v dev_postgres_ora_backend_dbdata:/var/lib/postgresql/data -p 54320:5432 postgres:11 || true
+docker create --name dev_redis_ora_backend -e REDIS_PASSWORD=$CELERY_BROKER_PASSWORD -p 6379:6379 bitnami/redis:latest || true
 
-# Start a Postgres container
+
+# Start the containers
 # docker run --name my_postgres -v my_dbdata:/var/lib/postgresql/data -p 54320:5432 postgres:11 || docker start -a my_postgres
 docker start -a dev_postgres_ora_backend &
+docker start -a dev_redis_ora_backend || docker exec -it dev_redis_ora_backend redis-cli -a $CELERY_BROKER_PASSWORD flushall || docker exec -it dev_redis_ora_backend redis-server &
+
+# docker exec -it dev_redis_ora_backend redis-server
 
 # Also, run the Python app
 pipenv run python app.py &

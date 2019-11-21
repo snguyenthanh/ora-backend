@@ -1,7 +1,8 @@
 from sanic.exceptions import Forbidden
 from sanic.response import json
 
-from ora_backend.constants import ROLES
+from ora_backend import cache
+from ora_backend.constants import ROLES, CACHE_SETTINGS
 from ora_backend.models import Setting
 from ora_backend.views.urls import setting_blueprint as blueprint
 from ora_backend.utils.request import unpack_request
@@ -22,6 +23,11 @@ async def change_global_settings(
 
     for key, value in req_body.items():
         await Setting.modify_if_exists({"key": key}, {"value": value})
+
+    # Update the settings in cache
+    settings = await get_latest_settings()
+    await cache.set(CACHE_SETTINGS, settings, namespace="settings")
+
     return {"data": None}
 
 

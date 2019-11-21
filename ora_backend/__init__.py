@@ -1,7 +1,7 @@
 from datetime import timedelta
 import logging
 
-from aiocache import Cache
+from aiocache import RedisCache
 from aiocache.serializers import JsonSerializer
 from asyncpg.exceptions import UniqueViolationError
 from gino.ext.sanic import Gino
@@ -20,6 +20,7 @@ from ora_backend.config import (
     CORS_ORIGINS,
     SENTRY_DSN,
     MODE,
+    CELERY_BROKER_PASSWORD,
 )
 from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
 
@@ -48,7 +49,9 @@ app.config["CORS_AUTOMATIC_OPTIONS"] = True
 app.config["CORS_SUPPORTS_CREDENTIALS"] = True
 
 # Construct an in-memory storage
-cache = Cache(serializer=JsonSerializer())
+cache = RedisCache(
+    serializer=JsonSerializer(), password=CELERY_BROKER_PASSWORD, pool_min_size=3
+)
 
 # Initialize the DB before doing anything else
 # to avoid circular importing

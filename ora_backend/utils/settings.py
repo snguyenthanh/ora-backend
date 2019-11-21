@@ -12,5 +12,8 @@ async def get_latest_settings():
 async def get_settings_from_cache():
     settings = await cache.get(CACHE_SETTINGS, namespace="settings")
     if settings is None:
-        return await get_latest_settings()
+        settings = await get_latest_settings()
+        await cache.set(CACHE_SETTINGS, settings, namespace="settings")
+        return settings
+
     return settings
