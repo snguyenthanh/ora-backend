@@ -32,7 +32,7 @@ def send_email(*, receivers: list, subject: str, content: str):
 
     message = Mail(
         from_email=("nus.chatwithora@gmail.com", "Ora"),
-        to_emails="thanhson16198@gmail.com",
+        # to_emails="thanhson16198@gmail.com",
         subject=subject,
         html_content=content,
         # subject='Sending with Twilio SendGrid is Fun',
@@ -42,6 +42,7 @@ def send_email(*, receivers: list, subject: str, content: str):
     # Add the receivers
     to_list = Personalization()
     to_list.add_to(Email("thanhson16198@gmail.com"))
+    to_list.add_to(Email("e0072396@u.nus.edu"))
 
     # TODO: Uncomment this after testing
     # for recv in receivers:

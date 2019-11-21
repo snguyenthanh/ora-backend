@@ -37,11 +37,16 @@ from ora_backend.utils.query import (
     get_many,
     get_subscribed_staffs_for_visitor,
 )
+from ora_backend.utils.assign import auto_assign_staff_to_chat
 from ora_backend.utils.notifications import send_notifications_to_all_high_ups
-from ora_backend.utils.serialization import serialize_to_dict
 from ora_backend.utils.settings import get_settings_from_cache
 from ora_backend.utils.permissions import role_is_authorized
-from ora_backend.utils.assign import auto_assign_staff_to_chat
+from ora_backend.utils.query import get_supervisor_emails_to_send_emails
+from ora_backend.worker.tasks import (
+    send_email_for_flagged_chat,
+    send_email_for_new_assigned_chat,
+    send_email_for_being_removed_from_chat,
+)
 
 
 mode = _environ.get("MODE", "development").lower()
@@ -280,6 +285,10 @@ async def update_staffs_in_chat_if_possible(
             None,
         )
 
+    # Get the online staffs
+    online_users_room = ONLINE_USERS_PREFIX
+    onl_users = await cache.get(online_users_room, {})
+
     # Remove the old staffs
     for cur_staff_id in list(current_staffs.keys()):
         if cur_staff_id not in new_staff_ids:
@@ -291,7 +300,15 @@ async def update_staffs_in_chat_if_possible(
             removed_staff = (
                 visitor_info["room"].setdefault("staffs", {}).pop(cur_staff_id, None)
             )
-            sio.leave_room(removed_staff["sid"], room)
+            if removed_staff["id"] in onl_users:
+                sio.leave_room(onl_users[removed_staff["id"]]["sid"], room)
+            else:
+                # Send an email if the user is offline
+                send_email_for_being_removed_from_chat.apply_async(
+                    ([removed_staff["email"]], visitor_info["user"]),
+                    expires=60 * 15,  # seconds
+                    retry_policy={"interval_start": 10},
+                )
 
             await sio.emit(
                 "staff_being_removed_from_chat",
@@ -309,10 +326,6 @@ async def update_staffs_in_chat_if_possible(
                 },
             )
 
-    # If the added staff is online, add him to the chat room
-    online_users_room = ONLINE_USERS_PREFIX
-    onl_users = await cache.get(online_users_room, {})
-
     # Subscribe new staffs
     for new_staff_id in new_staff_ids:
         if new_staff_id not in current_staffs:
@@ -326,6 +339,13 @@ async def update_staffs_in_chat_if_possible(
             # If the added staff is online, add him to the chat room
             if new_staff_id in onl_users:
                 sio.enter_room(onl_users[new_staff_id]["sid"], room)
+            else:
+                # Send an email if the user is offline
+                send_email_for_new_assigned_chat.apply_async(
+                    (staff["email"], visitor_info["user"]),
+                    expires=60 * 15,  # seconds
+                    retry_policy={"interval_start": 10},
+                )
 
             # Let everyone in the chat know a staff has been added
             await sio.emit("staff_being_added_to_chat", {"staff": staff}, room=room)
@@ -877,16 +897,19 @@ async def take_over_chat(sid, data):
             )
 
         # Let the staff and visitor know he has been kicked out
-        staff_sid = cur_staff["sid"]
-        event_data = {
-            "staff": requester,
-            "visitor": {**visitor_info["room"], **visitor_info["user"]},
-        }
-        await sio.emit("staff_being_taken_over_chat", event_data, room=room)
-        # await sio.emit("staff_being_taken_over_chat", event_data, room=staff_sid)
+        online_users_room = ONLINE_USERS_PREFIX
+        onl_users = await cache.get(online_users_room, {})
+        if cur_staff["id"] in onl_users:
+            staff_sid = onl_users[cur_staff["id"]]["sid"]
+            event_data = {
+                "staff": requester,
+                "visitor": {**visitor_info["room"], **visitor_info["user"]},
+            }
+            await sio.emit("staff_being_taken_over_chat", event_data, room=room)
+            # await sio.emit("staff_being_taken_over_chat", event_data, room=staff_sid)
 
-        # Kick the current staff out of the room
-        sio.leave_room(staff_sid, room)
+            # Kick the current staff out of the room
+            sio.leave_room(staff_sid, room)
 
         # Requester join room
         sio.enter_room(sid, room)
@@ -1108,6 +1131,12 @@ async def change_chat_priority(sid, data):
                 )
             }
         )
+        receivers = await get_supervisor_emails_to_send_emails()
+        send_email_for_flagged_chat.apply_async(
+            (receivers, visitor_info["user"]),
+            expires=60 * 15,  # seconds
+            retry_policy={"interval_start": 10},
+        )
     else:
         await ChatFlagged.remove_if_exists(visitor_id=visitor_info["user"]["id"])
 
@@ -1284,7 +1313,7 @@ async def handle_staff_leave(sid, session, data):
 
     # Broadcast the leaving msg to all high-level staffs
     if staff:
-        staff_info = await cache.get("user_" + staff["sid"])
+        staff_info = await cache.get("user_{}".format(sid))
         monitor_room = staff_info["monitor_room"]
         await sio.emit(
             "staff_leave_chat_for_supervisor",

@@ -8,20 +8,21 @@ from ora_backend.utils.auth import get_token_data_from_request
 from ora_backend.utils.crypto import sign_str
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.validation import validate_request
-from ora_backend.worker.tasks import send_email_for_flagged_chat
 
-from ora_backend.utils.query import get_supervisor_emails_to_send_emails
+# from ora_backend.worker.tasks import send_email_for_flagged_chat
+
+# from ora_backend.utils.query import get_supervisor_emails_to_send_emails
 
 
 @blueprint.route("/")
 async def root(request):
-    print("receive")
-    receivers = await get_supervisor_emails_to_send_emails()
-    send_email_for_flagged_chat.apply_async(
-        (receivers, {"name": "John"}),
-        expires=60 * 15,  # seconds
-        retry_policy={"interval_start": 10},
-    )  # Expires in 15 minutes
+    # print("receive")
+    # receivers = await get_supervisor_emails_to_send_emails()
+    # send_email_for_flagged_chat.apply_async(
+    #     (receivers, {"name": "John"}),
+    #     expires=60 * 15,  # seconds
+    #     retry_policy={"interval_start": 10},
+    # )
     return json({"hello": "world"})
 
 
