@@ -205,6 +205,25 @@ data={
 }
 ```
 
+#### update_staffs_in_chat
+
+For a supervisor / admin to modify the staffs in a chat.
+
+Args:
+
+`data` (dict):
+
+```
+data={
+	"visitor": <visitor_id>, # The visitor's ID
+  "staffs": [
+    <staff_id>, # The staff's ID, in string
+    <staff_id>,
+    ...
+  ]
+}
+```
+
 #### change_chat_priority
 
 For any staffs to change a chat's priority (flag/unflag).

@@ -39,6 +39,7 @@ from ora_backend.utils.query import (
 )
 from ora_backend.utils.notifications import send_notifications_to_all_high_ups
 from ora_backend.utils.serialization import serialize_to_dict
+from ora_backend.utils.settings import get_settings_from_cache
 from ora_backend.utils.permissions import role_is_authorized
 from ora_backend.utils.assign import auto_assign_staff_to_chat
 
@@ -211,7 +212,7 @@ async def add_staff_to_chat_if_possible(staff_id, visitor_id, visitor_info):
     staffs = visitor_info["room"].get("staffs", {})
 
     # Only add if the max staffs in a chat isnt reached
-    settings = await cache.get(CACHE_SETTINGS, namespace="settings")
+    settings = await get_settings_from_cache()
     max_staffs_in_chat = settings.get("max_staffs_in_chat", 0)
 
     if len(staffs) < max_staffs_in_chat:
@@ -238,8 +239,73 @@ async def remove_staff_from_chat_if_possible(staff_id, visitor_id, visitor_info)
         staff_id=staff_id, visitor_id=visitor_id
     )
 
-    # Let everyone in the chat know a staff has been added
+    # Let everyone in the chat know a staff has been removed
     await sio.emit("staff_being_removed_from_chat", {"staff": staff}, room=room)
+    return True, None, visitor_info
+
+
+async def update_staffs_in_chat_if_possible(
+    requester, new_staff_ids, visitor_id, visitor_info
+):
+    room = visitor_info["room"]["id"]
+    current_staffs = visitor_info["room"].get("staffs", {})
+
+    # Only add if the max staffs in a chat isnt reached
+    settings = await get_settings_from_cache()
+    max_staffs_in_chat = settings.get("max_staffs_in_chat", 0)
+    if len(new_staff_ids) > max_staffs_in_chat:
+        return (
+            False,
+            "The number of staffs in the room has reached the max capacity.",
+            None,
+        )
+
+    # Remove the old staffs
+    new_staff_ids = set(new_staff_ids)
+    for cur_staff_id in list(current_staffs.keys()):
+        if cur_staff_id not in new_staff_ids:
+            await StaffSubscriptionChat.remove_if_exists(
+                staff_id=cur_staff_id, visitor_id=visitor_id
+            )
+            await sio.emit(
+                "staff_being_removed_from_chat",
+                {"staff": current_staffs[cur_staff_id]},
+                room=room,
+            )
+            visitor_info["room"].setdefault("staffs", {}).pop(cur_staff_id, None)
+
+            # Send a notification to the staff
+            await NotificationStaff.add(
+                staff_id=cur_staff_id,
+                content={
+                    "content": "You have been removed from the chat with {}, by {}".format(
+                        visitor_info["user"]["name"], requester["full_name"]
+                    )
+                },
+            )
+    # Subscribe new staffs
+    for new_staff_id in new_staff_ids:
+        if new_staff_id not in current_staffs:
+            staff = await User.get(id=new_staff_id)
+
+            visitor_info["room"].setdefault("staffs", {})[staff["id"]] = staff
+            await StaffSubscriptionChat.add_if_not_exists(
+                staff_id=new_staff_id, visitor_id=visitor_id
+            )
+
+            # Let everyone in the chat know a staff has been added
+            await sio.emit("staff_being_added_to_chat", {"staff": staff}, room=room)
+
+            # Send a notification to staff
+            await NotificationStaff.add(
+                staff_id=new_staff_id,
+                content={
+                    "content": "You have been assigned to talk to {}, by {}".format(
+                        visitor_info["user"]["name"], requester["full_name"]
+                    )
+                },
+            )
+
     return True, None, visitor_info
 
 
@@ -253,12 +319,7 @@ async def connect(sid, environ: dict):
     online_users_room = ONLINE_USERS_PREFIX
 
     # Init app settings
-    settings = await cache.get(CACHE_SETTINGS, namespace="settings")
-    if not settings:
-        _SETTINGS = await Setting.get(many=True, limit=100)
-        _SETTINGS_AS_DICT = {setting["key"]: setting["value"] for setting in _SETTINGS}
-        await cache.set(CACHE_SETTINGS, _SETTINGS_AS_DICT, namespace="settings")
-        settings = _SETTINGS_AS_DICT
+    settings = await get_settings_from_cache()
 
     # Staff
     if user_type == User.__tablename__:
@@ -429,15 +490,17 @@ async def connect(sid, environ: dict):
             skip_sid=sid,
         )
 
+        # Return the online staffs to visitor
+        onl_users = await cache.get(online_users_room, {})
+
         # staff = visitor_info["room"].get("staff")
         staffs = visitor_info["room"].get("staffs")
         await sio.emit(
             "visitor_init",
             data={
                 # "staff": staff if staff else None,
-                "staffs": staffs
-                if staffs
-                else None
+                "staffs": staffs if staffs else None,
+                "online_staffs": onl_users,
             },
             room=sid,
         )
@@ -501,7 +564,7 @@ async def staff_join(sid, data):
     user = session["user"]
     org_room = session["org_room"]
     monitor_room = session["monitor_room"]
-    settings = await cache.get(CACHE_SETTINGS, namespace="settings")
+    settings = await get_settings_from_cache()
 
     if settings.get("allow_claiming_chat", 1):
         # Remove the chat from unclaimed chats
@@ -694,6 +757,41 @@ async def remove_staff_from_chat(sid, data):
 
 
 @sio.event
+async def update_staffs_in_chat(sid, data):
+    # Validation
+    if (
+        "staffs" not in data
+        or not isinstance(data["staffs"], list)
+        or any(not isinstance(item, str) for item in data["staffs"])
+    ):
+        return False, "Missing/Invalid field: staff"
+
+    if "visitor" not in data or not isinstance(data["visitor"], str):
+        return False, "Missing/Invalid field: visitor"
+
+    session = await sio.get_session(sid)
+    staff_ids = data["staffs"]
+    visitor_id = data["visitor"]
+    user = session["user"]
+    is_allowed = await role_is_authorized(user["role_id"], "add_agents_to_chat")
+    if not is_allowed:
+        return False, "You are not authorized to remove staffs from a chat."
+
+    visitor_info = await cache.get(visitor_id, namespace="visitor_info")
+    if not visitor_info:
+        return False, "The chat room is either closed or doesn't exist."
+
+    status, error_msg, new_visitor_info = await update_staffs_in_chat_if_possible(
+        user, staff_ids, visitor_id, visitor_info
+    )
+    if status:
+        await cache.set(visitor_id, new_visitor_info, namespace="visitor_info")
+        return status, None
+
+    return status, error_msg
+
+
+@sio.event
 async def take_over_chat(sid, data):
     """A higher-up staff could take over a chat of a lower one."""
     # Validation
@@ -715,7 +813,7 @@ async def take_over_chat(sid, data):
     monitor_room = session["monitor_room"]
 
     # Get the settings
-    settings = await cache.get(CACHE_SETTINGS, namespace="settings")
+    settings = await get_settings_from_cache()
     is_one_to_one = settings.get("is_one_to_one", False)
 
     if is_one_to_one:
@@ -820,7 +918,7 @@ async def handle_visitor_msg(sid, content):
     chat_room = session["room"]
     user = session["user"]
     # Get the settings
-    settings = await cache.get(CACHE_SETTINGS, namespace="settings")
+    settings = await get_settings_from_cache()
     allow_claiming_chat = settings.get("allow_claiming_chat", False)
 
     # Get the sequence number, and store in memory DB

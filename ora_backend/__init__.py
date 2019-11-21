@@ -79,6 +79,12 @@ async def init_plugins(app, loop):
 # Register the listeners
 app.register_listener(init_plugins, "after_server_start")
 
+# Register background tasks
+from ora_backend.tasks.assign import check_for_reassign_chats_every_half_hour
+
+app.add_task(check_for_reassign_chats_every_half_hour())
+
+
 # Register Prometheus
 try:
     # import prometheus_client as prometheus

@@ -3,7 +3,16 @@ from sanic.exceptions import Forbidden
 
 from ora_backend.constants import ROLES
 from ora_backend.views.urls import user_blueprint as blueprint
-from ora_backend.models import User, NotificationStaff, NotificationStaffRead
+from ora_backend.models import (
+    User,
+    NotificationStaff,
+    NotificationStaffRead,
+    StaffSubscriptionChat,
+)
+from ora_backend.utils.assign import (
+    reset_all_volunteers_in_cache,
+    auto_assign_staff_to_chat,
+)
 from ora_backend.utils.exceptions import (
     raise_role_authorization_exception,
     raise_permission_exception,
@@ -11,9 +20,12 @@ from ora_backend.utils.exceptions import (
 from ora_backend.utils.links import generate_pagination_links
 from ora_backend.utils.query import (
     get_number_of_unread_notifications_for_staff,
+    get_visitors_with_no_assigned_staffs,
     get_one_latest,
+    delete_many,
 )
 from ora_backend.utils.request import unpack_request
+from ora_backend.utils.settings import get_latest_settings
 from ora_backend.utils.validation import validate_request, validate_permission
 
 
@@ -68,7 +80,27 @@ async def user_update(req, *, req_args, req_body, requester, **kwargs):
     ):
         raise_role_authorization_exception(update_user["role_id"], action="update")
 
-    return {"data": await User.modify(req_args, req_body)}
+    new_user = await User.modify(req_args, req_body)
+
+    # When a staff is disabled:
+    # - Remove him from all subscriptions
+    # - If he is the only staff in a chat => re-assign
+    if req_body.get("disabled", False):
+        # Remove all subscriptions
+        await delete_many(StaffSubscriptionChat, staff_id=user_id)
+
+        # Update the list of volunteers to assign
+        await reset_all_volunteers_in_cache()
+
+        settings = await get_latest_settings()
+        if settings.get("auto_reassign", 0):
+            # Re-assign a new staff
+            # to the visitors with no assigned staffs
+            visitors = await get_visitors_with_no_assigned_staffs()
+            for visitor in visitors:
+                await auto_assign_staff_to_chat(visitor["id"])
+
+    return {"data": new_user}
 
 
 @validate_request(schema="user_read", skip_body=True)

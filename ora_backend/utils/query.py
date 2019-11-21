@@ -476,7 +476,7 @@ async def get_one_oldest(model, order_by="internal_id", **kwargs):
 
 
 async def get_many_with_count_and_group_by(
-    model, *, columns, in_column=None, in_values=None
+    model, *, columns, in_column=None, in_values=None, **kwargs
 ):
     return (
         await db.select(
@@ -485,7 +485,8 @@ async def get_many_with_count_and_group_by(
         .where(
             getattr(model, in_column).in_(in_values)
             if in_column and in_values
-            else True
+            else True,
+            *dict_to_filter_args(model, **kwargs) if kwargs else True,
         )
         .group_by(*[getattr(model, column) for column in columns])
         .gino.all()
@@ -726,6 +727,65 @@ async def get_non_normal_visitors(
             key: value
             for key, value in zip(extra_fields + chat_fields + visitor_fields, row)
         }
+        result.append(visitor_data)
+
+    return result
+
+
+async def get_unhandled_visitors_with_no_replies(max_waiting_hours: int):
+    sql_query = """
+    SELECT {}
+        FROM visitor
+    JOIN chat_unhandled
+    	ON chat_unhandled.visitor_id = visitor.id
+    WHERE
+    	round(chat_unhandled.created_at::decimal / 1000) >
+        round(extract(epoch from now())) - :max_waiting_hours * 60 * 60
+    ;
+    """.format(
+        ", ".join(visitor_fields_with_table_name)
+    )
+
+    data = (
+        await db.status(db.text(sql_query), {"max_waiting_hours": max_waiting_hours})
+    )[1]
+
+    result = []
+    # Parse the visitors
+    for row in data:
+        visitor_data = {key: value for key, value in zip(visitor_fields, row)}
+        result.append(visitor_data)
+
+    return result
+
+
+async def get_visitors_with_no_assigned_staffs():
+
+    sql_query = """
+    WITH visitors_with_assigned_staffs AS (
+        SELECT
+            DISTINCT staff_subscription_chat.visitor_id
+        FROM staff_subscription_chat
+    )
+    SELECT {}
+        FROM visitor
+    WHERE
+    	NOT EXISTS (
+            SELECT 1
+            FROM visitors_with_assigned_staffs
+            WHERE visitors_with_assigned_staffs.visitor_id = visitor.id
+        )
+    ;
+    """.format(
+        ", ".join(visitor_fields_with_table_name)
+    )
+
+    data = (await db.status(db.text(sql_query)))[1]
+
+    result = []
+    # Parse the visitors
+    for row in data:
+        visitor_data = {key: value for key, value in zip(visitor_fields, row)}
         result.append(visitor_data)
 
     return result

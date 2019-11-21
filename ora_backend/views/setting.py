@@ -5,13 +5,12 @@ from ora_backend.constants import ROLES
 from ora_backend.models import Setting
 from ora_backend.views.urls import setting_blueprint as blueprint
 from ora_backend.utils.request import unpack_request
+from ora_backend.utils.settings import get_latest_settings
 from ora_backend.utils.validation import validate_request, validate_permission
 
 
 async def get_all_settings(request, **kwargs):
-    settings = await Setting.get(many=True, limit=100)
-    settings_as_dict = {setting["key"]: setting["value"] for setting in settings}
-    return {"data": settings_as_dict}
+    return {"data": await get_latest_settings()}
 
 
 @validate_permission
