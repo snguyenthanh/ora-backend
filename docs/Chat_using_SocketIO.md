@@ -702,6 +702,30 @@ data={
 }
 ```
 
+##### staff_auto_assigned_chat
+
+This event is emitted to the staff who is assigned a new chat, by auto-assign.
+
+`data` (dict)
+
+```
+data={
+  "visitor": {   # The visitor who the staff is assigned to
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None,
+  },
+}
+```
+
+
 ##### staff_being_added_to_chat
 
 This event is sent to the chat room. So all the staffs and the visitor in the room will receive this event.

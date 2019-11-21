@@ -162,7 +162,7 @@ async def get_sequence_num_for_visitor(user_id: str):
 
 
 async def get_or_create_visitor_session(
-    visitor_id: str, visitor: dict = None, chat_room: dict = None
+    visitor_id: str, visitor: dict = None, chat_room: dict = None, *, assign_staff=False
 ):
     visitor_info = await cache.get(visitor_id, namespace="visitor_info")
     if visitor_info:
@@ -189,8 +189,22 @@ async def get_or_create_visitor_session(
     # staffs = dict(map(lambda staff: (staff["id"], staff), staffs))
     subscribed_staffs = await get_subscribed_staffs_for_visitor(visitor_id)
     staffs = {staff["id"]: staff for staff in subscribed_staffs}
-    if not staffs:
-        staff = await auto_assign_staff_to_chat(visitor_id)
+
+    # Assign a staff to the visitor
+    # and let the staff know about this if he is online
+    if not staffs and assign_staff:
+        settings = await get_settings_from_cache()
+        if settings.get("auto_assign", 0):
+            staff = await auto_assign_staff_to_chat(visitor_id)
+            if staff:
+                online_users_room = ONLINE_USERS_PREFIX
+                onl_users = await cache.get(online_users_room, {})
+                if staff["id"] in onl_users:
+                    sio.emit(
+                        "staff_auto_assigned_chat",
+                        {"visitor": {**chat_room, **visitor}},
+                        room=onl_users[staff["id"]]["sid"],
+                    )
 
     data = {
         "user": visitor,
@@ -463,7 +477,7 @@ async def connect(sid, environ: dict):
         # Get/Create a chat room for each visitor
         chat_room = await Chat.get_or_create(visitor_id=user["id"])
         visitor_info = await get_or_create_visitor_session(
-            user["id"], chat_room=chat_room
+            user["id"], chat_room=chat_room, assign_staff=True
         )
         sio.enter_room(sid, chat_room["id"])
         await sio.save_session(sid, {"user": user, "room": chat_room})

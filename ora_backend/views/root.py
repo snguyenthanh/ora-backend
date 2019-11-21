@@ -15,13 +15,13 @@ from ora_backend.utils.query import get_supervisor_emails_to_send_emails
 
 @blueprint.route("/")
 async def root(request):
-    print("receive")
-    receivers = await get_supervisor_emails_to_send_emails()
-    send_email_for_flagged_chat.apply_async(
-        (receivers, {"name": "John"}),
-        expires=60 * 15,  # seconds
-        retry_policy={"interval_start": 10},
-    )  # Expires in 15 minutes
+    # print("receive")
+    # receivers = await get_supervisor_emails_to_send_emails()
+    # send_email_for_flagged_chat.apply_async(
+    #     (receivers, {"name": "John"}),
+    #     expires=60 * 15,  # seconds
+    #     retry_policy={"interval_start": 10},
+    # )  # Expires in 15 minutes
     return json({"hello": "world"})
 
 
