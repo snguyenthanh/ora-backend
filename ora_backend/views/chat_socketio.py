@@ -1190,7 +1190,7 @@ async def staff_msg(sid, data):
         skip_sid=sid,
     )
 
-    return True, None
+    return True, None, chat_msg
 
 
 async def handle_staff_leave(sid, session, data):
