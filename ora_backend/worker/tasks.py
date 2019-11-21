@@ -67,9 +67,9 @@ def send_email_for_being_removed_from_chat(receivers: list, visitor: dict):
 @celery_app.task
 def send_email_for_flagged_chat(receivers: list, visitor: dict):
     """Send an email to all supervisors about the new message, when no one is online."""
-    if not receivers:
-        return None
-
+    # if not receivers:
+    #     return None
+    receivers = []
     title = "A staff has flagged the chat with visitor {}!".format(visitor["name"])
     content = """A volunteer needs your expertise and guidance.<br/>
         Click the button below to attend to the chat.""".strip()
