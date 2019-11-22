@@ -747,6 +747,18 @@ data={
     disabled: false,
     role_id: 3,
   },
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None,
+  }
 }
 ```
 
@@ -771,6 +783,18 @@ data={
     disabled: false,
     role_id: 3,
   },
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None,
+  }
 }
 ```
 

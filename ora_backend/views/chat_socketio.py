@@ -210,6 +210,13 @@ async def get_or_create_visitor_session(
                         {"visitor": {**chat_room, **visitor}},
                         room=onl_users[staff["id"]]["sid"],
                     )
+                else:
+                    # Send email if the staff is online
+                    send_email_for_new_assigned_chat.apply_async(
+                        (staff["email"], visitor),
+                        expires=60 * 15,  # seconds
+                        retry_policy={"interval_start": 10},
+                    )
 
     data = {
         "user": visitor,
@@ -243,7 +250,14 @@ async def add_staff_to_chat_if_possible(staff_id, visitor_id, visitor_info):
         )
 
         # Let everyone in the chat know a staff has been added
-        await sio.emit("staff_being_added_to_chat", {"staff": staff}, room=room)
+        await sio.emit(
+            "staff_being_added_to_chat",
+            {
+                "staff": staff,
+                "visitor": {**visitor_info["room"], **visitor_info["user"]},
+            },
+            room=room,
+        )
         return True, None, visitor_info
 
     return False, "The number of staffs in the room has reached the max capacity.", None
@@ -259,7 +273,11 @@ async def remove_staff_from_chat_if_possible(staff_id, visitor_id, visitor_info)
     )
 
     # Let everyone in the chat know a staff has been removed
-    await sio.emit("staff_being_removed_from_chat", {"staff": staff}, room=room)
+    await sio.emit(
+        "staff_being_removed_from_chat",
+        {"staff": staff, "visitor": {**visitor_info["room"], **visitor_info["user"]}},
+        room=room,
+    )
     return True, None, visitor_info
 
 
@@ -312,7 +330,10 @@ async def update_staffs_in_chat_if_possible(
 
             await sio.emit(
                 "staff_being_removed_from_chat",
-                {"staff": current_staffs[cur_staff_id]},
+                {
+                    "staff": current_staffs[cur_staff_id],
+                    "visitor": {**visitor_info["room"], **visitor_info["user"]},
+                },
                 room=room,
             )
 
@@ -348,7 +369,14 @@ async def update_staffs_in_chat_if_possible(
                 )
 
             # Let everyone in the chat know a staff has been added
-            await sio.emit("staff_being_added_to_chat", {"staff": staff}, room=room)
+            await sio.emit(
+                "staff_being_added_to_chat",
+                {
+                    "staff": staff,
+                    "visitor": {**visitor_info["room"], **visitor_info["user"]},
+                },
+                room=room,
+            )
 
             # Send a notification to staff
             await NotificationStaff.add(
