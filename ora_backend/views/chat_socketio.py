@@ -491,7 +491,10 @@ async def connect(sid, environ: dict):
                 if visitor_id in subscribed_visitors:
                     sio.enter_room(sid, chat_room["room"]["id"])
                     await sio.emit(
-                        "staff_goes_online", data={"staff": user}, room=chat_room["room"]["id"], skip_sid=sid
+                        "staff_goes_online",
+                        data={"staff": user},
+                        room=chat_room["room"]["id"],
+                        skip_sid=sid,
                     )
 
         # Get the offline unclaimed chats as well

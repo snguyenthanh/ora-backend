@@ -108,12 +108,12 @@ async def auto_assign_staff_to_chat(visitor_id, exclude_staff_id=None):
 
         if counter >= len(all_volunteers["staffs"]):
             counter = 0
-        staff = all_volunteers[counter]
+        staff = all_volunteers["staffs"][counter]
         while staff["id"] == exclude_staff_id:
             counter += 1
             if counter >= len(all_volunteers["staffs"]):
                 counter = 0
-            staff = all_volunteers[counter]
+            staff = all_volunteers["staffs"][counter]
         await cache.set(
             "all_volunteers",
             {"counter": counter + 1, "staffs": all_volunteers["staffs"]},
