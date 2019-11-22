@@ -1114,7 +1114,7 @@ async def handle_visitor_msg(sid, content):
             "visitor": {**visitor_info["room"], **visitor_info["user"]},
             "content": chat_msg,
         },
-        room=visitor_info["user"]["id"],
+        room=visitor_info["room"]["id"],
         skip_sid=sid,
     )
     # Add to unhandled queue
