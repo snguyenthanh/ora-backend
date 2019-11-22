@@ -1537,6 +1537,30 @@ async def disconnect(sid):
             skip_sid=sid,
         )
 
+        # Let all the visitors know the staff has gone offline
+        online_visitors = await cache.get(online_visitors_room, {})
+        if online_visitors:
+            # Get all subscribed visitors
+            subscriptions = await StaffSubscriptionChat.query.where(
+                StaffSubscriptionChat.staff_id == user["id"]
+            ).gino.all()
+            subscribed_visitors = {item.visitor_id for item in subscriptions}
+
+            onl_visitor_ids = online_visitors.keys()
+            current_chat_rooms = await cache.multi_get(
+                onl_visitor_ids, namespace="visitor_info"
+            )
+            for visitor_id, chat_room in zip(onl_visitor_ids, current_chat_rooms):
+                # The staff leaves the rooms he subscribed to
+                if visitor_id in subscribed_visitors:
+                    await sio.emit(
+                        "staff_goes_offline",
+                        data={"staff": user},
+                        room=chat_room["room"]["id"],
+                        skip_sid=sid,
+                    )
+                    sio.leave_room(sid, chat_room["room"]["id"])
+
         # Disconnect from queue room
         # org_room_id = org_room.replace(UNCLAIMED_CHATS_PREFIX, "")
         sio.leave_room(sid, org_room)
