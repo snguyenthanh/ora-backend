@@ -1181,6 +1181,8 @@ async def handle_visitor_msg(sid, content):
     online_users_room = ONLINE_USERS_PREFIX
     onl_users = await cache.get(online_users_room, {})
     if all(staff["id"] not in onl_users for staff in visitor_info["room"]["staffs"]):
+        # last_sent_email_info = await cache.get(CACHE_SEND_EMAIL_ON_VISITOR_NEW_MSG, {}, namespace="emails")
+        # emails = [staff["email"] for staff in visitor_info["room"]["staffs"]]
         # If hasnt sent email in 1 hour
         # send_email_to_staffs_for_new_visitor_msg.apply_async(
         #     ([staff["email"]], visitor),
@@ -1557,6 +1559,8 @@ async def disconnect(sid):
     if not session:
         return False, "The user has already disconnected."
 
+    online_visitors_room = ONLINE_VISITORS_PREFIX
+
     # Visitor
     if session["type"] == Visitor.__tablename__:
         # room = session["room"]
@@ -1564,7 +1568,6 @@ async def disconnect(sid):
 
         # Remove the visitor from online visitors first
         # to avoid user re-connects before finishing processing
-        online_visitors_room = ONLINE_VISITORS_PREFIX
         onl_visitors = await cache.get(online_visitors_room, {})
         onl_visitors.pop(user["id"], None)
         await cache.set(online_visitors_room, onl_visitors)
