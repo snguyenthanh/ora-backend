@@ -11,8 +11,12 @@ from sanic.response import text
 from sanic_jwt_extended import JWTManager
 from sanic_cors import CORS
 from sentry_sdk import init as sentry_init
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
 from sentry_sdk.integrations.sanic import SanicIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+from sentry_sdk.integrations.tornado import TornadoIntegration
+
 
 from ora_backend.config import (
     JWT_SECRET_KEY,
@@ -28,7 +32,13 @@ from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
 if SENTRY_DSN:
     sentry_init(
         dsn=SENTRY_DSN,
-        integrations=[SanicIntegration(), SqlalchemyIntegration()],
+        integrations=[
+            CeleryIntegration(),
+            RedisIntegration(),
+            TornadoIntegration(),
+            SanicIntegration(),
+            SqlalchemyIntegration(),
+        ],
         request_bodies="always",
         send_default_pii=True,
     )
