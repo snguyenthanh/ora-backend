@@ -35,7 +35,7 @@ async def auto_reassign_staff_to_chat(visitor_id):
     all_volunteers = await cache.get("all_volunteers", namespace="staffs")
     if not all_volunteers:
         raw_volunteers = await User.query.where(
-            User.role_id == ROLES.inverse["agent"]
+            User.role_id == ROLES.inverse["agent"], User.disabled == False
         ).gino.all()
         volunteers = [serialize_to_dict(user) for user in raw_volunteers]
         counter = 0
@@ -84,7 +84,7 @@ async def auto_assign_staff_to_chat(visitor_id, exclude_staff_id=None):
     all_volunteers = await cache.get("all_volunteers", namespace="staffs")
     if not all_volunteers:
         raw_volunteers = await User.query.where(
-            User.role_id == ROLES.inverse["agent"]
+            User.role_id == ROLES.inverse["agent"], User.disabled == False
         ).gino.all()
         volunteers = [serialize_to_dict(user) for user in raw_volunteers]
         counter = 0

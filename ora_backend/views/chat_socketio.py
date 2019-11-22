@@ -1165,10 +1165,6 @@ async def handle_visitor_msg(sid, content):
                 )
 
     # Broadcast the message to all high-level staffs
-    # else:
-    #     orgs = map(lambda staff: staff.organisation_id, staffs)
-    #     monitor_rooms = set(map(lambda org: MONITOR_ROOM_PREFIX, orgs))
-    #     for monitor_room in monitor_rooms:
     await sio.emit(
         "new_visitor_msg_for_supervisor",
         {
@@ -1178,6 +1174,12 @@ async def handle_visitor_msg(sid, content):
         # room=monitor_room
         room=MONITOR_ROOM_PREFIX,
     )
+
+    # Send emails to all subscribed staffs if no one is online
+    online_users_room = ONLINE_USERS_PREFIX
+    onl_users = await cache.get(online_users_room, {})
+    if all(staff["id"] not in onl_users for staff in visitor_info["room"]["staffs"]):
+        pass
 
     return True, None
 
@@ -1339,15 +1341,6 @@ async def staff_msg(sid, data):
 
     # Remove from unhandled queue
     payload = await ChatUnhandled.remove_if_exists(visitor_id=visitor_id)
-    if payload:
-        onl_visitors = await cache.get(online_visitors_room, {})
-        # If the chat has been removed
-        if visitor_id not in onl_visitors and visitor_info["user"]["email"]:
-            send_email_to_visitor_for_new_staff_msg.apply_async(
-                ([visitor_info["user"]["email"]], user),
-                expires=60 * 15,  # seconds
-                retry_policy={"interval_start": 10},
-            )
 
     # Broadcast the message to all high-level staffs
     staff_info = await cache.get("user_{}".format(sid))
@@ -1362,6 +1355,18 @@ async def staff_msg(sid, data):
         room=monitor_room,
         skip_sid=sid,
     )
+
+    # Send an email if the visitor is not online
+    if payload:
+        online_visitors_room = ONLINE_VISITORS_PREFIX
+        onl_visitors = await cache.get(online_visitors_room, {})
+        # If the chat has been removed
+        if visitor_id not in onl_visitors and visitor_info["user"]["email"]:
+            send_email_to_visitor_for_new_staff_msg.apply_async(
+                ([visitor_info["user"]["email"]], user),
+                expires=60 * 15,  # seconds
+                retry_policy={"interval_start": 10},
+            )
 
     return True, None, chat_msg
 
