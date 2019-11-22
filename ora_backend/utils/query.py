@@ -311,7 +311,7 @@ async def get_supervisor_emails_to_send_emails():
                 FROM (
                 	SELECT
                 		"user".email as email,
-                		CASE WHEN staff_notification_setting.receive_emails IS NULL THEN FALSE
+                		CASE WHEN staff_notification_setting.receive_emails IS NULL THEN TRUE
                 			ELSE staff_notification_setting.receive_emails
                 		END
                 	FROM "user"
@@ -319,6 +319,7 @@ async def get_supervisor_emails_to_send_emails():
                 		ON staff_notification_setting.staff_id = "user".id
                 	WHERE
                 		"user".role_id = 2
+                        AND "user".disabled = FALSE
                 ) temp
                 WHERE temp.receive_emails = TRUE;
                 """

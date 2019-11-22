@@ -228,11 +228,7 @@ async def get_or_create_visitor_session(
     data = {
         "user": visitor,
         "type": Visitor.__tablename__,
-        "room": {
-            **chat_room,
-            "staffs": staffs,
-            "sequence_num": sequence_num + 1,
-        },
+        "room": {**chat_room, "staffs": staffs, "sequence_num": sequence_num + 1},
     }
     await cache.set(visitor_id, data, namespace="visitor_info")
 
