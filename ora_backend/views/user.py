@@ -180,8 +180,13 @@ async def noti_staff_retrieve(request, *, req_args=None, query_params=None, **kw
 async def noti_staff_refresh(request, *, req_args=None, query_params=None, **kwargs):
     staff_id = req_args["staff_id"]
     latest_read_noti = await get_one_latest(NotificationStaff, staff_id=staff_id)
-    await NotificationStaffRead.modify(
-        {"staff_id": staff_id}, {"last_read_internal_id": latest_read_noti.internal_id}
+    await NotificationStaffRead.update_or_create(
+        {"staff_id": staff_id},
+        {
+            "last_read_internal_id": latest_read_noti.internal_id
+            if latest_read_noti
+            else None
+        },
     )
     return {"data": None}
 

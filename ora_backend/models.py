@@ -626,7 +626,7 @@ class NotificationStaffRead(BaseModel):
 
     internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     staff_id = db.Column(db.String, unique=True, nullable=False)
-    last_read_internal_id = db.Column(db.BigInteger, nullable=False, default=-1)
+    last_read_internal_id = db.Column(db.BigInteger, nullable=True)
 
     # Index
     _idx_notification_staff_read_staff_id = db.Index(
@@ -642,6 +642,20 @@ class NotificationStaffRead(BaseModel):
         # Create
         data = await create_one(cls, staff_id=kwargs["staff_id"])
         return serialize_to_dict(data) if serialized else data
+
+    @classmethod
+    async def update_or_create(cls, get_kwargs, update_kwargs):
+        payload = await get_one(cls, **get_kwargs)
+
+        if not payload:
+            data = await create_one(
+                cls, **update_kwargs, staff_id=get_kwargs["staff_id"]
+            )
+            return serialize_to_dict(data)
+
+        # Update the existing one
+        data = await update_one(payload, **update_kwargs)
+        return serialize_to_dict(data)
 
 
 class NotificationStaff(BaseModel):

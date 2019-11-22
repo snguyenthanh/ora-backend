@@ -973,11 +973,29 @@ async def get_number_of_unread_notifications_for_staff(
     staff_id, noti_read_model, noti_model
 ):
     noti_read = await noti_read_model.get_or_create(staff_id=staff_id, serialized=False)
-    latest_notification = await get_one_latest(noti_model, staff_id=staff_id)
-    if not latest_notification:
-        return 0
+    last_read_internal_id = noti_read.last_read_internal_id
 
-    return latest_notification.internal_id - noti_read.last_read_internal_id
+    sql_query = """
+    SELECT COUNT(*)
+    FROM notification_staff
+    WHERE
+    	notification_staff.staff_id = :staff_id
+        {}
+    ;
+    """.format(
+        "AND notification_staff.internal_id > :last_read_internal_id"
+        if last_read_internal_id is not None
+        else ""
+    )
+
+    data = (
+        await db.status(
+            db.text(sql_query),
+            {"staff_id": staff_id, "last_read_internal_id": last_read_internal_id},
+        )
+    )[1]
+    return data[0][0]
+    # return latest_notification.internal_id - noti_read.last_read_internal_id
 
 
 @in_transaction
