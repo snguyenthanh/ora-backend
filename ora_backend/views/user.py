@@ -183,7 +183,7 @@ async def noti_staff_refresh(request, *, req_args=None, query_params=None, **kwa
     await NotificationStaffRead.modify(
         {"staff_id": staff_id}, {"last_read_internal_id": latest_read_noti.internal_id}
     )
-    return {}
+    return {"data": None}
 
 
 @blueprint.route("/notifications", methods=["GET", "PUT"])
