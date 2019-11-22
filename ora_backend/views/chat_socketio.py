@@ -725,6 +725,7 @@ async def staff_join(sid, data):
     org_room = session["org_room"]
     monitor_room = session["monitor_room"]
     settings = await get_settings_from_cache()
+    next_unclaimed_visitor = None
 
     if settings.get("allow_claiming_chat", 1):
         # Remove the chat from unclaimed chats
@@ -741,7 +742,6 @@ async def staff_join(sid, data):
 
         # If the claimed chat is offline
         # return the next offline unclaimed chat and remove the claimed one from the queue in DB
-        next_unclaimed_visitor = None
         chat_of_unclaimed_visitor = None
         if is_offline_chat:
             next_unclaimed_visitor_data = await get_many(
