@@ -8,11 +8,9 @@ from ora_backend.utils.settings import get_settings_from_cache
 
 async def reset_all_volunteers_in_cache():
     raw_volunteers = await User.query.where(
-        User.role_id == ROLES.inverse["agent"]
+        User.role_id == ROLES.inverse["agent"], User.disabled == False
     ).gino.all()
-    volunteers = [
-        serialize_to_dict(user) for user in raw_volunteers if not user.disabled
-    ]
+    volunteers = [serialize_to_dict(user) for user in raw_volunteers]
     volunteers_data = await cache.get("all_volunteers", namespace="staffs")
     if not volunteers_data:
         await cache.set(

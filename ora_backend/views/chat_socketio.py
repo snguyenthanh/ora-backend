@@ -207,15 +207,17 @@ async def get_or_create_visitor_session(
                 online_users_room = ONLINE_USERS_PREFIX
                 onl_users = await cache.get(online_users_room, {})
                 if staff["id"] in onl_users:
+                    staff_sid = onl_users[staff["id"]]["sid"]
                     sio.emit(
                         "staff_auto_assigned_chat",
                         {"visitor": {**chat_room, **visitor}},
-                        room=onl_users[staff["id"]]["sid"],
+                        room=staff_sid,
                     )
+                    sio.enter_room(staff_sid, chat_room["id"])
                 else:
                     # Send email if the staff is offline
                     send_email_for_new_assigned_chat.apply_async(
-                        (staff["email"], visitor),
+                        ([staff["email"]], visitor),
                         expires=60 * 15,  # seconds
                         retry_policy={"interval_start": 10},
                     )
@@ -277,7 +279,7 @@ async def add_staff_to_chat_if_possible(
         else:
             # Send an email if the user is offline
             send_email_for_new_assigned_chat.apply_async(
-                (staff["email"], visitor_info["user"]),
+                ([staff["email"]], visitor_info["user"]),
                 expires=60 * 15,  # seconds
                 retry_policy={"interval_start": 10},
             )
@@ -426,7 +428,7 @@ async def update_staffs_in_chat_if_possible(
             else:
                 # Send an email if the user is offline
                 send_email_for_new_assigned_chat.apply_async(
-                    (staff["email"], visitor_info["user"]),
+                    ([staff["email"]], visitor_info["user"]),
                     expires=60 * 15,  # seconds
                     retry_policy={"interval_start": 10},
                 )
@@ -1179,6 +1181,12 @@ async def handle_visitor_msg(sid, content):
     online_users_room = ONLINE_USERS_PREFIX
     onl_users = await cache.get(online_users_room, {})
     if all(staff["id"] not in onl_users for staff in visitor_info["room"]["staffs"]):
+        # If hasnt sent email in 1 hour
+        # send_email_to_staffs_for_new_visitor_msg.apply_async(
+        #     ([staff["email"]], visitor),
+        #     expires=60 * 15,  # seconds
+        #     retry_policy={"interval_start": 10},
+        # )
         pass
 
     return True, None

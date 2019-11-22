@@ -114,3 +114,25 @@ def send_email_to_visitor_for_new_staff_msg(receivers: list, staff: dict):
         content=mail_content.strip(),
     )
     return status_code
+
+
+@celery_app.task
+def send_email_to_staffs_for_new_visitor_msg(receivers: list, visitor: dict):
+    """Send an email to all supervisors about the new message, when no one is online."""
+    if not receivers:
+        return None
+
+    email_subject = "Visitor {} has sent a new message!".format(visitor["name"])
+    title = "Visitor <strong>{}</strong> has sent a new message!".format(
+        visitor["name"]
+    )
+    content = "Click the button below to open to the chat."
+    button = "View Now!"
+    mail_content = email_template(title=title, content=content, button=button)
+
+    status_code = _send_email(
+        receivers=receivers,
+        subject="[New Message] {}".format(email_subject),
+        content=mail_content.strip(),
+    )
+    return status_code
