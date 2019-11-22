@@ -15,7 +15,6 @@ from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 from sentry_sdk.integrations.sanic import SanicIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
-from sentry_sdk.integrations.tornado import TornadoIntegration
 
 
 from ora_backend.config import (
@@ -35,7 +34,6 @@ if SENTRY_DSN:
         integrations=[
             CeleryIntegration(),
             RedisIntegration(),
-            TornadoIntegration(),
             SanicIntegration(),
             SqlalchemyIntegration(),
         ],
