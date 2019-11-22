@@ -1535,7 +1535,7 @@ async def handle_visitor_leave(sid, session, is_disconnected=False):
     onl_users = await cache.get(online_users_room, {})
 
     if is_disconnected and all(
-        staff["id"] not in onl_users for staff in visitor_info["room"]["staffs"]
+        staff_id not in onl_users for staff_id in visitor_info["room"]["staffs"]
     ):
         await cache.delete(user["id"], namespace="visitor_info")
 
