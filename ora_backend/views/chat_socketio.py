@@ -1193,11 +1193,13 @@ async def handle_visitor_msg(sid, content):
                 receivers.append(email)
 
         # Not sending this type of email in 1h
-        await cache.multi_set(
-            [(email, {1: 1}) for email in receivers],
-            ttl=60 * 60,  # seconds
-            namespace=CACHE_SEND_EMAIL_ON_VISITOR_NEW_MSG,
-        )
+        for email in receivers:
+            await cache.set(
+                email,
+                {"sent": 1},
+                ttl=60 * 60,  # seconds
+                namespace=CACHE_SEND_EMAIL_ON_VISITOR_NEW_MSG,
+            )
 
         send_email_to_staffs_for_new_visitor_msg.apply_async(
             (receivers, visitor_info["user"]),
