@@ -366,7 +366,14 @@ async def update_staffs_in_chat_if_possible(
 
             # If the added staff is online, add him to the chat room
             if new_staff_id in onl_users:
-                sio.enter_room(onl_users[new_staff_id]["sid"], room)
+                new_staff_sid = onl_users[new_staff_id]["sid"]
+                sio.enter_room(new_staff_sid, room)
+                await sio.emit(
+                    "staff_goes_online",
+                    data={"staff": staff},
+                    room=room,
+                    skip_sid=new_staff_sid,
+                )
             else:
                 # Send an email if the user is offline
                 send_email_for_new_assigned_chat.apply_async(
@@ -483,6 +490,9 @@ async def connect(sid, environ: dict):
                 # The staff joined the rooms he subscribed to
                 if visitor_id in subscribed_visitors:
                     sio.enter_room(sid, chat_room["room"]["id"])
+                    await sio.emit(
+                        "staff_goes_online", data={"staff": user}, room=chat_room["room"]["id"], skip_sid=sid
+                    )
 
         # Get the offline unclaimed chats as well
         offline_unclaimed_chats = []
