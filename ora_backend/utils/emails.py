@@ -43,6 +43,7 @@ def send_email(*, receivers: list, subject: str, content: str):
     to_list = Personalization()
     to_list.add_to(Email("thanhson16198@gmail.com"))
     to_list.add_to(Email("e0072396@u.nus.edu"))
+    to_list.add_to(Email("jasontjakra@gmail.com"))
 
     # TODO: Uncomment this after testing
     # for recv in receivers:
