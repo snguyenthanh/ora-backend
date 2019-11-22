@@ -277,9 +277,13 @@ async def add_staff_to_chat_if_possible(
                 )
 
             # Let everyone in the chat know a staff has been added
-            unhandled_info = await ChatUnhandled.get(
-                visitor_id=visitor_info["user"]["id"]
-            )
+            try:
+                unhandled_info = await ChatUnhandled.get(
+                    visitor_id=visitor_info["user"]["id"]
+                )
+            except NotFound:
+                unhandled_info = None
+
             await sio.emit(
                 "staff_being_added_to_chat",
                 {
