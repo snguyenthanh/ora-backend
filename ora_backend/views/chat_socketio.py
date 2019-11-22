@@ -726,11 +726,11 @@ async def staff_join(sid, data):
     monitor_room = session["monitor_room"]
     settings = await get_settings_from_cache()
     next_unclaimed_visitor = None
+    visitor_contents = []
 
     if settings.get("allow_claiming_chat", 1):
         # Remove the chat from unclaimed chats
         unclaimed_chats = await cache.get(org_room, {})
-        visitor_contents = []
         is_offline_chat = True
         if visitor_id in unclaimed_chats:
             removed_unclaimed_chat = unclaimed_chats.pop(visitor_id, {})
