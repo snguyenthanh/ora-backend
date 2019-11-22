@@ -1194,7 +1194,7 @@ async def handle_visitor_msg(sid, content):
 
         # Not sending this type of email in 1h
         await cache.multi_set(
-            [(email, 1) for email in receivers],
+            [(email, {1: 1}) for email in receivers],
             ttl=60 * 60,  # seconds
             namespace=CACHE_SEND_EMAIL_ON_VISITOR_NEW_MSG,
         )
