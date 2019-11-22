@@ -48,6 +48,7 @@ from ora_backend.worker.tasks import (
     send_email_for_new_assigned_chat,
     send_email_for_being_removed_from_chat,
     send_email_to_visitor_for_new_staff_msg,
+    send_email_to_staffs_for_new_visitor_msg,
 )
 
 
@@ -1183,15 +1184,27 @@ async def handle_visitor_msg(sid, content):
     online_users_room = ONLINE_USERS_PREFIX
     onl_users = await cache.get(online_users_room, {})
     if all(staff_id not in onl_users for staff_id in visitor_info["room"]["staffs"]):
-        # last_sent_email_info = await cache.get(CACHE_SEND_EMAIL_ON_VISITOR_NEW_MSG, {}, namespace="emails")
-        # emails = [staff["email"] for staff in visitor_info["room"]["staffs"].values()]
-        # If hasnt sent email in 1 hour
-        # send_email_to_staffs_for_new_visitor_msg.apply_async(
-        #     ([staff["email"]], visitor),
-        #     expires=60 * 15,  # seconds
-        #     retry_policy={"interval_start": 10},
-        # )
-        pass
+        emails = [staff["email"] for staff in visitor_info["room"]["staffs"].values()]
+        receivers = []
+        for email in emails:
+            last_sent_email_info = await cache.get(
+                email, {}, namespace=CACHE_SEND_EMAIL_ON_VISITOR_NEW_MSG
+            )
+            if not last_sent_email_info:
+                receivers.append(email)
+
+        # Not sending this type of email in 1h
+        await cache.multi_set(
+            [(email, 1) for email in receivers],
+            ttl=60 * 60,  # seconds
+            namespace=CACHE_SEND_EMAIL_ON_VISITOR_NEW_MSG,
+        )
+
+        send_email_to_staffs_for_new_visitor_msg.apply_async(
+            (receivers, visitor_info["user"]),
+            expires=60 * 15,  # seconds
+            retry_policy={"interval_start": 10},
+        )
 
     return True, None
 
