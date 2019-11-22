@@ -661,7 +661,7 @@ async def connect(sid, environ: dict):
             "visitor_init",
             data={
                 # "staff": staff if staff else None,
-                "staffs": staffs if staffs else None,
+                "staffs": staffs if staffs else [],
                 "online_staffs": onl_users,
             },
             room=sid,
@@ -1180,7 +1180,7 @@ async def handle_visitor_msg(sid, content):
     # Send emails to all subscribed staffs if no one is online
     online_users_room = ONLINE_USERS_PREFIX
     onl_users = await cache.get(online_users_room, {})
-    if all(staff["id"] not in onl_users for staff in visitor_info["room"]["staffs"]):
+    if all(staff_id not in onl_users for staff_id in visitor_info["room"]["staffs"]):
         # last_sent_email_info = await cache.get(CACHE_SEND_EMAIL_ON_VISITOR_NEW_MSG, {}, namespace="emails")
         # emails = [staff["email"] for staff in visitor_info["room"]["staffs"].values()]
         # If hasnt sent email in 1 hour
