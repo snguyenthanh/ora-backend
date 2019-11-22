@@ -209,7 +209,7 @@ async def get_or_create_visitor_session(
                 onl_users = await cache.get(online_users_room, {})
                 if staff["id"] in onl_users:
                     staff_sid = onl_users[staff["id"]]["sid"]
-                    sio.emit(
+                    await sio.emit(
                         "staff_auto_assigned_chat",
                         {"visitor": {**chat_room, **visitor}},
                         room=staff_sid,
