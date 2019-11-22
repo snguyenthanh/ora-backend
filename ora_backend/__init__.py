@@ -10,6 +10,7 @@ from sanic.exceptions import SanicException
 from sanic.response import text
 from sanic_jwt_extended import JWTManager
 from sanic_cors import CORS
+from sanic_limiter import Limiter, get_remote_address
 from sentry_sdk import init as sentry_init
 from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
@@ -75,8 +76,11 @@ db.init_app(app)
 JWTManager(app)
 CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
 
-logging.getLogger("sanic_cors").level = logging.DEBUG
+# logging.getLogger("sanic_cors").level = logging.DEBUG
 
+# Register the limiter
+# from ora_backend.utils.limiter import get_user_id_or_ip_addr
+limiter = Limiter(app, global_limits=['1000/minute'], key_func=get_remote_address)
 
 # Register the routes/views
 from ora_backend.views.urls import blueprints

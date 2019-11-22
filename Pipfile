@@ -31,6 +31,7 @@ faker = "*"
 celery = "*"
 redis = "*"
 flower = "*"
+sanic-limiter = "*"
 
 [requires]
 python_version = "3.7"
