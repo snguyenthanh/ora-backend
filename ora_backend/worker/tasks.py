@@ -31,7 +31,9 @@ def send_email_for_new_assigned_chat(receivers: list, visitor: dict):
     if not receivers:
         return None
 
-    title = "You have been assigned to chat with {}!".format(visitor["name"])
+    title = "You have been assigned to chat with <strong>{}</strong>!".format(
+        visitor["name"]
+    )
     content = "Someone needs your help!"
     button = "Reply Now!"
     mail_content = email_template(title=title, content=content, button=button)
@@ -50,7 +52,7 @@ def send_email_for_being_removed_from_chat(receivers: list, visitor: dict):
     if not receivers:
         return None
 
-    title = "You have been removed from the chat with visitor {}!".format(
+    title = "You have been removed from the chat with visitor <strong>{}</strong>!".format(
         visitor["name"]
     )
     content = "For more information, please contact your supervisor."
@@ -70,7 +72,9 @@ def send_email_for_flagged_chat(receivers: list, visitor: dict):
     # if not receivers:
     #     return None
     receivers = []
-    title = "A staff has flagged the chat with visitor {}!".format(visitor["name"])
+    title = "A staff has flagged the chat with visitor <strong>{}</strong>!".format(
+        visitor["name"]
+    )
     content = """A volunteer needs your expertise and guidance.<br/>
         Click the button below to attend to the chat.""".strip()
     button = "View Now!"

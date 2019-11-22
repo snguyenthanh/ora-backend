@@ -161,7 +161,7 @@ starting_html = """
         font-size: 15px;
         font-weight: 600;
         background: #0eafa7;
-        color: #fff;
+        color: #fff !important;
         text-decoration: none;
         padding: 9px 16px;
         border-radius: 28px;
@@ -232,8 +232,8 @@ starting_html = """
       }
       .h1 {
         text-align: center !important;
-        font-size: 25px !important;
-        font-weight: 600;
+        font-size: 20px !important;
+        font-weight: 400;
         line-height: 45px;
         margin: 12px 0 20px 0;
         color: #4a4a4a;
@@ -416,7 +416,7 @@ between_content_and_button_html = """
 </font>
 </p>
 <p class="button-holder-center">
-<a class="btn" href="chatwithora.com">
+<a class="btn" href="https://chatwithora.com">
 """
 
 end_html = """
