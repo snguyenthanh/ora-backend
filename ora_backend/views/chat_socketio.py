@@ -200,6 +200,7 @@ async def get_or_create_visitor_session(
     # Assign a staff to the visitor
     # and let the staff know about this if he is online
     if not staffs and assign_staff:
+        staff = None
         settings = await get_settings_from_cache()
         if settings.get("auto_assign", 0):
             staff = await auto_assign_staff_to_chat(visitor_id)
@@ -221,6 +222,7 @@ async def get_or_create_visitor_session(
                         expires=60 * 15,  # seconds
                         retry_policy={"interval_start": 10},
                     )
+        staffs = [staff] if staff else []
 
     data = {
         "user": visitor,
@@ -656,12 +658,12 @@ async def connect(sid, environ: dict):
         onl_users = await cache.get(online_users_room, {})
 
         # staff = visitor_info["room"].get("staff")
-        staffs = visitor_info["room"].get("staffs")
+        staffs = visitor_info["room"].get("staffs", [])
         await sio.emit(
             "visitor_init",
             data={
                 # "staff": staff if staff else None,
-                "staffs": staffs if staffs else [],
+                "staffs": staffs,
                 "online_staffs": onl_users,
             },
             room=sid,
