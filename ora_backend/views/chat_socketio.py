@@ -654,7 +654,7 @@ async def connect(sid, environ: dict):
         onl_users = await cache.get(online_users_room, {})
 
         # staff = visitor_info["room"].get("staff")
-        staffs = visitor_info["room"].get("staffs", [])
+        staffs = visitor_info["room"].get("staffs", {})
         await sio.emit(
             "visitor_init",
             data={
@@ -1023,7 +1023,7 @@ async def take_over_chat(sid, data):
         # Update "staff" in cache for room
         sequence_num = chat_room_info.get("sequence_num", 0)
         visitor_info["room"]["sequence_num"] = sequence_num + 1
-        visitor_info["room"]["staffs"][0] = {**requester, "sid": sid}
+        visitor_info["room"]["staffs"][requester["id"]] = {**requester, "sid": sid}
         await cache.set(visitor_id, visitor_info, namespace="visitor_info")
 
         # Update the rooms the staff is in
@@ -1057,7 +1057,7 @@ async def take_over_chat(sid, data):
         return True, None
 
     # If the setting is one visitor - many staffs
-    staffs = visitor_info["room"].get("staffs", [])
+    staffs = visitor_info["room"].get("staffs", {})
     if len(staffs) < settings.get("max_staffs_in_chat", 0):
         # Requester join room
         sio.enter_room(sid, room)
@@ -1065,7 +1065,10 @@ async def take_over_chat(sid, data):
         # Update "staff" in cache for room
         sequence_num = chat_room_info.get("sequence_num", 0)
         visitor_info["room"]["sequence_num"] = sequence_num + 1
-        visitor_info["room"].setdefault("staffs", []).append({**requester, "sid": sid})
+        visitor_info["room"].setdefault("staffs", {})[requester["id"]] = {
+            **requester,
+            "sid": sid,
+        }
         await cache.set(visitor_id, visitor_info, namespace="visitor_info")
 
         # Save the chat message of staff being taken over
@@ -1427,7 +1430,7 @@ async def handle_staff_leave(sid, session, data):
     onl_users = await cache.get(online_users_room, {})
 
     if visitor["id"] not in onl_visitors and all(
-        staff["id"] not in onl_users for staff in visitor_info["room"]["staffs"]
+        staff_id not in onl_users for staff_id in visitor_info["room"]["staffs"]
     ):
         await cache.delete(visitor_id, namespace="visitor_info")
     else:
