@@ -13,7 +13,7 @@ docker create --name dev_redis_ora_backend -e REDIS_PASSWORD=$CELERY_BROKER_PASS
 # Start the containers
 # docker run --name my_postgres -v my_dbdata:/var/lib/postgresql/data -p 54320:5432 postgres:11 || docker start -a my_postgres
 docker start -a dev_postgres_ora_backend &
-docker start -a dev_redis_ora_backend || docker exec -it dev_redis_ora_backend redis-cli -a $CELERY_BROKER_PASSWORD flushall || docker exec -it dev_redis_ora_backend redis-server &
+docker start -a dev_redis_ora_backend || docker exec -it dev_redis_ora_backend redis-server || docker exec -it dev_redis_ora_backend redis-cli -a $CELERY_BROKER_PASSWORD flushall &
 
 # docker exec -it dev_redis_ora_backend redis-server
 

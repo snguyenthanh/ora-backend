@@ -1182,7 +1182,7 @@ async def handle_visitor_msg(sid, content):
     onl_users = await cache.get(online_users_room, {})
     if all(staff["id"] not in onl_users for staff in visitor_info["room"]["staffs"]):
         # last_sent_email_info = await cache.get(CACHE_SEND_EMAIL_ON_VISITOR_NEW_MSG, {}, namespace="emails")
-        # emails = [staff["email"] for staff in visitor_info["room"]["staffs"]]
+        # emails = [staff["email"] for staff in visitor_info["room"]["staffs"].values()]
         # If hasnt sent email in 1 hour
         # send_email_to_staffs_for_new_visitor_msg.apply_async(
         #     ([staff["email"]], visitor),
