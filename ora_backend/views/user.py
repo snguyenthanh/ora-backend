@@ -186,7 +186,7 @@ async def noti_staff_refresh(request, *, req_args=None, query_params=None, **kwa
     return {}
 
 
-@blueprint.route("/notifications", methods=["GET"])
+@blueprint.route("/notifications", methods=["GET", "PUT"])
 @unpack_request
 @validate_permission
 async def notification_staff_route(
