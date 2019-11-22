@@ -688,6 +688,10 @@ Response:
         },
         "updated_at": null,
         "id": "4b0efb2471ea43d3bbd78b9b4061a7ab"
+    },
+    "num_of_unread": <number>,  # The number of unread notifications
+    "links": {
+        "next": "http://127.0.0.1:8000/users/notifications?after_id=db4510e134b44a73afeb7e7b8da59561"
     }
 }
 ```

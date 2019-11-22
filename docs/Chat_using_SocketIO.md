@@ -758,6 +758,7 @@ data={
     'is_anonymous': False,
     'name': 'Sarah Wood',
     'updated_at': None,
+    'unhandled_timestamp': <number>,  # The timestamp or 0 if the chat is unhandled
   }
 }
 ```

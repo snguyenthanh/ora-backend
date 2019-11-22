@@ -250,11 +250,18 @@ async def add_staff_to_chat_if_possible(staff_id, visitor_id, visitor_info):
         )
 
         # Let everyone in the chat know a staff has been added
+        unhandled_info = await ChatUnhandled.get(visitor_id=visitor_info["user"]["id"])
         await sio.emit(
             "staff_being_added_to_chat",
             {
                 "staff": staff,
-                "visitor": {**visitor_info["room"], **visitor_info["user"]},
+                "visitor": {
+                    **visitor_info["room"],
+                    **visitor_info["user"],
+                    "unhandled_timestamp": unhandled_info["created_at"]
+                    if unhandled_info
+                    else 0,
+                },
             },
             room=room,
         )
@@ -369,11 +376,20 @@ async def update_staffs_in_chat_if_possible(
                 )
 
             # Let everyone in the chat know a staff has been added
+            unhandled_info = await ChatUnhandled.get(
+                visitor_id=visitor_info["user"]["id"]
+            )
             await sio.emit(
                 "staff_being_added_to_chat",
                 {
                     "staff": staff,
-                    "visitor": {**visitor_info["room"], **visitor_info["user"]},
+                    "visitor": {
+                        **visitor_info["room"],
+                        **visitor_info["user"],
+                        "unhandled_timestamp": unhandled_info["created_at"]
+                        if unhandled_info
+                        else 0,
+                    },
                 },
                 room=room,
             )

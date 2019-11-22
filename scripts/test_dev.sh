@@ -3,6 +3,8 @@
 set -e
 export MODE=testing
 
+source .env
+
 # Create a PostgreSQL container
 echo 'Starting the test container...'
 docker create --name test_postgres_ora_backend -v test_postgres_ora_backend_dbdata:/var/lib/postgresql/data -p 54321:5432 postgres:11 || true
