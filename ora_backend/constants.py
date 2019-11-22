@@ -14,6 +14,7 @@ ONLINE_VISITORS_PREFIX = "cache_online_visitors_"
 MONITOR_ROOM_PREFIX = "cache_monitor_room_"
 CACHE_SETTINGS = "cache_global_settings"
 CACHE_PERMISSIONS = "cache_permissions"
+CACHE_SEND_EMAIL_ON_VISITOR_NEW_MSG = "cache_send_email_on_visitor_new_msg"
 
 # Note: 0 is off
 DEFAULT_GLOBAL_SETTINGS = {

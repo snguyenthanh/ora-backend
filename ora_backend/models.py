@@ -155,6 +155,9 @@ class BaseModel(db.Model):
         model = await get_one(cls, **kwargs)
         if model:
             await model.delete()
+            return serialize_to_dict(model)
+
+        return None
 
 
 class Organisation(BaseModel):

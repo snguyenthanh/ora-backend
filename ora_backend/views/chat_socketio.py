@@ -16,6 +16,7 @@ from ora_backend.constants import (
     MONITOR_ROOM_PREFIX,
     ONLINE_VISITORS_PREFIX,
     CACHE_SETTINGS,
+    CACHE_SEND_EMAIL_ON_VISITOR_NEW_MSG,
 )
 from ora_backend.models import (
     Chat,
@@ -46,6 +47,7 @@ from ora_backend.worker.tasks import (
     send_email_for_flagged_chat,
     send_email_for_new_assigned_chat,
     send_email_for_being_removed_from_chat,
+    send_email_to_visitor_for_new_staff_msg,
 )
 
 
@@ -211,7 +213,7 @@ async def get_or_create_visitor_session(
                         room=onl_users[staff["id"]]["sid"],
                     )
                 else:
-                    # Send email if the staff is online
+                    # Send email if the staff is offline
                     send_email_for_new_assigned_chat.apply_async(
                         (staff["email"], visitor),
                         expires=60 * 15,  # seconds
@@ -233,39 +235,76 @@ async def get_or_create_visitor_session(
     return data
 
 
-async def add_staff_to_chat_if_possible(staff_id, visitor_id, visitor_info):
+async def add_staff_to_chat_if_possible(
+    staff_id, visitor_id, visitor_info, *, send_notification=True
+):
     room = visitor_info["room"]["id"]
-    staffs = visitor_info["room"].get("staffs", {})
+    current_staffs = visitor_info["room"].get("staffs", {})
 
     # Only add if the max staffs in a chat isnt reached
     settings = await get_settings_from_cache()
     max_staffs_in_chat = settings.get("max_staffs_in_chat", 0)
 
-    if len(staffs) < max_staffs_in_chat:
-        staff = await User.get(id=staff_id)
+    if len(current_staffs) < max_staffs_in_chat:
+        # Get the online staffs
+        online_users_room = ONLINE_USERS_PREFIX
+        onl_users = await cache.get(online_users_room, {})
 
-        visitor_info["room"].setdefault("staffs", {})[staff["id"]] = staff
-        await StaffSubscriptionChat.add_if_not_exists(
-            staff_id=staff_id, visitor_id=visitor_id
-        )
+        if staff_id not in current_staffs:
+            staff = await User.get(id=staff_id)
 
-        # Let everyone in the chat know a staff has been added
-        unhandled_info = await ChatUnhandled.get(visitor_id=visitor_info["user"]["id"])
-        await sio.emit(
-            "staff_being_added_to_chat",
-            {
-                "staff": staff,
-                "visitor": {
-                    **visitor_info["room"],
-                    **visitor_info["user"],
-                    "unhandled_timestamp": unhandled_info["created_at"]
-                    if unhandled_info
-                    else 0,
+            visitor_info["room"].setdefault("staffs", {})[staff["id"]] = staff
+            await StaffSubscriptionChat.add_if_not_exists(
+                staff_id=staff_id, visitor_id=visitor_id
+            )
+
+            # If the added staff is online, add him to the chat room
+            if staff_id in onl_users:
+                new_staff_sid = onl_users[staff_id]["sid"]
+                sio.enter_room(new_staff_sid, room)
+                await sio.emit(
+                    "staff_goes_online",
+                    data={"staff": staff},
+                    room=room,
+                    skip_sid=new_staff_sid,
+                )
+            else:
+                # Send an email if the user is offline
+                send_email_for_new_assigned_chat.apply_async(
+                    (staff["email"], visitor_info["user"]),
+                    expires=60 * 15,  # seconds
+                    retry_policy={"interval_start": 10},
+                )
+
+            # Let everyone in the chat know a staff has been added
+            unhandled_info = await ChatUnhandled.get(
+                visitor_id=visitor_info["user"]["id"]
+            )
+            await sio.emit(
+                "staff_being_added_to_chat",
+                {
+                    "staff": staff,
+                    "visitor": {
+                        **visitor_info["room"],
+                        **visitor_info["user"],
+                        "unhandled_timestamp": unhandled_info["created_at"]
+                        if unhandled_info
+                        else 0,
+                    },
                 },
-            },
-            room=room,
-        )
-        return True, None, visitor_info
+                room=room,
+            )
+
+            if send_notification:
+                # Send a notification to staff
+                await NotificationStaff.add(
+                    staff_id=staff_id,
+                    content={
+                        "content": "You have been assigned to talk to {}".format(
+                            visitor_info["user"]["name"]
+                        )
+                    },
+                )
 
     return False, "The number of staffs in the room has reached the max capacity.", None
 
@@ -716,7 +755,7 @@ async def staff_join(sid, data):
     visitor_info = await get_or_create_visitor_session(visitor_id)
     chat_room_info = visitor_info.get("room")
     status, error_msg, new_visitor_info = await add_staff_to_chat_if_possible(
-        user["id"], visitor_id, visitor_info
+        user["id"], visitor_id, visitor_info, send_notification=False
     )
     if not status:
         return status, error_msg
@@ -1289,7 +1328,16 @@ async def staff_msg(sid, data):
     )
 
     # Remove from unhandled queue
-    await ChatUnhandled.remove_if_exists(visitor_id=visitor_id)
+    payload = await ChatUnhandled.remove_if_exists(visitor_id=visitor_id)
+    if payload:
+        onl_visitors = await cache.get(online_visitors_room, {})
+        # If the chat has been removed
+        if visitor_id not in onl_visitors and visitor_info["user"]["email"]:
+            send_email_to_visitor_for_new_staff_msg.apply_async(
+                ([visitor_info["user"]["email"]], user),
+                expires=60 * 15,  # seconds
+                retry_policy={"interval_start": 10},
+            )
 
     # Broadcast the message to all high-level staffs
     staff_info = await cache.get("user_{}".format(sid))
