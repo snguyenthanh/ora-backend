@@ -1,3 +1,5 @@
+from sqlalchemy import and_
+
 from ora_backend import cache
 from ora_backend.constants import CACHE_SETTINGS, ROLES
 from ora_backend.models import User, StaffSubscriptionChat
@@ -8,7 +10,7 @@ from ora_backend.utils.settings import get_settings_from_cache
 
 async def reset_all_volunteers_in_cache():
     raw_volunteers = await User.query.where(
-        User.role_id == ROLES.inverse["agent"], User.disabled == False
+        and_(User.role_id == ROLES.inverse["agent"], User.disabled == False)
     ).gino.all()
     volunteers = [serialize_to_dict(user) for user in raw_volunteers]
     volunteers_data = await cache.get("all_volunteers", namespace="staffs")
@@ -33,7 +35,7 @@ async def auto_reassign_staff_to_chat(visitor_id):
     all_volunteers = await cache.get("all_volunteers", namespace="staffs")
     if not all_volunteers:
         raw_volunteers = await User.query.where(
-            User.role_id == ROLES.inverse["agent"], User.disabled == False
+            and_(User.role_id == ROLES.inverse["agent"], User.disabled == False)
         ).gino.all()
         volunteers = [serialize_to_dict(user) for user in raw_volunteers]
         counter = 0
@@ -79,10 +81,11 @@ async def auto_assign_staff_to_chat(visitor_id, exclude_staff_id=None):
     if not settings.get("auto_assign", 1):
         return None
 
+    staff = None
     all_volunteers = await cache.get("all_volunteers", namespace="staffs")
     if not all_volunteers:
         raw_volunteers = await User.query.where(
-            User.role_id == ROLES.inverse["agent"], User.disabled == False
+            and_(User.role_id == ROLES.inverse["agent"], User.disabled == False)
         ).gino.all()
         volunteers = [serialize_to_dict(user) for user in raw_volunteers]
         counter = 0
