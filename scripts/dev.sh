@@ -7,7 +7,7 @@ source .env
 
 # Create a PostgreSQL container
 docker create --name dev_postgres_ora_backend -v dev_postgres_ora_backend_dbdata:/var/lib/postgresql/data -p 54320:5432 postgres:11 || true
-docker create --name dev_redis_ora_backend -e REDIS_PASSWORD=$CELERY_BROKER_PASSWORD -p 6379:6379 bitnami/redis:latest || true
+docker create --name dev_redis_ora_backend -e REDIS_PASSWORD=$CELERY_BROKER_PASSWORD -p 63790:6379 bitnami/redis:latest || true
 
 
 # Start the containers

@@ -49,8 +49,16 @@ app.config["CORS_AUTOMATIC_OPTIONS"] = True
 app.config["CORS_SUPPORTS_CREDENTIALS"] = True
 
 # Construct an in-memory storage
+redis_port = 6379
+if MODE == "testing":
+    redis_port = 63791
+elif MODE == "development":
+    redis_port = 63790
 cache = RedisCache(
-    serializer=JsonSerializer(), password=CELERY_BROKER_PASSWORD, pool_min_size=3
+    serializer=JsonSerializer(),
+    password=CELERY_BROKER_PASSWORD,
+    pool_min_size=3,
+    port=redis_port,
 )
 
 # Initialize the DB before doing anything else
