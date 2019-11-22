@@ -223,14 +223,13 @@ async def get_or_create_visitor_session(
                         expires=60 * 15,  # seconds
                         retry_policy={"interval_start": 10},
                     )
-        staffs = [staff] if staff else []
+        staffs = {staff["id"]: staff} if staff else {}
 
     data = {
         "user": visitor,
         "type": Visitor.__tablename__,
         "room": {
             **chat_room,
-            # "staffs": [],
             "staffs": staffs,
             "sequence_num": sequence_num + 1,
         },
@@ -1183,8 +1182,9 @@ async def handle_visitor_msg(sid, content):
     # Send emails to all subscribed staffs if no one is online
     online_users_room = ONLINE_USERS_PREFIX
     onl_users = await cache.get(online_users_room, {})
-    if all(staff_id not in onl_users for staff_id in visitor_info["room"]["staffs"]):
-        emails = [staff["email"] for staff in visitor_info["room"]["staffs"].values()]
+    subscribed_staffs = visitor_info["room"]["staffs"]
+    if all(staff_id not in onl_users for staff_id in subscribed_staffs):
+        emails = [staff["email"] for staff in subscribed_staffs.values()]
         receivers = []
         for email in emails:
             last_sent_email_info = await cache.get(
