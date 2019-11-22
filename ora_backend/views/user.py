@@ -163,7 +163,7 @@ async def user_route_single(
 
 @validate_request(schema="notification_staff_read", skip_body=True)
 async def noti_staff_retrieve(request, *, req_args=None, query_params=None, **kwargs):
-    notifs = await NotificationStaff(
+    notifs = await NotificationStaff.get(
         **req_args, **query_params, many=True, decrease=True
     )
     staff_id = req_args["staff_id"]
@@ -191,7 +191,6 @@ async def noti_staff_refresh(request, *, req_args=None, query_params=None, **kwa
 @validate_permission
 async def notification_staff_route(
     request,
-    staff_id,
     *,
     req_args=None,
     req_body=None,

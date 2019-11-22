@@ -105,7 +105,7 @@ async def get_many(
     not_in_column=None,
     not_in_values=None,
     order_by="internal_id",
-    descrease=False,
+    decrease=False,
     offset=0,
     **kwargs,
 ):
@@ -129,7 +129,7 @@ async def get_many(
         and_(
             *dict_to_filter_args(model, **kwargs),
             model.internal_id < last_internal_id
-            if descrease and last_internal_id
+            if decrease and last_internal_id
             else model.internal_id > last_internal_id,
             getattr(model, in_column).in_(in_values)
             if in_column and isinstance(in_values, Iterable)
@@ -142,7 +142,7 @@ async def get_many(
 
     return (
         await query.order_by(
-            desc(getattr(model, order_by)) if descrease else getattr(model, order_by)
+            desc(getattr(model, order_by)) if decrease else getattr(model, order_by)
         )
         .limit(limit)
         .offset(offset)
@@ -157,7 +157,7 @@ async def get_flagged_chats_of_online_visitors(
     in_column="visitor_id",
     in_values,
     order_by="updated_at",
-    descrease=True,
+    decrease=True,
     limit=15,
     **kwargs,
 ):
@@ -182,7 +182,7 @@ async def get_flagged_chats_of_online_visitors(
         )
         .order_by(
             desc(getattr(chat_model, order_by))
-            if descrease
+            if decrease
             else getattr(chat_model, order_by)
         )
         .limit(limit)

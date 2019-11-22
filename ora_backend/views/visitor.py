@@ -102,7 +102,7 @@ async def visitor_get_many(request, *, req_args, query_params, **kwargs):
         visitors = await get_handled_chats(Visitor, **query_params)
     else:
         visitors = await Visitor.get(
-            many=True, descrease=True, **req_args, **query_params
+            many=True, decrease=True, **req_args, **query_params
         )
     return {"data": visitors, "links": generate_pagination_links(request.url, visitors)}
 
