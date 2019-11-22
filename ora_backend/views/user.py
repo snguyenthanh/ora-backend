@@ -212,7 +212,7 @@ async def notification_staff_route(
 
     response = await call_funcs[request.method](
         request,
-        req_args={**req_args, "staff_id": staff_id},
+        req_args={"staff_id": staff_id},
         req_body=req_body,
         query_params=query_params,
         **kwargs
