@@ -31,6 +31,7 @@ def send_email_for_new_assigned_chat(receivers: list, visitor: dict):
     if not receivers:
         return None
 
+    email_subject = "You have been assigned to chat with {}!".format(visitor["name"])
     title = "You have been assigned to chat with <strong>{}</strong>!".format(
         visitor["name"]
     )
@@ -40,7 +41,7 @@ def send_email_for_new_assigned_chat(receivers: list, visitor: dict):
 
     status_code = _send_email(
         receivers=receivers,
-        subject="[New Chat] {}".format(title),
+        subject="[New Chat] {}".format(email_subject),
         content=mail_content.strip(),
     )
     return status_code
@@ -52,6 +53,9 @@ def send_email_for_being_removed_from_chat(receivers: list, visitor: dict):
     if not receivers:
         return None
 
+    email_subject = "You have been removed from the chat with visitor {}!".format(
+        visitor["name"]
+    )
     title = "You have been removed from the chat with visitor <strong>{}</strong>!".format(
         visitor["name"]
     )
@@ -60,7 +64,7 @@ def send_email_for_being_removed_from_chat(receivers: list, visitor: dict):
 
     status_code = _send_email(
         receivers=receivers,
-        subject="[Removed From Chat] {}".format(title),
+        subject="[Removed From Chat] {}".format(email_subject),
         content=mail_content.strip(),
     )
     return status_code
@@ -72,6 +76,10 @@ def send_email_for_flagged_chat(receivers: list, visitor: dict):
     # if not receivers:
     #     return None
     receivers = []
+
+    email_subject = "A staff has flagged the chat with visitor {}!".format(
+        visitor["name"]
+    )
     title = "A staff has flagged the chat with visitor <strong>{}</strong>!".format(
         visitor["name"]
     )
@@ -82,7 +90,7 @@ def send_email_for_flagged_chat(receivers: list, visitor: dict):
 
     status_code = _send_email(
         receivers=receivers,
-        subject="[Flagged Chat] {}".format(title),
+        subject="[Flagged Chat] {}".format(email_subject),
         content=mail_content.strip(),
     )
     return status_code
