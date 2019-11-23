@@ -63,3 +63,15 @@ CORS_ORIGINS = [
     "https://chatwithora.com",
     "https://www.chatwithora.com",
 ]
+
+# Celery
+WORKER_TYPE = environ.get("WORKER_TYPE", "ora_backend")
+if WORKER_TYPE == "celery":
+    CELERY_BROKER_PASSWORD = environ["CELERY_BROKER_PASSWORD"]
+    CELERY_BROKER_URL = "redis://:{}@localhost".format(CELERY_BROKER_PASSWORD)
+else:
+    CELERY_BROKER_IP = environ["CELERY_BROKER_IP"]
+    CELERY_BROKER_PASSWORD = environ["CELERY_BROKER_PASSWORD"]
+    CELERY_BROKER_URL = "redis://:{}@{}:6379/0".format(
+        CELERY_BROKER_PASSWORD, CELERY_BROKER_IP
+    )

@@ -1,7 +1,7 @@
 from datetime import timedelta
 import logging
 
-from aiocache import Cache
+from aiocache import RedisCache
 from aiocache.serializers import JsonSerializer
 from asyncpg.exceptions import UniqueViolationError
 from gino.ext.sanic import Gino
@@ -10,9 +10,13 @@ from sanic.exceptions import SanicException
 from sanic.response import text
 from sanic_jwt_extended import JWTManager
 from sanic_cors import CORS
+from sanic_limiter import Limiter, get_remote_address
 from sentry_sdk import init as sentry_init
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
 from sentry_sdk.integrations.sanic import SanicIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+
 
 from ora_backend.config import (
     JWT_SECRET_KEY,
@@ -20,6 +24,7 @@ from ora_backend.config import (
     CORS_ORIGINS,
     SENTRY_DSN,
     MODE,
+    CELERY_BROKER_PASSWORD,
 )
 from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
 
@@ -27,7 +32,12 @@ from ora_backend.constants import UNCLAIMED_CHATS_PREFIX
 if SENTRY_DSN:
     sentry_init(
         dsn=SENTRY_DSN,
-        integrations=[SanicIntegration(), SqlalchemyIntegration()],
+        integrations=[
+            CeleryIntegration(),
+            RedisIntegration(),
+            SanicIntegration(),
+            SqlalchemyIntegration(),
+        ],
         request_bodies="always",
         send_default_pii=True,
     )
@@ -48,7 +58,17 @@ app.config["CORS_AUTOMATIC_OPTIONS"] = True
 app.config["CORS_SUPPORTS_CREDENTIALS"] = True
 
 # Construct an in-memory storage
-cache = Cache(serializer=JsonSerializer())
+redis_port = 6379
+if MODE == "testing":
+    redis_port = 63791
+elif MODE == "development":
+    redis_port = 63790
+cache = RedisCache(
+    serializer=JsonSerializer(),
+    password=CELERY_BROKER_PASSWORD,
+    pool_min_size=3,
+    port=redis_port,
+)
 
 # Initialize the DB before doing anything else
 # to avoid circular importing
@@ -58,6 +78,9 @@ CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
 
 # logging.getLogger("sanic_cors").level = logging.DEBUG
 
+# Register the limiter
+# from ora_backend.utils.limiter import get_user_id_or_ip_addr
+limiter = Limiter(app, global_limits=["500/minute"], key_func=get_remote_address)
 
 # Register the routes/views
 from ora_backend.views.urls import blueprints
@@ -79,6 +102,12 @@ async def init_plugins(app, loop):
 # Register the listeners
 app.register_listener(init_plugins, "after_server_start")
 
+# Register background tasks
+from ora_backend.tasks.assign import check_for_reassign_chats_every_half_hour
+
+app.add_task(check_for_reassign_chats_every_half_hour())
+
+
 # Register Prometheus
 try:
     # import prometheus_client as prometheus
@@ -93,25 +122,3 @@ else:
             endpoint_type="url",
             latency_buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1, 10, 30, 60, 120],
         ).expose_endpoint()
-
-    # # Initialize the metrics
-    # counter = prometheus.Counter(
-    #     "sanic_requests_total",
-    #     "Track the total number of requests",
-    #     ["method", "endpoint"],
-    # )
-    #
-    # # Track the total number of requests
-    # @app.middleware("request")
-    # async def track_requests(request):
-    #     # Increase the value for each request
-    #     # pylint: disable=E1101
-    #     if request.path != "/metrics":
-    #         counter.labels(method=request.method, endpoint=request.path).inc()
-    #
-    # # Expose the metrics for prometheus
-    # @app.get("/metrics")
-    # async def metrics(request):
-    #     output = prometheus.exposition.generate_latest().decode("utf-8")
-    #     content_type = prometheus.exposition.CONTENT_TYPE_LATEST
-    #     return text(body=output, content_type=content_type)

@@ -2,7 +2,7 @@ from uuid import uuid4
 from sanic.response import json
 from sanic_jwt_extended import create_access_token, create_refresh_token
 
-from ora_backend.models import User, Visitor
+from ora_backend.models import User, Visitor, Setting
 from ora_backend.views.urls import root_blueprint as blueprint
 from ora_backend.utils.auth import get_token_data_from_request
 from ora_backend.utils.crypto import sign_str

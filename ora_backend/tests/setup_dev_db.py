@@ -7,13 +7,25 @@ import ssl
 root_dir = dirname(dirname(dirname(abspath(__file__))))
 sys.path.append(root_dir)
 
+from asyncpg.exceptions import UniqueViolationError
+
 from ora_backend import db
-from ora_backend.models import User, Organisation, Visitor
+from ora_backend.constants import DEFAULT_PERMISSIONS
+from ora_backend.models import (
+    User,
+    Organisation,
+    Visitor,
+    UserRole,
+    Setting,
+    RolePermission,
+)
 from ora_backend.tests import get_fake_organisation
 from ora_backend.tests.fixtures import (
     users as _users,
     organisations as _orgs,
     visitors as _visitors,
+    user_roles as _user_roles,
+    settings as _settings,
 )
 from ora_backend.utils.crypto import hash_password
 
@@ -23,6 +35,28 @@ async def setup_db():
     # Create a test org
     org_data = _orgs[0]
     org = await Organisation(**org_data).create()
+
+    # Register the global settings
+    for setting in _settings:
+        try:
+            await Setting(**setting).create()
+        except UniqueViolationError:
+            pass
+
+    # Register the user roles
+    for user_role in _user_roles:
+        try:
+            await UserRole(**user_role).create()
+        except UniqueViolationError:
+            pass
+
+    # Register the permissions
+    for key, roles in DEFAULT_PERMISSIONS.items():
+        for role_id in roles:
+            try:
+                await RolePermission(**{"name": key, "role_id": role_id}).create()
+            except UniqueViolationError:
+                pass
 
     # Register all users under the same org
     for user in _users:

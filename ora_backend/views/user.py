@@ -1,14 +1,31 @@
 from sanic.response import json
+from sanic.exceptions import Forbidden
 
 from ora_backend.constants import ROLES
 from ora_backend.views.urls import user_blueprint as blueprint
-from ora_backend.models import User
+from ora_backend.models import (
+    User,
+    NotificationStaff,
+    NotificationStaffRead,
+    StaffSubscriptionChat,
+)
+from ora_backend.utils.assign import (
+    reset_all_volunteers_in_cache,
+    auto_assign_staff_to_chat,
+)
 from ora_backend.utils.exceptions import (
     raise_role_authorization_exception,
     raise_permission_exception,
 )
 from ora_backend.utils.links import generate_pagination_links
+from ora_backend.utils.query import (
+    get_number_of_unread_notifications_for_staff,
+    get_visitors_with_no_assigned_staffs,
+    get_one_latest,
+    delete_many,
+)
 from ora_backend.utils.request import unpack_request
+from ora_backend.utils.settings import get_latest_settings
 from ora_backend.utils.validation import validate_request, validate_permission
 
 
@@ -63,7 +80,27 @@ async def user_update(req, *, req_args, req_body, requester, **kwargs):
     ):
         raise_role_authorization_exception(update_user["role_id"], action="update")
 
-    return {"data": await User.modify(req_args, req_body)}
+    new_user = await User.modify(req_args, req_body)
+
+    # When a staff is disabled:
+    # - Remove him from all subscriptions
+    # - If he is the only staff in a chat => re-assign
+    if req_body.get("disabled", False):
+        # Remove all subscriptions
+        await delete_many(StaffSubscriptionChat, staff_id=user_id)
+
+        # Update the list of volunteers to assign
+        await reset_all_volunteers_in_cache()
+
+        settings = await get_latest_settings()
+        if settings.get("auto_reassign", 0):
+            # Re-assign a new staff
+            # to the visitors with no assigned staffs
+            visitors = await get_visitors_with_no_assigned_staffs()
+            for visitor in visitors:
+                await auto_assign_staff_to_chat(visitor["id"])
+
+    return {"data": new_user}
 
 
 @validate_request(schema="user_read", skip_body=True)
@@ -120,5 +157,69 @@ async def user_route_single(
         many=False,
         query_params=query_params,
         requester=requester,
+    )
+    return json(response)
+
+
+@validate_request(schema="notification_staff_read", skip_body=True)
+async def noti_staff_retrieve(request, *, req_args=None, query_params=None, **kwargs):
+    notifs = await NotificationStaff.get(
+        **req_args, **query_params, many=True, decrease=True
+    )
+    staff_id = req_args["staff_id"]
+    number_of_unread_notis = await get_number_of_unread_notifications_for_staff(
+        staff_id, NotificationStaffRead, NotificationStaff
+    )
+    return {
+        "data": notifs,
+        "num_of_unread": number_of_unread_notis,
+        "links": generate_pagination_links(request.url, notifs),
+    }
+
+
+async def noti_staff_refresh(request, *, req_args=None, query_params=None, **kwargs):
+    staff_id = req_args["staff_id"]
+    latest_read_noti = await get_one_latest(NotificationStaff, staff_id=staff_id)
+    await NotificationStaffRead.update_or_create(
+        {"staff_id": staff_id},
+        {
+            "last_read_internal_id": latest_read_noti.internal_id
+            if latest_read_noti
+            else None
+        },
+    )
+    return {"data": None}
+
+
+@blueprint.route("/notifications", methods=["GET", "PUT"])
+@unpack_request
+@validate_permission
+async def notification_staff_route(
+    request,
+    *,
+    req_args=None,
+    req_body=None,
+    query_params=None,
+    requester=None,
+    **kwargs
+):
+    if "role_id" not in requester:
+        raise Forbidden("Only staffs can receive notifications")
+    staff_id = requester["id"]
+
+    call_funcs = {
+        "GET": noti_staff_retrieve,
+        # "POST": noti_staff_create,
+        "PUT": noti_staff_refresh,
+        # "PATCH": visitor_update,
+        # "DELETE": user_delete,
+    }
+
+    response = await call_funcs[request.method](
+        request,
+        req_args={"staff_id": staff_id},
+        req_body=req_body,
+        query_params=query_params,
+        **kwargs
     )
     return json(response)

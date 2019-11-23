@@ -453,6 +453,30 @@ Response:
 }
 ```
 
+#### 2.10. Visitors with abnormal statuses
+
+Migrated from `staff_init` event in SocketIO into separate API endpoints:
+
+```
+# Get handled visitors
+GET /visitors?exclude_unhandled=true
+
+# Subscribed
+GET /visitors/<visitor_id>/subscribed_staffs
+
+# A staff gets his own subscribed visitors
+GET /visitors/subscribed
+
+# A staff gets his own subscribed visitors, excluding unhandled ones
+GET /visitors/subscribed?exclude_unhandled=true
+
+# Unhandled and flagged
+GET /visitors/unhandled
+GET /visitors/flagged
+```
+
+Returns the visitors for each category.
+
 ### 3. Users (or called `Staffs`)
 
 User roles (Staff) are
@@ -638,4 +662,42 @@ Return the most recent chat messages of the visitor.
    'next': 'http://127.0.0.1:60013/visitors/b9d1dccb1aa24ed7b2c306db437f1363/messages?after_id=721931f8ee084597b09f891d88010bff',
   }
 }
+```
+
+### 5. Notifications
+
+For now, only staffs receive notifications
+
+
+#### 5.1. Retrieve all notifications for a staff
+Request:
+
+```
+GET /users/notifications
+```
+
+Response:
+
+```
+{
+    "data": {
+        "created_at": 1572027886,
+        "staff_id": "829146cc86184dd18b207347a52882d7",
+        "content": {
+          "content": <str>,
+        },
+        "updated_at": null,
+        "id": "4b0efb2471ea43d3bbd78b9b4061a7ab"
+    },
+    "num_of_unread": <number>,  # The number of unread notifications
+    "links": {
+        "next": "http://127.0.0.1:8000/users/notifications?after_id=db4510e134b44a73afeb7e7b8da59561"
+    }
+}
+```
+
+#### 5.2. Reset notifications
+
+```
+PUT /users/notifications
 ```

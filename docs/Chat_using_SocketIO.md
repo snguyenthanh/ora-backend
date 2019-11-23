@@ -127,6 +127,18 @@ data={
 }
 ```
 
+#### staff_handled_chat
+
+For a staff to mark a chat as handled.
+
+Args:
+
+```
+data={
+	"visitor": <str>,  # The visitor's id
+}
+```
+
 #### staff_leave_room
 
 For a staff to leave a chat room.
@@ -160,6 +172,55 @@ Args:
 ```
 data={
 	"visitor": <visitor_id> # The visitor for the supervisor/admin to take over
+}
+```
+
+#### add_staff_to_chat
+
+For a supervisor / admin to add new staffs to a chat.
+
+Args:
+
+`data` (dict):
+
+```
+data={
+	"visitor": <visitor_id>, # The visitor's ID
+  "staff": <staff_id> # The staff's ID
+}
+```
+
+#### remove_staff_from_chat
+
+For a supervisor / admin to remove a staff from a chat.
+
+Args:
+
+`data` (dict):
+
+```
+data={
+	"visitor": <visitor_id>, # The visitor's ID
+  "staff": <staff_id> # The staff's ID
+}
+```
+
+#### update_staffs_in_chat
+
+For a supervisor / admin to modify the staffs in a chat.
+
+Args:
+
+`data` (dict):
+
+```
+data={
+	"visitor": <visitor_id>, # The visitor's ID
+  "staffs": [
+    <staff_id>, # The staff's ID, in string
+    <staff_id>,
+    ...
+  ]
 }
 ```
 
@@ -641,10 +702,146 @@ data={
 }
 ```
 
+##### staff_auto_assigned_chat
+
+This event is emitted to the staff who is assigned a new chat, by auto-assign.
+
+`data` (dict)
+
+```
+data={
+  "visitor": {   # The visitor who the staff is assigned to
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None,
+  },
+}
+```
+
+
+##### staff_being_added_to_chat
+
+This event is sent to the chat room. So all the staffs and the visitor in the room will receive this event.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "staff": {   # The supervisor / admin that takes over the chat
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
+  },
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None,
+    'unhandled_timestamp': <number>,  # The timestamp or 0 if the chat is unhandled
+  }
+}
+```
+
+##### staff_being_removed_from_chat
+
+This event is sent to the chat room. So all the staffs and the visitor in the room will receive this event.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "staff": {   # The supervisor / admin that takes over the chat
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
+  },
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None,
+  }
+}
+```
+
 
 #### 3.2.2. Supervisors + Admins
 
 These events are for supervisors and admins to monitor the chats of agents.
+
+##### staffs_in_chat_changed
+
+Emitted when the staffs in a chat room are modified.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None,
+    'staffs': [ # The staffs assigned to the chat
+      {
+        email: "agent1@gmail.com",
+        created_at: 1572522995,
+        full_name: "Agent 1",
+        updated_at: null,
+        id: "06274871777d40f387ab430da6b3aa08",
+        display_name: null,
+        organisation_id: "bd9c4046763440769e3af30197a2482e",
+        disabled: false,
+        role_id: 3,
+      },
+      ...
+    ],
+  }
+}
+```
 
 ##### staff_take_over_chat
 
@@ -757,6 +954,42 @@ data={
   "content": {
     content: "Yes ?",
     timestamp: 1572526840074,
+  },
+  "visitor": {
+    'severity_level': 1,
+    'tags': [],
+    'visitor_id': 'ac2d4a7d56af4a1eb3718327ade0be68'},
+    'created_at': 1572777087693,
+    'disabled': False,
+    'email': 'duaneferguson@hotmail.com',
+    'id': 'ac2d4a7d56af4a1eb3718327ade0be68', # Visitor ID
+    'is_anonymous': False,
+    'name': 'Sarah Wood',
+    'updated_at': None
+  }
+}
+```
+
+##### staff_handled_chat_for_supervisor
+
+Emitted when there is a new message sent by a **staff** in any chats.
+
+Args:
+
+`data` (dict)
+
+```
+data={
+  "staff": {
+    email: "agent1@gmail.com",
+    created_at: 1572522995,
+    full_name: "Agent 1",
+    updated_at: null,
+    id: "06274871777d40f387ab430da6b3aa08",
+    display_name: null,
+    organisation_id: "bd9c4046763440769e3af30197a2482e",
+    disabled: false,
+    role_id: 3,
   },
   "visitor": {
     'severity_level': 1,

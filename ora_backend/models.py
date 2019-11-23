@@ -3,6 +3,7 @@ from time import time
 from uuid import uuid4
 from sanic.exceptions import InvalidUsage, NotFound, Unauthorized
 from gino.dialects.asyncpg import ARRAY, JSON
+from sqlalchemy.dialects.postgresql import insert
 
 from ora_backend import db
 from ora_backend.constants import ROLES as _ROLES, DEFAULT_SEVERITY_LEVEL_OF_CHAT
@@ -125,6 +126,19 @@ class BaseModel(db.Model):
         return serialize_to_dict(data)
 
     @classmethod
+    async def modify_if_exists(cls, get_kwargs, update_kwargs):
+        model_id = get_kwargs.get("id")
+        if not model_id:
+            raise InvalidUsage("Missing field 'id' in query parameter")
+
+        payload = await get_one(cls, id=model_id)
+        if not payload:
+            return None
+
+        data = await update_one(payload, **update_kwargs)
+        return serialize_to_dict(data)
+
+    @classmethod
     async def remove(cls, **kwargs):
         # model_id = kwargs.get("id")
         # if not model_id:
@@ -141,6 +155,9 @@ class BaseModel(db.Model):
         model = await get_one(cls, **kwargs)
         if model:
             await model.delete()
+            return serialize_to_dict(model)
+
+        return None
 
 
 class Organisation(BaseModel):
@@ -271,7 +288,9 @@ class User(BaseUser):
     internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     full_name = db.Column(db.String, nullable=False)
     display_name = db.Column(db.String)
-    role_id = db.Column(db.SmallInteger, nullable=False, default=3)
+    role_id = db.Column(
+        db.SmallInteger, db.ForeignKey("user_role.id"), nullable=False, default=3
+    )
     email = db.Column(db.String, unique=True, nullable=False)
     password = db.Column(db.String, nullable=False)
     disabled = db.Column(db.Boolean, nullable=False, default=False)
@@ -330,6 +349,57 @@ class BookmarkVisitor(BaseModel):
                 **update_kwargs,
                 staff_id=get_kwargs["staff_id"],
                 visitor_id=get_kwargs["visitor_id"],
+            )
+            return serialize_to_dict(data)
+        # Update the existing one
+        data = await update_one(payload, **update_kwargs)
+        return serialize_to_dict(data)
+
+
+class StaffSubscriptionChat(BaseModel):
+    __tablename__ = "staff_subscription_chat"
+
+    id = db.Column(db.String(length=32), primary_key=True, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    visitor_id = db.Column(db.String(length=32), nullable=False)
+    staff_id = db.Column(db.String(length=32), nullable=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_bookmark_visitor_id = db.Index("idx_staff_subscription_chat_id", "id")
+    _idx_bookmark_visitor_staff_id = db.Index(
+        "idx_staff_subscription_chat_staff_id", "staff_id"
+    )
+    _idx_bookmark_visitor_staff_visitor = db.Index(
+        "idx_staff_subscription_visitor_staff_chat",
+        "staff_id",
+        "visitor_id",
+        unique=True,
+    )
+
+    @classmethod
+    async def get_or_create(cls, **kwargs):
+        payload = await get_one(cls, **kwargs)
+        if payload:
+            return serialize_to_dict(payload)
+
+        # Create
+        data = await create_one(
+            cls, staff_id=kwargs["staff_id"], chat_id=kwargs["chat_id"]
+        )
+        return serialize_to_dict(data)
+
+    @classmethod
+    async def update_or_create(cls, get_kwargs, update_kwargs):
+        payload = await get_one(cls, **get_kwargs)
+
+        if not payload:
+            data = await create_one(
+                cls,
+                **update_kwargs,
+                staff_id=get_kwargs["staff_id"],
+                chat_id=get_kwargs["chat_id"],
             )
             return serialize_to_dict(data)
         # Update the existing one
@@ -397,6 +467,41 @@ class Chat(BaseModel):
         return serialize_to_dict(created_attempt)
 
 
+class ChatUnhandled(BaseModel):
+    __tablename__ = "chat_unhandled"
+
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(
+        db.BigInteger, autoincrement=True, primary_key=True, nullable=False
+    )
+    visitor_id = db.Column(db.String(length=32), nullable=False, unique=True)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_chat_unhandled_id = db.Index("idx_chat_unhandled_id", "id")
+    _idx_chat_unhandled_vistor_id = db.Index(
+        "idx_chat_unhandled_vistor_id", "visitor_id"
+    )
+
+
+class ChatFlagged(BaseModel):
+    __tablename__ = "chat_flagged"
+
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(
+        db.BigInteger, autoincrement=True, primary_key=True, nullable=False
+    )
+    flag_message = db.Column(JSON(), nullable=False, server_default="{}")
+    visitor_id = db.Column(db.String(length=32), nullable=False, unique=True)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_chat_flagged_id = db.Index("idx_chat_flagged_id", "id")
+    _idx_chat_flagged_vistor_id = db.Index("idx_chat_flagged_visitor_id", "visitor_id")
+
+
 class ChatUnclaimed(BaseModel):
     __tablename__ = "chat_unclaimed"
 
@@ -459,3 +564,140 @@ class ChatMessageSeen(BaseModel):
         # Update the existing one
         data = await update_one(payload, **update_kwargs)
         return serialize_to_dict(data)
+
+
+class Setting(BaseModel):
+    """A global settings for the app, such as turning on/off the toggles."""
+
+    __tablename__ = "setting"
+
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    key = db.Column(db.String, nullable=False, unique=True)
+    value = db.Column(db.SmallInteger, nullable=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_settings_id = db.Index("idx_settings_id", "id")
+    _idx_settings_key = db.Index("idx_settings_key", "key")
+
+    @classmethod
+    async def modify_if_exists(cls, get_kwargs, update_kwargs):
+        payload = await get_one(cls, **get_kwargs)
+        if not payload:
+            return None
+
+        data = await update_one(payload, **update_kwargs)
+        return serialize_to_dict(data)
+
+
+class UserRole(BaseModel):
+    __tablename__ = "user_role"
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=False, unique=True)
+    internal_id = db.Column(db.BigInteger, autoincrement=True, unique=True)
+    name = db.Column(db.String, nullable=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_user_role_table_id = db.Index("idx_user_role_table_id", "id")
+
+
+class RolePermission(BaseModel):
+    __tablename__ = "role_permission"
+
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    name = db.Column(db.String, nullable=False)
+    role_id = db.Column(db.SmallInteger, db.ForeignKey("user_role.id"), nullable=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_role_permission_id = db.Index("idx_role_permission_id", "id")
+    _idx_role_permission_role_id = db.Index("idx_role_permission_role_id", "role_id")
+    _idx_role_permission_name = db.Index("idx_role_permission_key", "name")
+    _idx_role_permission_name_role_id = db.Index(
+        "idx_role_permission_key_role_id", "name", "role_id", unique=True
+    )
+
+
+class NotificationStaffRead(BaseModel):
+    __tablename__ = "notification_staff_read"
+
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    staff_id = db.Column(db.String, unique=True, nullable=False)
+    last_read_internal_id = db.Column(db.BigInteger, nullable=True)
+
+    # Index
+    _idx_notification_staff_read_staff_id = db.Index(
+        "idx_notification_staff_read_staff_id", "staff_id"
+    )
+
+    @classmethod
+    async def get_or_create(cls, serialized=True, **kwargs):
+        payload = await get_one(cls, **kwargs)
+        if payload:
+            return serialize_to_dict(payload) if serialized else payload
+
+        # Create
+        data = await create_one(cls, staff_id=kwargs["staff_id"])
+        return serialize_to_dict(data) if serialized else data
+
+    @classmethod
+    async def update_or_create(cls, get_kwargs, update_kwargs):
+        payload = await get_one(cls, **get_kwargs)
+
+        if not payload:
+            data = await create_one(
+                cls, **update_kwargs, staff_id=get_kwargs["staff_id"]
+            )
+            return serialize_to_dict(data)
+
+        # Update the existing one
+        data = await update_one(payload, **update_kwargs)
+        return serialize_to_dict(data)
+
+
+class NotificationStaff(BaseModel):
+    __tablename__ = "notification_staff"
+
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    staff_id = db.Column(db.String, nullable=False)
+    content = db.Column(JSON(), nullable=False, server_default="{}")
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_notification_staff_id = db.Index("idx_notification_staff_id", "id")
+    _idx_notification_staff_staff_id = db.Index(
+        "idx_notification_staff_staff_id", "staff_id"
+    )
+
+    @classmethod
+    async def bulk_upsert(cls, notifications):
+        await insert(cls.__table__).values(
+            notifications
+        ).on_conflict_do_nothing().gino.scalar()
+
+
+class StaffNotificationSetting(BaseModel):
+    __tablename__ = "staff_notification_setting"
+
+    id = db.Column(db.String(length=32), nullable=False, default=generate_uuid)
+    internal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    staff_id = db.Column(db.String, nullable=False)
+    receive_emails = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.BigInteger, nullable=False, default=unix_time)
+    updated_at = db.Column(db.BigInteger, onupdate=unix_time)
+
+    # Index
+    _idx_staff_notification_setting_id = db.Index(
+        "idx_staff_notification_setting_id", "id"
+    )
+    _idx_staff_notification_setting_staff_id = db.Index(
+        "idx_staff_notification_setting_staff_id", "staff_id"
+    )

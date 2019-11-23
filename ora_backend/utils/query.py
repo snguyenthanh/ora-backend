@@ -3,7 +3,7 @@ from itertools import chain
 
 from asyncpg.exceptions import UniqueViolationError
 from sqlalchemy import and_, desc, func
-
+from collections.abc import Iterable
 from ora_backend import db
 from ora_backend.constants import DEFAULT_SEVERITY_LEVEL_OF_CHAT
 from ora_backend.exceptions import UniqueViolationError as DuplicatedError
@@ -26,6 +26,11 @@ chat_fields = [
     for key, val in CHAT_READ_SCHEMA.items()
     if not val.get("readonly", False) and key not in ignore_fields
 ]
+chat_fields_with_table_name = [
+    "chat.{}".format(key)
+    for key, val in CHAT_READ_SCHEMA.items()
+    if not val.get("readonly", False) and key not in ignore_fields
+]
 message_fields = [
     key
     for key, val in CHAT_MESSAGE_READ_SCHEMA.items()
@@ -36,8 +41,18 @@ user_fields = [
     for key, val in USER_READ_SCHEMA.items()
     if not val.get("readonly", False) and key not in ignore_fields
 ]
+user_fields_with_table_name = [
+    r'"user".{}'.format(key)
+    for key, val in USER_READ_SCHEMA.items()
+    if not val.get("readonly", False) and key not in ignore_fields
+]
 visitor_fields = [
     key
+    for key, val in VISITOR_READ_SCHEMA.items()
+    if not val.get("readonly", False) and key not in ignore_fields
+]
+visitor_fields_with_table_name = [
+    "visitor.{}".format(key)
     for key, val in VISITOR_READ_SCHEMA.items()
     if not val.get("readonly", False) and key not in ignore_fields
 ]
@@ -90,7 +105,7 @@ async def get_many(
     not_in_column=None,
     not_in_values=None,
     order_by="internal_id",
-    descrease=False,
+    decrease=False,
     offset=0,
     **kwargs,
 ):
@@ -114,20 +129,20 @@ async def get_many(
         and_(
             *dict_to_filter_args(model, **kwargs),
             model.internal_id < last_internal_id
-            if descrease and last_internal_id
+            if decrease and last_internal_id
             else model.internal_id > last_internal_id,
             getattr(model, in_column).in_(in_values)
-            if in_column and in_values
+            if in_column and isinstance(in_values, Iterable)
             else True,
             getattr(model, not_in_column).notin_(not_in_values)
-            if not_in_column and not_in_values
+            if not_in_column and isinstance(not_in_values, Iterable)
             else True,
         )
     )
 
     return (
         await query.order_by(
-            desc(getattr(model, order_by)) if descrease else getattr(model, order_by)
+            desc(getattr(model, order_by)) if decrease else getattr(model, order_by)
         )
         .limit(limit)
         .offset(offset)
@@ -142,7 +157,7 @@ async def get_flagged_chats_of_online_visitors(
     in_column="visitor_id",
     in_values,
     order_by="updated_at",
-    descrease=True,
+    decrease=True,
     limit=15,
     **kwargs,
 ):
@@ -167,7 +182,7 @@ async def get_flagged_chats_of_online_visitors(
         )
         .order_by(
             desc(getattr(chat_model, order_by))
-            if descrease
+            if decrease
             else getattr(chat_model, order_by)
         )
         .limit(limit)
@@ -253,9 +268,11 @@ async def get_messages(
             .gino.all()
         )
     else:
-        data = (await query.order_by(desc(model.sequence_num)).limit(limit).gino.all())[
-            ::-1
-        ]
+        data = (
+            await query.order_by(desc(model.sequence_num), desc(model.created_at))
+            .limit(limit)
+            .gino.all()
+        )[::-1]
     """
     result = await db.select([
         ChatMessage.sequence_num,
@@ -283,6 +300,34 @@ async def get_messages(
         result.append({**message, "sender": sender})
 
     return result
+
+
+async def get_supervisor_emails_to_send_emails():
+    data = (
+        await db.status(
+            db.text(
+                """
+                SELECT DISTINCT temp.email
+                FROM (
+                	SELECT
+                		"user".email as email,
+                		CASE WHEN staff_notification_setting.receive_emails IS NULL THEN TRUE
+                			ELSE staff_notification_setting.receive_emails
+                		END
+                	FROM "user"
+                	LEFT OUTER JOIN staff_notification_setting
+                		ON staff_notification_setting.staff_id = "user".id
+                	WHERE
+                		"user".role_id = 2
+                        AND "user".disabled = FALSE
+                ) temp
+                WHERE temp.receive_emails = TRUE;
+                """
+            )
+        )
+    )[1]
+
+    return [row[0] for row in data]
 
 
 async def get_bookmarked_visitors(
@@ -339,6 +384,81 @@ async def get_bookmarked_visitors(
     return result
 
 
+async def get_self_subscribed_visitors(
+    visitor_model,
+    chat_model,
+    subscription_model,
+    staff_id,
+    *,
+    exclude_unhandled=False,
+    limit=15,
+    after_id=None,
+    **kwargs,
+):
+    # Get the `internal_id` value from the starting row
+    # And use it to query the next page of results
+    last_internal_id = None
+    if after_id:
+        row_of_after_id = await subscription_model.query.where(
+            subscription_model.visitor_id == after_id
+        ).gino.first()
+        if not row_of_after_id:
+            raise_not_found_exception(subscription_model, visitor_id=after_id)
+
+        last_internal_id = row_of_after_id.internal_id
+
+    sql_query = """
+        SELECT {}
+        FROM visitor
+        JOIN chat
+            ON chat.visitor_id = visitor.id
+        JOIN staff_subscription_chat
+            ON staff_subscription_chat.visitor_id = visitor.id
+        WHERE
+            staff_subscription_chat.staff_id = :staff_id
+            {}
+            {}
+        ORDER BY
+            staff_subscription_chat.internal_id DESC
+        LIMIT :limit
+    """.format(
+        ", ".join(chat_fields_with_table_name + visitor_fields_with_table_name),
+        "AND visitor.internal_id < :last_internal_id"
+        if last_internal_id is not None
+        else "",
+        """AND NOT EXISTS (
+            SELECT 1
+            FROM chat_unhandled
+            WHERE
+                chat_unhandled.visitor_id = visitor.id
+        )"""
+        if exclude_unhandled
+        else "",
+    )
+
+    data = (
+        await db.status(
+            db.text(sql_query),
+            {
+                "staff_id": staff_id,
+                "limit": limit,
+                "last_internal_id": last_internal_id,
+            },
+        )
+    )[1]
+
+    result = []
+    # Parse the visitor
+    for row in data:
+        visitor_info = {}
+        for key, val in zip(chat_fields + visitor_fields, row):
+            visitor_info[key] = val
+
+        result.append(visitor_info)
+
+    return result
+
+
 async def get_one_latest(model, order_by="internal_id", **kwargs):
     return (
         await model.query.where(and_(*dict_to_filter_args(model, **kwargs)))
@@ -358,7 +478,7 @@ async def get_one_oldest(model, order_by="internal_id", **kwargs):
 
 
 async def get_many_with_count_and_group_by(
-    model, *, columns, in_column=None, in_values=None
+    model, *, columns, in_column=None, in_values=None, **kwargs
 ):
     return (
         await db.select(
@@ -367,11 +487,310 @@ async def get_many_with_count_and_group_by(
         .where(
             getattr(model, in_column).in_(in_values)
             if in_column and in_values
-            else True
+            else True,
+            *dict_to_filter_args(model, **kwargs) if kwargs else True,
         )
         .group_by(*[getattr(model, column) for column in columns])
         .gino.all()
     )
+
+
+async def get_subscribed_staffs_for_visitor(visitor_id, **kwargs):
+    sql_query = """
+        WITH subscribed_staffs AS (
+            SELECT
+                DISTINCT staff_subscription_chat.staff_id
+            FROM staff_subscription_chat
+            WHERE
+                staff_subscription_chat.visitor_id = :visitor_id
+        )
+        SELECT {}
+        FROM "user"
+        WHERE
+            EXISTS (
+                SELECT 1
+                FROM subscribed_staffs
+                WHERE subscribed_staffs.staff_id = "user".id
+            )
+        ORDER BY "user".full_name;
+    """.format(
+        ", ".join(user_fields_with_table_name)
+    )
+
+    data = (await db.status(db.text(sql_query), {"visitor_id": visitor_id}))[1]
+
+    result = []
+    # Parse the users
+    for row in data:
+        visitor_data = {key: value for key, value in zip(user_fields, row)}
+        result.append(visitor_data)
+
+    return result
+
+
+async def get_handled_chats(model, *, limit=15, after_id=None, **kwargs):
+    """Return all the chats excluding the unhandled ones"""
+    # Get the `internal_id` value from the starting row
+    # And use it to query the next page of results
+    last_internal_id = -1
+    if after_id:
+        row_of_after_id = await model.query.where(model.id == after_id).gino.first()
+        if not row_of_after_id:
+            raise_not_found_exception(model, visitor_id=after_id)
+
+        last_internal_id = row_of_after_id.internal_id
+
+    sql_query = """
+        SELECT {}
+        FROM visitor
+        JOIN chat
+            ON chat.visitor_id = visitor.id
+        WHERE
+            NOT EXISTS (
+                SELECT 1
+                FROM chat_unhandled
+                WHERE
+                    chat_unhandled.visitor_id = visitor.id
+            )
+            {}
+        ORDER BY visitor.internal_id DESC
+        LIMIT :limit
+    """.format(
+        ", ".join(chat_fields_with_table_name + visitor_fields_with_table_name),
+        "AND visitor.internal_id < :last_internal_id" if last_internal_id >= 0 else "",
+    )
+
+    data = (
+        await db.status(
+            db.text(sql_query), {"last_internal_id": last_internal_id, "limit": limit}
+        )
+    )[1]
+
+    result = []
+    # Parse the users
+    for row in data:
+        visitor_data = {
+            key: value for key, value in zip(chat_fields + visitor_fields, row)
+        }
+        result.append(visitor_data)
+
+    return result
+
+
+async def get_staff_unhandled_visitors(
+    model, staff_id=None, *, limit=15, after_id=None, **kwargs
+):
+    # Get the `internal_id` value from the starting row
+    # And use it to query the next page of results
+    last_internal_id = 0
+    if after_id:
+        row_of_after_id = await model.query.where(
+            model.visitor_id == after_id
+        ).gino.first()
+        if not row_of_after_id:
+            raise_not_found_exception(model, visitor_id=after_id)
+
+        last_internal_id = row_of_after_id.internal_id
+
+    # model_table_name = model.__tablename__
+    extra_fields = ["chat_unhandled.created_at AS unhandled_timestamp"]
+    if staff_id:
+        sql_query = """
+            WITH subscribed_visitors AS (
+                SELECT
+                    DISTINCT staff_subscription_chat.visitor_id
+                FROM staff_subscription_chat
+                WHERE
+                    staff_subscription_chat.staff_id = :staff_id
+            )
+            SELECT {}
+            FROM visitor
+            JOIN chat_unhandled
+                ON chat_unhandled.visitor_id = visitor.id
+            JOIN chat
+                ON chat.visitor_id = visitor.id
+            WHERE
+                EXISTS (
+                    SELECT 1
+                    FROM subscribed_visitors
+                    WHERE
+                        subscribed_visitors.visitor_id = visitor.id
+                )
+                AND chat_unhandled.internal_id > :last_internal_id
+            ORDER BY chat_unhandled.internal_id
+            LIMIT :limit
+        """.format(
+            ", ".join(
+                chat_fields_with_table_name
+                + visitor_fields_with_table_name
+                + extra_fields
+            ),
+            # model_table_name,
+            # model_table_name,
+        )
+    else:
+        sql_query = """
+            SELECT {}
+            FROM visitor
+            JOIN chat_unhandled
+                ON chat_unhandled.visitor_id = visitor.id
+            JOIN chat
+                ON chat.visitor_id = visitor.id
+            WHERE
+                chat_unhandled.internal_id > :last_internal_id
+            ORDER BY chat_unhandled.internal_id
+            LIMIT :limit
+        """.format(
+            ", ".join(
+                chat_fields_with_table_name
+                + visitor_fields_with_table_name
+                + extra_fields
+            )
+        )
+
+    data = (
+        await db.status(
+            db.text(sql_query),
+            {
+                "last_internal_id": last_internal_id,
+                "staff_id": staff_id,
+                "limit": limit,
+            },
+        )
+    )[1]
+
+    result = []
+    extra_fields = [item.split("AS")[1].strip() for item in extra_fields]
+    # Parse the users
+    for row in data:
+        visitor_data = {
+            key: value
+            for key, value in zip(chat_fields + visitor_fields + extra_fields, row)
+        }
+        result.append(visitor_data)
+
+    return result
+
+
+async def get_non_normal_visitors(
+    model, *, limit=15, after_id=None, extra_fields=None, **kwargs
+):
+    extra_fields = extra_fields or []
+    # extra_fields_with_table_name = [
+    #     "{}.{}".format(model.__tablename__, field) for field in extra_fields
+    # ]
+
+    # Get the `internal_id` value from the starting row
+    # And use it to query the next page of results
+    last_internal_id = 0
+    if after_id:
+        row_of_after_id = await model.query.where(
+            model.visitor_id == after_id
+        ).gino.first()
+        if not row_of_after_id:
+            raise_not_found_exception(model, visitor_id=after_id)
+
+        last_internal_id = row_of_after_id.internal_id
+
+    model_table_name = model.__tablename__
+    sql_query = """
+        SELECT {}
+        FROM visitor
+        JOIN {}
+            ON {}.visitor_id = visitor.id
+        JOIN chat
+            ON chat.visitor_id = visitor.id
+        WHERE
+            {}.internal_id > :last_internal_id
+        ORDER BY {}.internal_id
+        LIMIT :limit
+    """.format(
+        ", ".join(
+            extra_fields + chat_fields_with_table_name + visitor_fields_with_table_name
+        ),
+        model_table_name,
+        model_table_name,
+        model_table_name,
+        model_table_name,
+    )
+
+    data = (
+        await db.status(
+            db.text(sql_query), {"last_internal_id": last_internal_id, "limit": limit}
+        )
+    )[1]
+
+    result = []
+    extra_fields = [item.split("AS")[1].strip() for item in extra_fields]
+
+    # Parse the users
+    for row in data:
+        visitor_data = {
+            key: value
+            for key, value in zip(extra_fields + chat_fields + visitor_fields, row)
+        }
+        result.append(visitor_data)
+
+    return result
+
+
+async def get_unhandled_visitors_with_no_replies(max_waiting_hours: int):
+    sql_query = """
+    SELECT {}
+        FROM visitor
+    JOIN chat_unhandled
+    	ON chat_unhandled.visitor_id = visitor.id
+    WHERE
+    	round(chat_unhandled.created_at::decimal / 1000) >
+        round(extract(epoch from now())) - :max_waiting_hours * 60 * 60
+    ;
+    """.format(
+        ", ".join(visitor_fields_with_table_name)
+    )
+
+    data = (
+        await db.status(db.text(sql_query), {"max_waiting_hours": max_waiting_hours})
+    )[1]
+
+    result = []
+    # Parse the visitors
+    for row in data:
+        visitor_data = {key: value for key, value in zip(visitor_fields, row)}
+        result.append(visitor_data)
+
+    return result
+
+
+async def get_visitors_with_no_assigned_staffs():
+
+    sql_query = """
+    WITH visitors_with_assigned_staffs AS (
+        SELECT
+            DISTINCT staff_subscription_chat.visitor_id
+        FROM staff_subscription_chat
+    )
+    SELECT {}
+        FROM visitor
+    WHERE
+    	NOT EXISTS (
+            SELECT 1
+            FROM visitors_with_assigned_staffs
+            WHERE visitors_with_assigned_staffs.visitor_id = visitor.id
+        )
+    ;
+    """.format(
+        ", ".join(visitor_fields_with_table_name)
+    )
+
+    data = (await db.status(db.text(sql_query)))[1]
+
+    result = []
+    # Parse the visitors
+    for row in data:
+        visitor_data = {key: value for key, value in zip(visitor_fields, row)}
+        result.append(visitor_data)
+
+    return result
 
 
 async def get_top_unread_visitors(visitor_model, chat_model, staff_id, *, limit=15):
@@ -523,6 +942,35 @@ async def get_visitors_with_most_recent_chats(
         result.append(visitor_data)
 
     return result
+
+
+async def get_number_of_unread_notifications_for_staff(
+    staff_id, noti_read_model, noti_model
+):
+    noti_read = await noti_read_model.get_or_create(staff_id=staff_id, serialized=False)
+    last_read_internal_id = noti_read.last_read_internal_id
+
+    sql_query = """
+    SELECT COUNT(*)
+    FROM notification_staff
+    WHERE
+    	notification_staff.staff_id = :staff_id
+        {}
+    ;
+    """.format(
+        "AND notification_staff.internal_id > :last_read_internal_id"
+        if last_read_internal_id is not None
+        else ""
+    )
+
+    data = (
+        await db.status(
+            db.text(sql_query),
+            {"staff_id": staff_id, "last_read_internal_id": last_read_internal_id},
+        )
+    )[1]
+    return data[0][0]
+    # return latest_notification.internal_id - noti_read.last_read_internal_id
 
 
 @in_transaction

@@ -4,7 +4,7 @@ from os.path import abspath, dirname
 root_dir = dirname(dirname(dirname(abspath(__file__))))
 sys.path.append(root_dir)
 
-
+from ora_backend.constants import ROLES, DEFAULT_GLOBAL_SETTINGS
 from ora_backend.models import generate_uuid
 from ora_backend.tests import (
     get_fake_user,
@@ -15,6 +15,12 @@ from ora_backend.tests import (
 )
 
 organisations = [get_fake_organisation()]
+user_roles = [{"id": role, "name": value} for role, value in ROLES.items()]
+settings = [{"key": "max_staffs_in_chat", "value": 5}]
+settings = [
+    {"key": key, "value": value} for key, value in DEFAULT_GLOBAL_SETTINGS.items()
+]
+
 visitors = [get_fake_visitor() for _ in range(number_of_visitors)]
 visitors += [
     {"id": generate_uuid(), "name": "Anonymous 1", "is_anonymous": True},
