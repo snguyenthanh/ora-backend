@@ -312,7 +312,7 @@ async def update_staffs_in_chat_if_possible(
     onl_users = await cache.get(online_users_room, {})
 
     # Remove the old staffs
-    for cur_staff_id in list(current_staffs.keys()):
+    for cur_staff_id in cur_staff_ids:
         if cur_staff_id not in new_staff_ids:
             await StaffSubscriptionChat.remove_if_exists(
                 staff_id=cur_staff_id, visitor_id=visitor_id
@@ -332,14 +332,15 @@ async def update_staffs_in_chat_if_possible(
                     retry_policy={"interval_start": 10},
                 )
 
-            await sio.emit(
-                "staff_being_removed_from_chat",
-                {
-                    "staff": current_staffs[cur_staff_id],
-                    "visitor": {**visitor_info["room"], **visitor_info["user"]},
-                },
-                room=room,
-            )
+            if cur_staff_id in current_staffs:
+                await sio.emit(
+                    "staff_being_removed_from_chat",
+                    {
+                        "staff": current_staffs[cur_staff_id],
+                        "visitor": {**visitor_info["room"], **visitor_info["user"]},
+                    },
+                    room=room,
+                )
 
             # Send a notification to the staff
             await NotificationStaff.add(
