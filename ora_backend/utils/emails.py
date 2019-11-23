@@ -4,6 +4,7 @@ from celery import states
 from celery.exceptions import Ignore
 from http.client import IncompleteRead
 from urllib.error import HTTPError
+from python_http_client.exceptions import UnauthorizedError
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Email, Mail, Personalization
 
@@ -69,6 +70,10 @@ def send_email(*, receivers: list, subject: str, content: str, celery_task=None)
         if celery_task:
             mark_task_as_failed(celery_task, reason=str(exc))
     except IncompleteRead as exc:
+        status_code = 401
+        if celery_task:
+            mark_task_as_failed(celery_task, reason=str(exc))
+    except UnauthorizedError as exc:
         status_code = 401
         if celery_task:
             mark_task_as_failed(celery_task, reason=str(exc))

@@ -125,7 +125,7 @@ class BaseModel(db.Model):
         try:
             data = await update_one(payload, **update_kwargs)
         except (UniqueViolationError, DuplicatedError):
-            raise InvalidUsage("Duplicated {}".format(cls.__tablename__))
+            raise InvalidUsage("The {} already exists".format(cls.__tablename__))
 
         return serialize_to_dict(data)
 
