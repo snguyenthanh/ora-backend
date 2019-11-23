@@ -86,8 +86,10 @@ async def user_update(req, *, req_args, req_body, requester, **kwargs):
     # - Remove him from all subscriptions
     # - If he is the only staff in a chat => re-assign
     if req_body.get("disabled", False):
-        # Remove all subscriptions
-        await delete_many(StaffSubscriptionChat, staff_id=user_id)
+        is_disabled = req_body.get("disabled", False)
+        if is_disabled:
+            # Remove all subscriptions
+            await delete_many(StaffSubscriptionChat, staff_id=user_id)
 
         # Update the list of volunteers to assign
         await reset_all_volunteers_in_cache()
