@@ -4,25 +4,7 @@ from ora_backend.config import CELERY_BROKER_URL
 from ora_backend.templates.emails import email_template, email_without_button_template
 from ora_backend.utils.emails import send_email as _send_email
 
-celery_app = Celery(
-    "tasks",
-    # backend="redis://http://{}:6379/0".format(CELERY_BROKER_IP),
-    backend=CELERY_BROKER_URL,
-    broker=CELERY_BROKER_URL,
-    # backend="redis://localhost",
-    # broker="redis://localhost",
-)
-# celery_app = Celery("tasks", backend="amqp", broker="amqp://localhost")
-
-
-# @celery_app.task(bind=True)
-# def add(self, x, y):
-#     sleep(2)
-#     self.update_state(state="PROGRESS", meta={"progress": 50})
-#     sleep(2)
-#     self.update_state(state="PROGRESS", meta={"progress": 90})
-#     sleep(2)
-#     return x + y
+celery_app = Celery("tasks", backend=CELERY_BROKER_URL, broker=CELERY_BROKER_URL)
 
 
 @celery_app.task

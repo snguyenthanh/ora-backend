@@ -43,9 +43,6 @@ def send_email(*, receivers: list, subject: str, content: str):
 
     # Add the receivers
     to_list = Personalization()
-    # to_list.add_to(Email("thanhson16198@gmail.com"))
-    # to_list.add_to(Email("e0072396@u.nus.edu"))
-    # to_list.add_to(Email("jasontjakra@gmail.com"))
     for recv in receivers:
         # to_list.add_to(Email("EMAIL ADDRESS"))
         to_list.add_to(Email(recv))
@@ -66,10 +63,3 @@ def send_email(*, receivers: list, subject: str, content: str):
     #     "headers": response.headers,
     # }
     return status_code
-
-
-# send_email(
-#     receivers=["thanhson16198@gmail.com", "e0072396@u.nus.edu"],
-#     subject="Another subject",
-#     content="<strong>and easy to do anywhere, even with Python</strong>",
-# )

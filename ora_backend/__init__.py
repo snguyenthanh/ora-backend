@@ -80,7 +80,7 @@ CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
 
 # Register the limiter
 # from ora_backend.utils.limiter import get_user_id_or_ip_addr
-limiter = Limiter(app, global_limits=['500/minute'], key_func=get_remote_address)
+limiter = Limiter(app, global_limits=["500/minute"], key_func=get_remote_address)
 
 # Register the routes/views
 from ora_backend.views.urls import blueprints
@@ -122,25 +122,3 @@ else:
             endpoint_type="url",
             latency_buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1, 10, 30, 60, 120],
         ).expose_endpoint()
-
-    # # Initialize the metrics
-    # counter = prometheus.Counter(
-    #     "sanic_requests_total",
-    #     "Track the total number of requests",
-    #     ["method", "endpoint"],
-    # )
-    #
-    # # Track the total number of requests
-    # @app.middleware("request")
-    # async def track_requests(request):
-    #     # Increase the value for each request
-    #     # pylint: disable=E1101
-    #     if request.path != "/metrics":
-    #         counter.labels(method=request.method, endpoint=request.path).inc()
-    #
-    # # Expose the metrics for prometheus
-    # @app.get("/metrics")
-    # async def metrics(request):
-    #     output = prometheus.exposition.generate_latest().decode("utf-8")
-    #     content_type = prometheus.exposition.CONTENT_TYPE_LATEST
-    #     return text(body=output, content_type=content_type)

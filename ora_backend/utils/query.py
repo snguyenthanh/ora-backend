@@ -447,32 +447,6 @@ async def get_self_subscribed_visitors(
         )
     )[1]
 
-    # query = (
-    #     db.select(
-    #         [
-    #             *(getattr(chat_model, key) for key in chat_fields),
-    #             *(getattr(visitor_model, key) for key in visitor_fields),
-    #         ]
-    #     )
-    #     .select_from(
-    #         visitor_model.join(
-    #             subscription_model, visitor_model.id == subscription_model.visitor_id
-    #         )
-    #     )
-    #     .where(
-    #         and_(
-    #             subscription_model.staff_id == staff_id,
-    #             subscription_model.internal_id < last_internal_id
-    #             if last_internal_id is not None
-    #             else True,
-    #         )
-    #     )
-    #     .order_by(desc(subscription_model.internal_id))
-    #     .limit(limit)
-    #     .gino.all()
-    # )
-    # data = await query
-
     result = []
     # Parse the visitor
     for row in data:

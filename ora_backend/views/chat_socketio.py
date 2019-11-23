@@ -123,52 +123,6 @@ async def get_sequence_num_for_visitor(user_id: str):
     return sequence_num, visitor_info, None
 
 
-# async def auto_assign_staff_to_chat(visitor_id, exclude_staff_id=None):
-#     # If the setting for auto-assign is off, return None
-#     settings = await cache.get(CACHE_SETTINGS, namespace="settings")
-#     if not settings.get("auto_assign", 1):
-#         return None
-#
-#     all_volunteers = await cache.get("all_volunteers", namespace="staffs")
-#     if not all_volunteers:
-#         raw_volunteers = await User.query.where(
-#             User.role_id == ROLES.inverse["agent"]
-#         ).gino.all()
-#         volunteers = [serialize_to_dict(user) for user in raw_volunteers]
-#         counter = 0
-#         staff = volunteers[0]
-#         while staff["id"] == exclude_staff_id:
-#             counter += 1
-#             staff = volunteers[counter]
-#         await cache.set(
-#             "all_volunteers",
-#             {"counter": counter + 1, "staffs": volunteers},
-#             namespace="staffs",
-#         )
-#     else:
-#         counter = all_volunteers["counter"]
-#         if counter >= len(all_volunteers["staffs"]):
-#             counter = 0
-#         staff = all_volunteers[counter]
-#         while staff["id"] == exclude_staff_id:
-#             counter += 1
-#             if counter >= len(all_volunteers["staffs"]):
-#                 counter = 0
-#             staff = all_volunteers[counter]
-#         await cache.set(
-#             "all_volunteers",
-#             {"counter": counter + 1, "staffs": all_volunteers["staffs"]},
-#             namespace="staffs",
-#         )
-#
-#     # Assign the chat to the staff
-#     if staff:
-#         await StaffSubscriptionChat.add_if_not_exists(
-#             staff_id=staff["id"], visitor_id=visitor_id
-#         )
-#     return staff
-
-
 async def get_or_create_visitor_session(
     visitor_id: str, visitor: dict = None, chat_room: dict = None, *, assign_staff=False
 ):
@@ -189,12 +143,6 @@ async def get_or_create_visitor_session(
     if latest_chat_msg:
         sequence_num = latest_chat_msg.sequence_num
 
-    # chat_staff = await StaffSubscriptionChat.get(chat_id=chat_room["id"], many=True, limit=99)
-    # chat_staff_ids = [item["staff_id"] for item in chat_staff]
-    # staffs = await User.get(
-    #     many=True, in_column="id", in_values=chat_staff_ids, limit=99
-    # )
-    # staffs = dict(map(lambda staff: (staff["id"], staff), staffs))
     subscribed_staffs = await get_subscribed_staffs_for_visitor(visitor_id)
     staffs = {staff["id"]: staff for staff in subscribed_staffs}
 
@@ -482,13 +430,8 @@ async def connect(sid, environ: dict):
 
         # Store the current online users
         onl_users = await cache.get(online_users_room, {})
-        # if user["id"] not in onl_users:
         onl_users[user["id"]] = {**user, "sid": sid}
         await cache.set(online_users_room, onl_users)
-        # else:
-        #     await sio.emit("staff_already_online", data={"staff": user}, room=sid)
-        #     return False, "The staff is already logged in."
-
         sio.enter_room(sid, org_id)
 
         # Update online user for other staffs
@@ -530,9 +473,6 @@ async def connect(sid, environ: dict):
                 onl_visitor_ids, namespace="visitor_info"
             )
             for visitor_id, chat_room in zip(onl_visitor_ids, current_chat_rooms):
-                # online_visitors[visitor_id]["staff"] = (
-                #     chat_room["room"].get("staff", 0) if chat_room else 0
-                # )
                 online_visitors[visitor_id]["staffs"] = (
                     chat_room["room"].get("staffs", {}) if chat_room else {}
                 )
@@ -591,11 +531,8 @@ async def connect(sid, environ: dict):
             data={
                 "unclaimed_chats": list(unclaimed_chats.values()),
                 "offline_unclaimed_chats": offline_unclaimed_chats,
-                # "flagged_chats": chat_flagged_visitors,
                 "online_users": onl_users,
                 "online_visitors": list(online_visitors.values()),
-                # "active_chats": chat_staffs_visitors,
-                # "active_chats_unhandled": chat_staffs_unhandled_visitors,
             },
             room=sid,
         )
@@ -713,9 +650,6 @@ async def user_stop_typing_send(sid, data):
 @sio.event
 async def staff_join(sid, data):
     # Validation
-    # if "room" not in data or not isinstance(data["room"], str):
-    #     return False, "Missing/Invalid field: room"
-
     if "visitor" not in data or not isinstance(data["visitor"], str):
         return False, "Missing/Invalid field: visitor"
 
@@ -816,13 +750,6 @@ async def staff_join(sid, data):
     await sio.emit(
         "staff_join_room", {"staff": user}, room=chat_room_info["id"], skip_sid=sid
     )
-
-    # Update the rooms the staff is in
-    # user_info = await cache.get("user_{}".format(sid))
-    # if not user_info:
-    #     return False, "The user does not exist"
-    # user_info["rooms"].append(visitor_id)
-    # await cache.set("user_{}".format(sid), user_info)
 
     await ChatMessage.add(
         sequence_num=sequence_num,
@@ -1026,15 +953,6 @@ async def take_over_chat(sid, data):
         visitor_info["room"]["staffs"][requester["id"]] = {**requester, "sid": sid}
         await cache.set(visitor_id, visitor_info, namespace="visitor_info")
 
-        # Update the rooms the staff is in
-        # user_info = await cache.get("user_{}".format(staff_sid))
-        # if user_info:
-        #     for index, room in enumerate(user_info["rooms"]):
-        #         if room == visitor_id:
-        #             del user_info["rooms"][index]
-        #             await cache.set("user_{}".format(sid), user_info)
-        #             break
-
         # Save the chat message of staff being taken over
         await ChatMessage.add(
             sequence_num=sequence_num,
@@ -1229,8 +1147,6 @@ async def visitor_msg(sid, content):
 @sio.event
 async def change_chat_priority(sid, data):
     # Validation
-    # if "room" not in data or not isinstance(data["room"], str):
-    #     return False, "Missing/Invalid field: room"
     if "visitor" not in data or not isinstance(data["visitor"], str):
         return False, "Missing/Invalid field: visitor"
     if "severity_level" not in data or not isinstance(data["severity_level"], int):
@@ -1242,9 +1158,6 @@ async def change_chat_priority(sid, data):
     visitor_id = data["visitor"]
     flag_message = data.get("flag_message")
     user = session["user"]
-    # visitor_info = await cache.get(visitor_id, {}, namespace="visitor_info")
-    # if not visitor_info:
-    #     return False, "The chat room is either closed or doesn't exist."
     visitor_info = await get_or_create_visitor_session(visitor_id)
     sequence_num = visitor_info["room"]["sequence_num"]
     visitor_info["room"]["sequence_num"] = sequence_num + 1
@@ -1275,7 +1188,6 @@ async def change_chat_priority(sid, data):
         await ChatFlagged.remove_if_exists(visitor_id=visitor_info["user"]["id"])
 
     # Update cache of the room
-    # chat_room_info = await cache.get(room)
     visitor_info["room"]["severity_level"] = data["severity_level"]
     await cache.set(visitor_id, visitor_info, namespace="visitor_info")
 
@@ -1413,8 +1325,6 @@ async def handle_staff_leave(sid, session, data):
     visitor_info["room"]["sequence_num"] = sequence_num + 1
 
     # Remove assigned `staff` to room
-    # staff = visitor_info["room"]["staff"]
-    # visitor_info["room"]["staff"] = 0
     staff = visitor_info["room"]["staffs"].pop(user["id"], None)
     visitor = visitor_info["user"]
 
@@ -1437,16 +1347,6 @@ async def handle_staff_leave(sid, session, data):
         await cache.delete(visitor_id, namespace="visitor_info")
     else:
         await cache.set(visitor_id, visitor_info, namespace="visitor_info")
-
-    # Update the rooms the staff is in
-    # user_info = await cache.get("user_{}".format(sid))
-    # if not user_info:
-    #     return False, "The user does not exist"
-    # for index, room in enumerate(user_info["rooms"]):
-    #     if room == visitor_id:
-    #         del user_info["rooms"][index]
-    #         await cache.set("user_{}".format(sid), user_info)
-    #         break
 
     # Emit the msg before storing it in DB
     room = visitor_info["room"]
@@ -1656,5 +1556,5 @@ async def disconnect(sid):
         sio.leave_room(sid, org_room)
         sio.leave_room(sid, monitor_room)
 
-    await cache.delete("user_{}".format(sid), {})
+    await cache.delete("user_{}".format(sid))
     return True, None

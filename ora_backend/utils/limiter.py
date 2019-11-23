@@ -1,7 +1,5 @@
 from sanic_limiter import get_remote_address
-from sanic_jwt_extended.decorators import (
-    get_jwt_data,
-)
+from sanic_jwt_extended.decorators import get_jwt_data
 
 from ora_backend import app
 from ora_backend.utils.auth import get_token_from_request
