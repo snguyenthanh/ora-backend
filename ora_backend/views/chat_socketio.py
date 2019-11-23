@@ -307,6 +307,7 @@ async def update_staffs_in_chat_if_possible(
             False,
             "The number of staffs in the room has reached the max capacity.",
             None,
+            False,
         )
 
     # Get the online staffs
