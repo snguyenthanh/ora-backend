@@ -18,6 +18,13 @@ async def reset_all_volunteers_in_cache():
         await cache.set(
             "all_volunteers", {"counter": 0, "staffs": volunteers}, namespace="staffs"
         )
+    else:
+        counter = volunteers_data.get("counter", 0)
+        await cache.set(
+            "all_volunteers",
+            {"counter": counter, "staffs": volunteers},
+            namespace="staffs",
+        )
 
 
 async def auto_reassign_staff_to_chat(visitor_id):
