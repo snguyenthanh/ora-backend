@@ -1108,7 +1108,9 @@ async def handle_visitor_msg(sid, content):
     online_users_room = ONLINE_USERS_PREFIX
     onl_users = await cache.get(online_users_room, {})
     subscribed_staffs = visitor_info["room"]["staffs"]
-    if all(staff_id not in onl_users for staff_id in subscribed_staffs):
+    if subscribed_staffs and all(
+        staff_id not in onl_users for staff_id in subscribed_staffs
+    ):
         emails = [staff["email"] for staff in subscribed_staffs.values()]
         receivers = []
         for email in emails:
@@ -1126,12 +1128,12 @@ async def handle_visitor_msg(sid, content):
                 ttl=60 * 60,  # seconds
                 namespace=CACHE_SEND_EMAIL_ON_VISITOR_NEW_MSG,
             )
-
-        send_email_to_staffs_for_new_visitor_msg.apply_async(
-            (receivers, visitor_info["user"]),
-            expires=60 * 5,  # seconds
-            retry_policy={"interval_start": 10},
-        )
+        if receivers:
+            send_email_to_staffs_for_new_visitor_msg.apply_async(
+                (receivers, visitor_info["user"]),
+                expires=60 * 5,  # seconds
+                retry_policy={"interval_start": 10},
+            )
 
     return True, None
 
