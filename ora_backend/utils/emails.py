@@ -29,7 +29,7 @@ def send_email(*, receivers: list, subject: str, content: str):
         content [Str]:
             The HTML content of the mail
     """
-    if not sg:
+    if not sg or not receivers:
         return None
 
     message = Mail(

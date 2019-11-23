@@ -57,7 +57,6 @@ def send_email_for_flagged_chat(receivers: list, visitor: dict):
     """Send an email to all supervisors about the new message, when no one is online."""
     # if not receivers:
     #     return None
-    receivers = []
 
     email_subject = "A staff has flagged the chat with visitor {}!".format(
         visitor["name"]
