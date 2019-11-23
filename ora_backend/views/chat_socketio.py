@@ -8,7 +8,7 @@ from sanic_jwt_extended.exceptions import JWTExtendedException
 from jwt.exceptions import ExpiredSignatureError
 import time
 
-from ora_backend import app, cache, db
+from ora_backend import app, cache
 from ora_backend.constants import (
     UNCLAIMED_CHATS_PREFIX,
     ONLINE_USERS_PREFIX,
@@ -1477,6 +1477,9 @@ async def disconnect(sid):
     if not session:
         return False, "The user has already disconnected."
 
+    # Delete the cache right away
+    await cache.delete("user_{}".format(sid))
+
     online_visitors_room = ONLINE_VISITORS_PREFIX
 
     # Visitor
@@ -1558,5 +1561,4 @@ async def disconnect(sid):
         sio.leave_room(sid, org_room)
         sio.leave_room(sid, monitor_room)
 
-    await cache.delete("user_{}".format(sid))
     return True, None
