@@ -80,7 +80,7 @@ CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
 
 # Register the limiter
 # from ora_backend.utils.limiter import get_user_id_or_ip_addr
-limiter = Limiter(app, global_limits=["1000/minute"], key_func=get_remote_address)
+limiter = Limiter(app, global_limits=["200/minute"], key_func=get_remote_address)
 
 # Register the routes/views
 from ora_backend.views.urls import blueprints
