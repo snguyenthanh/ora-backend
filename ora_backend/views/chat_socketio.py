@@ -324,7 +324,7 @@ async def update_staffs_in_chat_if_possible(
             removed_staff = (
                 visitor_info["room"].setdefault("staffs", {}).pop(cur_staff_id, None)
             )
-            if removed_staff["id"] in onl_users:
+            if removed_staff and removed_staff["id"] in onl_users:
                 sio.leave_room(onl_users[removed_staff["id"]]["sid"], room)
             else:
                 # Send an email if the user is offline
