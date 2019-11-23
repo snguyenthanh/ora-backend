@@ -289,7 +289,9 @@ async def update_staffs_in_chat_if_possible(
     requester, new_staff_ids, visitor_id, visitor_info
 ):
     room = visitor_info["room"]["id"]
-    current_staffs = visitor_info["room"].get("staffs", {})
+    # current_staffs = visitor_info["room"].get("staffs", {})
+    subscribed_staffs = await get_subscribed_staffs_for_visitor(visitor_id)
+    current_staffs = {staff["id"]: staff for staff in subscribed_staffs}
 
     # If the staffs are the same, ignore
     new_staff_ids = set(new_staff_ids)
