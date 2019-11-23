@@ -32,6 +32,7 @@ from ora_backend.utils.validation import (
     validate_permission,
     validate_against_schema,
 )
+from ora_backend.worker.tasks import send_email_to_new_visitor
 
 
 @validate_permission
@@ -60,7 +61,16 @@ async def visitor_update(req, *, req_args, req_body, requester, **kwargs):
 
 @validate_request(schema="visitor_write", skip_args=True)
 async def visitor_create(req, *, req_args, req_body, **kwargs):
-    return {"data": await Visitor.add(**req_body)}
+    visitor = await Visitor.add(**req_body)
+
+    # Send email
+    send_email_to_new_visitor.apply_async(
+        ([visitor["email"]], visitor),
+        expires=60 * 15,  # seconds
+        retry_policy={"interval_start": 10},
+    )
+
+    return {"data": visitor}
 
 
 @blueprint.route("/bookmarked", methods=["GET"])

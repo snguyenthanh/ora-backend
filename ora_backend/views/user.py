@@ -27,6 +27,13 @@ from ora_backend.utils.query import (
 from ora_backend.utils.request import unpack_request
 from ora_backend.utils.settings import get_latest_settings
 from ora_backend.utils.validation import validate_request, validate_permission
+from ora_backend.worker.tasks import (
+    send_email_to_new_staff,
+    send_email_to_staff_on_role_promoted,
+    send_email_to_staff_on_role_demoted,
+    send_email_to_staff_on_enabled,
+    send_email_to_staff_on_disabled,
+)
 
 
 @validate_request(schema="user_read", skip_body=True)
@@ -59,7 +66,16 @@ async def user_create(req, *, req_args, req_body, requester, **kwargs):
     # An user can only create a new user within its org
     req_body["organisation_id"] = requester["organisation_id"]
 
-    return {"data": await User.add(**req_body)}
+    user = await User.add(**req_body)
+
+    # Send email
+    send_email_to_new_staff.apply_async(
+        ([user["email"]], user),
+        expires=60 * 15,  # seconds
+        retry_policy={"interval_start": 10},
+    )
+
+    return {"data": user}
 
 
 # @validate_request(schema="user_write")
@@ -94,6 +110,18 @@ async def user_update(req, *, req_args, req_body, requester, **kwargs):
             # Remove all subscriptions
             await delete_many(StaffSubscriptionChat, staff_id=user_id)
 
+            send_email_to_staff_on_disabled.apply_async(
+                ([new_user["email"]], requester),
+                expires=60 * 15,  # seconds
+                retry_policy={"interval_start": 10},
+            )
+        else:
+            send_email_to_staff_on_enabled.apply_async(
+                ([new_user["email"]], requester),
+                expires=60 * 15,  # seconds
+                retry_policy={"interval_start": 10},
+            )
+
         settings = await get_latest_settings()
         if settings.get("auto_reassign", 0):
             # Re-assign a new staff
@@ -101,6 +129,20 @@ async def user_update(req, *, req_args, req_body, requester, **kwargs):
             visitors = await get_visitors_with_no_assigned_staffs()
             for visitor in visitors:
                 await auto_assign_staff_to_chat(visitor["id"])
+
+    if "role_id" in req_body:
+        if update_user["role_id"] < new_user["role_id"]:
+            send_email_to_staff_on_role_demoted.apply_async(
+                (new_user["email"], new_user, requester),
+                expires=60 * 15,  # seconds
+                retry_policy={"interval_start": 10},
+            )
+        elif update_user["role_id"] > new_user["role_id"]:
+            send_email_to_staff_on_role_promoted.apply_async(
+                (new_user["email"], new_user, requester),
+                expires=60 * 15,  # seconds
+                retry_policy={"interval_start": 10},
+            )
 
     return {"data": new_user}
 

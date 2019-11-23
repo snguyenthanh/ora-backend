@@ -1,5 +1,7 @@
 from os import environ
 
+from celery import states
+from celery.exceptions import Ignore
 from http.client import IncompleteRead
 from urllib.error import HTTPError
 from sendgrid import SendGridAPIClient
@@ -17,7 +19,15 @@ else:
     sg = None
 
 
-def send_email(*, receivers: list, subject: str, content: str):
+def mark_task_as_failed(task, reason=None):
+    reason = reason or "Task failed"
+    task.update_state(state=states.FAILURE, meta=reason)
+
+    # ignore the task so no other state is recorded
+    raise Ignore()
+
+
+def send_email(*, receivers: list, subject: str, content: str, celery_task=None):
     """
     Kwargs:
         receivers [List[Str]]:
@@ -54,8 +64,14 @@ def send_email(*, receivers: list, subject: str, content: str):
     try:
         response = sg.send(message)
         status_code = response.status_code
-    except (HTTPError, IncompleteRead):
+    except HTTPError as exc:
         status_code = 401
+        if celery_task:
+            mark_task_as_failed(celery_task, reason=str(exc))
+    except IncompleteRead as exc:
+        status_code = 401
+        if celery_task:
+            mark_task_as_failed(celery_task, reason=str(exc))
 
     # return {
     #     "status_code": response.status_code,
