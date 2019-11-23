@@ -232,10 +232,10 @@ def send_email_to_staff_on_disabled(self, receivers: list, requester: dict):
         return None
 
     email_subject = "Your account has been disabled by {}!".format(
-        ROLES[requester["full_name"]]
+        requester["full_name"]
     )
     title = "Your account has been disabled by <strong>{}</strong>!".format(
-        ROLES[requester["full_name"]]
+        requester["full_name"]
     )
     content = (
         "You are now unable to access any services provided by <strong>Ora</strong>."
@@ -260,10 +260,10 @@ def send_email_to_staff_on_enabled(self, receivers: list, requester: dict):
         return None
 
     email_subject = "Your account has been enabled by {}!".format(
-        ROLES[requester["full_name"]]
+        requester["full_name"]
     )
     title = "Your account has been enabled by <strong>{}</strong>!".format(
-        ROLES[requester["full_name"]]
+        requester["full_name"]
     )
     content = (
         "You are now able to access any services provided by <strong>Ora</strong>."

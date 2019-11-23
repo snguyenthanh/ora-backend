@@ -71,7 +71,7 @@ async def user_create(req, *, req_args, req_body, requester, **kwargs):
     # Send email
     send_email_to_new_staff.apply_async(
         ([user["email"]], user),
-        expires=60 * 15,  # seconds
+        expires=60 * 5,  # seconds
         retry_policy={"interval_start": 10},
     )
 
@@ -112,13 +112,13 @@ async def user_update(req, *, req_args, req_body, requester, **kwargs):
 
             send_email_to_staff_on_disabled.apply_async(
                 ([new_user["email"]], requester),
-                expires=60 * 15,  # seconds
+                expires=60 * 5,  # seconds
                 retry_policy={"interval_start": 10},
             )
         else:
             send_email_to_staff_on_enabled.apply_async(
                 ([new_user["email"]], requester),
-                expires=60 * 15,  # seconds
+                expires=60 * 5,  # seconds
                 retry_policy={"interval_start": 10},
             )
 
@@ -134,13 +134,13 @@ async def user_update(req, *, req_args, req_body, requester, **kwargs):
         if update_user["role_id"] < new_user["role_id"]:
             send_email_to_staff_on_role_demoted.apply_async(
                 (new_user["email"], new_user, requester),
-                expires=60 * 15,  # seconds
+                expires=60 * 5,  # seconds
                 retry_policy={"interval_start": 10},
             )
         elif update_user["role_id"] > new_user["role_id"]:
             send_email_to_staff_on_role_promoted.apply_async(
                 (new_user["email"], new_user, requester),
-                expires=60 * 15,  # seconds
+                expires=60 * 5,  # seconds
                 retry_policy={"interval_start": 10},
             )
 

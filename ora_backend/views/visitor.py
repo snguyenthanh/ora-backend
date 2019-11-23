@@ -66,7 +66,7 @@ async def visitor_create(req, *, req_args, req_body, **kwargs):
     # Send email
     send_email_to_new_visitor.apply_async(
         ([visitor["email"]], visitor),
-        expires=60 * 15,  # seconds
+        expires=60 * 5,  # seconds
         retry_policy={"interval_start": 10},
     )
 

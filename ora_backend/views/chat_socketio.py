@@ -168,7 +168,7 @@ async def get_or_create_visitor_session(
                     # Send email if the staff is offline
                     send_email_for_new_assigned_chat.apply_async(
                         ([staff["email"]], visitor),
-                        expires=60 * 15,  # seconds
+                        expires=60 * 5,  # seconds
                         retry_policy={"interval_start": 10},
                     )
         staffs = {staff["id"]: staff} if staff else {}
@@ -226,7 +226,7 @@ async def add_staff_to_chat_if_possible(
             # Send an email if the user is offline
             send_email_for_new_assigned_chat.apply_async(
                 ([staff["email"]], visitor_info["user"]),
-                expires=60 * 15,  # seconds
+                expires=60 * 5,  # seconds
                 retry_policy={"interval_start": 10},
             )
 
@@ -330,7 +330,7 @@ async def update_staffs_in_chat_if_possible(
                 # Send an email if the user is offline
                 send_email_for_being_removed_from_chat.apply_async(
                     ([removed_staff["email"]], visitor_info["user"]),
-                    expires=60 * 15,  # seconds
+                    expires=60 * 5,  # seconds
                     retry_policy={"interval_start": 10},
                 )
 
@@ -378,7 +378,7 @@ async def update_staffs_in_chat_if_possible(
                 # Send an email if the user is offline
                 send_email_for_new_assigned_chat.apply_async(
                     ([staff["email"]], visitor_info["user"]),
-                    expires=60 * 15,  # seconds
+                    expires=60 * 5,  # seconds
                     retry_policy={"interval_start": 10},
                 )
 
@@ -1128,7 +1128,7 @@ async def handle_visitor_msg(sid, content):
 
         send_email_to_staffs_for_new_visitor_msg.apply_async(
             (receivers, visitor_info["user"]),
-            expires=60 * 15,  # seconds
+            expires=60 * 5,  # seconds
             retry_policy={"interval_start": 10},
         )
 
@@ -1188,7 +1188,7 @@ async def change_chat_priority(sid, data):
         receivers = await get_supervisor_emails_to_send_emails()
         send_email_for_flagged_chat.apply_async(
             (receivers, visitor_info["user"]),
-            expires=60 * 15,  # seconds
+            expires=60 * 5,  # seconds
             retry_policy={"interval_start": 10},
         )
     else:
@@ -1309,7 +1309,7 @@ async def staff_msg(sid, data):
         if visitor_id not in onl_visitors and visitor_info["user"]["email"]:
             send_email_to_visitor_for_new_staff_msg.apply_async(
                 ([visitor_info["user"]["email"]], user),
-                expires=60 * 15,  # seconds
+                expires=60 * 5,  # seconds
                 retry_policy={"interval_start": 10},
             )
 
