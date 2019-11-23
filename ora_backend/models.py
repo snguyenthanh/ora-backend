@@ -1,6 +1,7 @@
 from time import time
 
 from uuid import uuid4
+from asyncpg.exceptions import UniqueViolationError as DuplicatedError
 from sanic.exceptions import InvalidUsage, NotFound, Unauthorized
 from gino.dialects.asyncpg import ARRAY, JSON
 from sqlalchemy.dialects.postgresql import insert
@@ -108,7 +109,7 @@ class BaseModel(db.Model):
     async def add_if_not_exists(cls, **kwargs):
         try:
             data = await create_one(cls, **kwargs)
-        except UniqueViolationError:
+        except (UniqueViolationError, DuplicatedError):
             return None
         return serialize_to_dict(data)
 
@@ -121,8 +122,11 @@ class BaseModel(db.Model):
         payload = await get_one(cls, id=model_id)
         if not payload:
             raise_not_found_exception(cls, id=model_id)
+        try:
+            data = await update_one(payload, **update_kwargs)
+        except (UniqueViolationError, DuplicatedError):
+            raise InvalidUsage("Duplicated {}".format(cls.__tablename__))
 
-        data = await update_one(payload, **update_kwargs)
         return serialize_to_dict(data)
 
     @classmethod
