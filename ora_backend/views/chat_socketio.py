@@ -8,7 +8,7 @@ from sanic_jwt_extended.exceptions import JWTExtendedException
 from jwt.exceptions import ExpiredSignatureError
 import time
 
-from ora_backend import app, cache
+from ora_backend import app, cache, db
 from ora_backend.constants import (
     UNCLAIMED_CHATS_PREFIX,
     ONLINE_USERS_PREFIX,
@@ -867,9 +867,10 @@ async def update_staffs_in_chat(sid, data):
     if not is_allowed:
         return False, "You are not authorized to remove staffs from a chat."
 
-    visitor_info = await cache.get(visitor_id, namespace="visitor_info")
-    if not visitor_info:
-        return False, "The chat room is either closed or doesn't exist."
+    # visitor_info = await cache.get(visitor_id, namespace="visitor_info")
+    visitor_info = await get_or_create_visitor_session(visitor_id)
+    # if not visitor_info:
+    #     return False, "The chat room is either closed or doesn't exist."
 
     status, error_msg, new_visitor_info, changed = await update_staffs_in_chat_if_possible(
         user, staff_ids, visitor_id, visitor_info
