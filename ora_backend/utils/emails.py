@@ -1,7 +1,7 @@
 from os import environ
 
-from http.client import IncompleteRead
-from urllib.error import HTTPError
+# from http.client import IncompleteRead
+# from urllib.error import HTTPError
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Email, Mail, Personalization
 
@@ -54,7 +54,7 @@ def send_email(*, receivers: list, subject: str, content: str):
     try:
         response = sg.send(message)
         status_code = response.status_code
-    except (HTTPError, IncompleteRead):
+    except Exception:
         status_code = 401
 
     # return {
