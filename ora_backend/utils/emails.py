@@ -1,7 +1,7 @@
 from os import environ
 
 from celery import states
-from celery.exceptions import Ignore
+from celery.exceptions import TaskError
 from http.client import IncompleteRead
 from urllib.error import HTTPError
 from python_http_client.exceptions import UnauthorizedError
@@ -25,7 +25,7 @@ def mark_task_as_failed(task, reason=None):
     task.update_state(state=states.FAILURE, meta=reason)
 
     # ignore the task so no other state is recorded
-    raise Ignore()
+    raise TaskError(reason)
 
 
 def send_email(*, receivers: list, subject: str, content: str, celery_task=None):
