@@ -73,13 +73,27 @@ async def user_login(request, *, req_body, **kwargs):
 @blueprint.route("/refresh", methods=["POST"])
 async def create_new_access_token(request):
     jwt_token_data = await get_token_data_from_request(request, token_type="refresh")
-    access_token = await create_access_token(
-        identity=jwt_token_data["identity"], app=request.app
-    )
+    user = jwt_token_data["identity"]
+
+    # Staff
+    if "role_id" in user:
+        user = await User.get(id=user["id"])
+    else:
+        # Visitor
+        user = await Visitor.get(id=user["id"])
+
+    # Return a new pair of access and refresh token
+    # As the user's information may have changed
+    access_token = await create_access_token(identity=user, app=request.app)
+    refresh_token = await create_refresh_token(identity=user, app=request.app)
+
+    # Sign the tokens to avoid modifications
     signed_access_token = sign_str(access_token)
+    signed_refresh_token = sign_str(refresh_token)
+
     response = json({"access_token": signed_access_token})
     response.cookies["access_token"] = signed_access_token
-    response.cookies["refresh_token"] = request.cookies["refresh_token"]
+    response.cookies["refresh_token"] = signed_refresh_token
     response.cookies["access_token"]["httponly"] = True
     response.cookies["refresh_token"]["httponly"] = True
 
