@@ -90,6 +90,16 @@ A refresh token is a long-life token used to generate new access tokens. In this
 - [API References and how to use](docs/API.md)
 - [Chat (using SocketIO)](docs/Chat_using_SocketIO.md)
 
+## Deployment
+
+Both `app.py` and `app_socketio.py` need to be run to fully achieve all functionalities.
+
+The commands to run them are located in variable `ExecStart` in [deployment/ora.service](deployment/ora.service) and [deployment/ora_socketio.service](deployment/ora_socketio.service)
+
+`.nginx.conf` is the `NginX` configuration used in the `DigitalOcean` server.
+
+`*.service` files are the `systemctl` services to auto-run the application.
+
 ## Tech stack
 
 1. Database: [PostgreSQL](https://www.postgresql.org)
