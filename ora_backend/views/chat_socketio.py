@@ -878,7 +878,12 @@ async def update_staffs_in_chat(sid, data):
     # if not visitor_info:
     #     return False, "The chat room is either closed or doesn't exist."
 
-    status, error_msg, new_visitor_info, changed = await update_staffs_in_chat_if_possible(
+    (
+        status,
+        error_msg,
+        new_visitor_info,
+        changed,
+    ) = await update_staffs_in_chat_if_possible(
         user, staff_ids, visitor_id, visitor_info
     )
     if status and changed:
