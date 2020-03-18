@@ -37,7 +37,11 @@ else:
 DB_CERT = environ.get("DB_CERT")
 if DB_CERT:
     ssl_ctx = ssl.create_default_context(cafile=DB_CERT)
-    SANIC_CONFIG["DB_SSL"] = ssl_ctx
+else:
+    ssl_ctx = ssl.create_default_context(cafile='')
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
+SANIC_CONFIG["DB_SSL"] = ssl_ctx
 
 SANIC_RUN_CONFIG = {
     "host": "0.0.0.0",
