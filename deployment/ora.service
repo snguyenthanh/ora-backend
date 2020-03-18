@@ -1,0 +1,13 @@
+[Unit]
+Description=Running Ora backend
+After=network.target
+
+[Service]
+User=root
+Group=www-data
+WorkingDirectory=/root/ora-backend
+EnvironmentFile=/root/.env
+ExecStart=/root/venv/bin/gunicorn --bind 0.0.0.0:8000 --keep-alive 10 --workers 3 --worker-class sanic.worker.GunicornWorker --threads 1 app:app
+
+[Install]
+WantedBy=multi-user.target

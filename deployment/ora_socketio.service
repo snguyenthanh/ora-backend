@@ -1,0 +1,14 @@
+[Unit]
+Description=Running Ora socketio
+After=network.target
+
+[Service]
+User=root
+Group=www-data
+WorkingDirectory=/root/ora-backend
+EnvironmentFile=/root/.env
+ExecStart=/root/venv/bin/gunicorn --bind 0.0.0.0:8080 --keep-alive 10 --workers 1 --worker-class sanic.worker.GunicornWorker --threads 4 app_socketio:app
+
+
+[Install]
+WantedBy=multi-user.target
