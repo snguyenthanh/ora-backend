@@ -10,7 +10,7 @@ faker = "*"
 
 [packages]
 gino = "*"
-sanic = "==19.6.3"
+sanic = "==20.12.7"
 alembic = "*"
 psycopg2-binary = "*"
 cerberus = "*"
